@@ -66,8 +66,8 @@ export const LETTERS: Record<string, LetterGlyph> = {
   P: { width: 1, parts: [p('LV', 0, 1), p('P', 0.5, 0.5)] },
   Q: { width: 2, parts: [p('C', 0.5, 1), p('C', 1.5, 1, 180), p('SB', 1.6, 1.9)] },
   R: { width: 1, parts: [p('LV', 0, 1), p('P', 0.5, 0.5), p('SB', 0.75, 1.5)] },
-  // Offset bowls so their middle legs coincide into a single spine.
-  S: { width: 1.5, parts: [p('P', 0.5, 0.5, 180), p('P', 1, 1.5)] },
+  // Bowls stacked in one column (180° symmetric); their middle legs join into a full-width spine.
+  S: { width: 1, parts: [p('P', 0.5, 0.5, 180), p('P', 0.5, 1.5)] },
   T: { width: 1, parts: [p('H', 0.5, 0), p('LV', 0.5, 1)] },
   U: { width: 1, parts: [p('SV', 0, 0.5), p('SV', 1, 0.5), p('P', 0.5, 1.5, 90)] },
   V: { width: 1.6, parts: [p('BV', 0.8, 1)] },
