@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { animate, motion, useMotionValue } from 'motion/react';
-import type { Placement, TileId } from '../glyphs';
+import { TILES, type Placement, type TileId } from '../glyphs';
 import { TileStroke } from './Glyph';
 
 /** Board tiles are drawn in a 2.4-unit-wide viewBox; strokes use the same box so scales line up. */
@@ -23,6 +23,8 @@ interface Props {
 export function Stroke({ part, cx, cy, unit, delay, tileEl }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const rot = part.rot ?? 0;
+  // Start (and end) at the tile's board orientation so the stroke visibly turns into place.
+  const boardRot = TILES[part.tile].display ?? 0;
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const scale = useMotionValue(1);
@@ -46,7 +48,7 @@ export function Stroke({ part, cx, cy, unit, delay, tileEl }: Props) {
     x.set(from.x);
     y.set(from.y);
     scale.set(from.scale);
-    rotate.set(0);
+    rotate.set(boardRot);
     const opts = { ...SNAP, delay };
     const anims = [animate(x, 0, opts), animate(y, 0, opts), animate(scale, 1, opts), animate(rotate, rot, opts)];
     return () => anims.forEach((a) => a.stop());
@@ -63,7 +65,7 @@ export function Stroke({ part, cx, cy, unit, delay, tileEl }: Props) {
         gone: () => {
           const to = toTile();
           return to
-            ? { ...to, rotate: 0, opacity: 0, transition: { ...RETURN, delay, opacity: { delay: delay + 0.25 } } }
+            ? { ...to, rotate: boardRot, opacity: 0, transition: { ...RETURN, delay, opacity: { delay: delay + 0.25 } } }
             : { opacity: 0 };
         },
       }}

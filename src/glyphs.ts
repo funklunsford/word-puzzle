@@ -13,6 +13,8 @@ export interface TileShape {
   path: string;
   /** Whether the tile may be rotated when placed in a letter. */
   rotates: boolean;
+  /** Rotation (degrees clockwise) used when drawing the tile on the board, chosen so it doesn't read as a letter. */
+  display?: number;
 }
 
 export const TILES: Record<TileId, TileShape> = {
@@ -22,9 +24,9 @@ export const TILES: Record<TileId, TileShape> = {
   LD: { id: 'LD', name: 'Rising slash', path: 'M-0.5 1 L0.5 -1', rotates: false },
   LB: { id: 'LB', name: 'Falling slash', path: 'M-0.5 -1 L0.5 1', rotates: false },
   SB: { id: 'SB', name: 'Tail', path: 'M-0.25 -0.5 L0.25 0.5', rotates: false },
-  BV: { id: 'BV', name: 'Big chevron', path: 'M-0.8 -1 L0 1 L0.8 -1', rotates: true },
-  SC: { id: 'SC', name: 'Small chevron', path: 'M-1 -0.5 L0 0.5 L1 -0.5', rotates: true },
-  C: { id: 'C', name: 'Big arc', path: 'M0.5 -1 A1 1 0 0 0 0.5 1', rotates: true },
+  BV: { id: 'BV', name: 'Big chevron', path: 'M-0.8 -1 L0 1 L0.8 -1', rotates: true, display: 90 },
+  SC: { id: 'SC', name: 'Small chevron', path: 'M-1 -0.5 L0 0.5 L1 -0.5', rotates: true, display: 180 },
+  C: { id: 'C', name: 'Big arc', path: 'M0.5 -1 A1 1 0 0 0 0.5 1', rotates: true, display: 90 },
   P: { id: 'P', name: 'Bowl', path: 'M-0.5 -0.5 L0 -0.5 A0.5 0.5 0 0 1 0 0.5 L-0.5 0.5', rotates: true },
 };
 

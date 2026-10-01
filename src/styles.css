@@ -200,6 +200,40 @@ select,
   transition: opacity 0.3s, filter 0.3s, border-color 0.2s, box-shadow 0.2s;
 }
 
+.tile {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tile.dim {
+  opacity: 0.35;
+}
+
+.tile.focused {
+  border-color: var(--ink);
+}
+
+.tile-name {
+  font-size: 9.5px;
+  line-height: 1.15;
+  color: var(--muted);
+  text-align: center;
+}
+
+.count {
+  position: absolute;
+  top: -9px;
+  left: -7px;
+  min-width: 22px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .tile.center {
   border-color: var(--gold);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 35%, transparent);
@@ -264,6 +298,14 @@ select,
 .word-stroke svg {
   overflow: visible;
   display: block;
+}
+
+.ghost {
+  position: absolute;
+  top: 0;
+  overflow: visible;
+  opacity: 0.28;
+  pointer-events: none;
 }
 
 .word-placeholder {
@@ -338,6 +380,19 @@ select,
 }
 
 
+
+.key {
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.key.dim {
+  opacity: 0.25;
+}
+
+.key.match {
+  border-color: var(--ink);
+  transform: translateY(-2px);
+}
 
 .key:not(:disabled):active {
   transform: translateY(1px);

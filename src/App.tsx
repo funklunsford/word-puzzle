@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useAnimate } from 'motion/react';
-import type { TileId } from './glyphs';
+import { LETTERS, recipe, type TileId } from './glyphs';
 import {
   newGame,
   play,
@@ -32,6 +32,9 @@ export function App() {
   const [word, setWord] = useState('');
   const [toast, setToast] = useState<Toast | null>(null);
   const [showAnswers, setShowAnswers] = useState(false);
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
+  const [hoverTile, setHoverTile] = useState<TileId | null>(null);
+  const [pinnedTile, setPinnedTile] = useState<TileId | null>(null);
   const [width, setWidth] = useState(() => Math.min(window.innerWidth, 640) - 32);
   const [scope, animateWord] = useAnimate();
   const tileEls = useRef(new Map<TileId, Element>());
@@ -52,6 +55,7 @@ export function App() {
     setState(newGame(board));
     setWord('');
     setShowAnswers(false);
+    setPinnedTile(null);
   }, [board]);
 
   const registerTile = useCallback((tile: TileId, el: Element | null) => {
@@ -107,6 +111,9 @@ export function App() {
   if (!board || !state) return <div className="app loading">Loading…</div>;
 
   const inUse = tilesFor(word);
+  const focusTile = hoverTile ?? pinnedTile;
+  const preview = hoverKey ? recipe(hoverKey) : null;
+  const matches = focusTile ? new Set(Object.keys(LETTERS).filter((ch) => recipe(ch).has(focusTile))) : null;
   const pangramFound = state.plays.some((p) => p.pangram);
 
   return (
@@ -130,10 +137,19 @@ export function App() {
         </span>
       </div>
 
-      <Board board={board} state={state} inUse={inUse} registerTile={registerTile} />
+      <Board
+        board={board}
+        state={state}
+        inUse={inUse}
+        preview={preview}
+        focusTile={focusTile}
+        onHoverTile={setHoverTile}
+        onToggleTile={(t) => setPinnedTile((p) => (p === t ? null : t))}
+        registerTile={registerTile}
+      />
 
       <div className="word-area">
-        <WordLine word={word} maxWidth={width} tileEl={tileEl} scope={scope} />
+        <WordLine word={word} maxWidth={width} tileEl={tileEl} scope={scope} ghost={hoverKey} />
         <AnimatePresence>
           {toast && (
             <motion.div
@@ -149,7 +165,7 @@ export function App() {
         </AnimatePresence>
       </div>
 
-      <Keyboard playable={playable} onKey={onKey} />
+      <Keyboard playable={playable} matches={matches} onKey={onKey} onHoverKey={setHoverKey} />
 
       {remaining.length === 0 && (
         <div className="done">All words found! Final score {state.score}.</div>

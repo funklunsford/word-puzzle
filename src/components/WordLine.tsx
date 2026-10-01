@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { AnimatePresence, type AnimationScope } from 'motion/react';
 import { LETTERS, type TileId } from '../glyphs';
+import { PlacedStrokes } from './Glyph';
 import { Stroke } from './Stroke';
 
 const GAP = 0.7;
@@ -11,10 +12,12 @@ interface Props {
   maxWidth: number;
   tileEl: (tile: TileId) => Element | null;
   scope: AnimationScope;
+  /** A letter to preview, faintly, where the next letter would go. */
+  ghost: string | null;
 }
 
 /** The word being typed, assembled from strokes. */
-export function WordLine({ word, maxWidth, tileEl, scope }: Props) {
+export function WordLine({ word, maxWidth, tileEl, scope, ghost }: Props) {
   let at = 0;
   const letters = [...word].map((ch) => {
     const x = at;
@@ -22,15 +25,16 @@ export function WordLine({ word, maxWidth, tileEl, scope }: Props) {
     return { ch, x };
   });
   const total = Math.max(at - GAP, 0);
+  const ghostWidth = ghost ? LETTERS[ghost].width : 0;
   // Shrink letters when the word gets long so it always fits on one line.
-  const unit = Math.min(26, (maxWidth - 24) / Math.max(total, 8));
+  const unit = Math.min(26, (maxWidth - 24) / Math.max(total + (ghost ? GAP + ghostWidth : 0), 8));
 
   // Keep the word centered, but hold still while strokes fly back to their tiles: exiting
   // strokes aim at a fixed target, so moving the layer under them would make them miss.
   const prevOffset = useRef(0);
   const prevTotal = useRef(0);
   const shrinking = total < prevTotal.current;
-  const offset = total > 0 ? (-total * unit) / 2 : prevOffset.current;
+  const offset = total > 0 ? (-total * unit) / 2 : ghost ? (-ghostWidth * unit) / 2 : prevOffset.current;
   useEffect(() => {
     prevOffset.current = offset;
     prevTotal.current = total;
@@ -61,8 +65,17 @@ export function WordLine({ word, maxWidth, tileEl, scope }: Props) {
             )),
           )}
         </AnimatePresence>
+        {ghost && (
+          <svg
+            className="ghost"
+            style={{ left: ((word ? at : 0) - 0.5) * unit, width: (ghostWidth + 1) * unit, height: 2.6 * unit }}
+            viewBox={`-0.5 0 ${ghostWidth + 1} 2.6`}
+          >
+            <PlacedStrokes parts={LETTERS[ghost].parts} />
+          </svg>
+        )}
       </div>
-      {!word && <span className="word-placeholder">type a word</span>}
+      {!word && !ghost && <span className="word-placeholder">type a word</span>}
     </div>
   );
 }
