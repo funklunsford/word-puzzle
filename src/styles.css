@@ -17,6 +17,7 @@
   --t-SC: #b5679f;
   --t-C: #7c5ac9;
   --t-P: #d4566f;
+  --t-SA: #a8962a;
 
   color-scheme: light;
 }
@@ -41,6 +42,7 @@
     --t-SC: #dc8ec7;
     --t-C: #a98cf0;
     --t-P: #f07f95;
+    --t-SA: #d4c25a;
 
     color-scheme: dark;
   }

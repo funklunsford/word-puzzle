@@ -11,7 +11,7 @@ Decisions so far:
 - **Design rule:** no tile may appear only alongside another tile. Under per-word charges, such a tile is redundant because it can never be used up on its own.
 - **Tile identity (version B):** straight bars keep their orientation. Chevrons and arcs are rotatable shapes.
 
-## 1. Tile inventory (10 types)
+## 1. Tile inventory (11 types)
 Every letter sits in a box 1 unit wide and 2 units tall.
 
 | Tile | Shape | Letters |
@@ -25,7 +25,8 @@ Every letter sits in a box 1 unit wide and 2 units tall.
 | `BV` | Big chevron, rotates | A (`^`), V, W |
 | `SC` | Small chevron, rotates | K (`<`), M and Y (`v`) |
 | `C`  | Big arc (half circle, full height), rotates | C D G O Q |
-| `P`  | Small arc (half circle, half height), rotates | B P S J U |
+| `P`  | Bowl (half circle with straight ends), rotates | B P R J U |
+| `SA` | Small arc (plain half circle), rotates | S |
 
 ## 2. Letter recipes (uppercase)
 ```
@@ -33,7 +34,7 @@ A BV H      H LV LV H     O C C       V BV
 B LV P P    I LV          P LV P      W BV BV
 C C         J SV P        Q C C SB    X LD LB
 D LV C      K LV SC       R LV P SB   Y SC SV
-E LV H H H  L LV H        S P P       Z H H LD
+E LV H H H  L LV H        S SA SA     Z H H LD
 F LV H H    M LV LV SC    T LV H
 G C H SV    N LV LV LB    U SV SV P
 ```
@@ -103,3 +104,4 @@ The PoC answers two questions: **is the game feasible, and is it fun as a puzzle
 - **Tied tiles are structural.** Some strokes are only used by one or two letters (for example `LB` is used only by N and X), so on a given board they nearly always appear alongside another tile. The generator records these as `tied` and penalizes them instead of rejecting the board.
 - **Games are short.** With 5 charges per tile, a 6-tile board ran out after **6 words**, because each word spends about 3–4 of the ~25 charges. That may be a tight optimization puzzle or may feel too short; the play-test footer has a charges selector (3/5/7/10) for comparison.
 - **The word list is permissive.** ENABLE accepts obscure words (SWINK, OXIM). A daily game would need a curated list.
+- **S now uses its own tile (2026-10-01).** Two bowls always left a bar across the middle of the S, so S is now two plain half-circles (`SA`). As a result, S and most plurals only appear on boards that include `SA`.

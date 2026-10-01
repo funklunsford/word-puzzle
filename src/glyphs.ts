@@ -5,7 +5,7 @@
 // placement is just a translate + rotate. Recipes are derived from placements, so
 // this file is the single source of truth for both rendering and game rules.
 
-export type TileId = 'LV' | 'SV' | 'H' | 'LD' | 'LB' | 'SB' | 'BV' | 'SC' | 'C' | 'P';
+export type TileId = 'LV' | 'SV' | 'H' | 'LD' | 'LB' | 'SB' | 'BV' | 'SC' | 'C' | 'P' | 'SA';
 
 export interface TileShape {
   id: TileId;
@@ -28,6 +28,7 @@ export const TILES: Record<TileId, TileShape> = {
   SC: { id: 'SC', name: 'Small chevron', path: 'M-1 -0.5 L0 0.5 L1 -0.5', rotates: true, display: 180 },
   C: { id: 'C', name: 'Big arc', path: 'M0.5 -1 A1 1 0 0 0 0.5 1', rotates: true, display: 90 },
   P: { id: 'P', name: 'Bowl', path: 'M-0.5 -0.5 L0 -0.5 A0.5 0.5 0 0 1 0 0.5 L-0.5 0.5', rotates: true },
+  SA: { id: 'SA', name: 'Small arc', path: 'M0.25 -0.5 A0.5 0.5 0 0 0 0.25 0.5', rotates: true, display: 270 },
 };
 
 export const TILE_IDS = Object.keys(TILES) as TileId[];
@@ -66,8 +67,8 @@ export const LETTERS: Record<string, LetterGlyph> = {
   P: { width: 1, parts: [p('LV', 0, 1), p('P', 0.5, 0.5)] },
   Q: { width: 2, parts: [p('C', 0.5, 1), p('C', 1.5, 1, 180), p('SB', 1.6, 1.9)] },
   R: { width: 1, parts: [p('LV', 0, 1), p('P', 0.5, 0.5), p('SB', 0.75, 1.5)] },
-  // Bowls stacked in one column (180° symmetric); their middle legs join into a full-width spine.
-  S: { width: 1, parts: [p('P', 0.5, 0.5, 180), p('P', 0.5, 1.5)] },
+  // Two half-circles meeting at the middle: symmetric, with no bar across.
+  S: { width: 1, parts: [p('SA', 0.25, 0.5), p('SA', 0.75, 1.5, 180)] },
   T: { width: 1, parts: [p('H', 0.5, 0), p('LV', 0.5, 1)] },
   U: { width: 1, parts: [p('SV', 0, 0.5), p('SV', 1, 0.5), p('P', 0.5, 1.5, 90)] },
   V: { width: 1.6, parts: [p('BV', 0.8, 1)] },
