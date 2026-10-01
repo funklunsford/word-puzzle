@@ -34,19 +34,15 @@ describe('slotsFor', () => {
         let content = glyph(a).filter((p) => keep.has(slotKey(p)));
         // `content` may still contain duplicates of a slot; dedupe to stay a subset of b.
         content = content.filter((p, i) => content.findIndex((q) => slotKey(q) === slotKey(p)) === i);
-        let goal = target;
-        while (recognize(content) !== b) {
-          const have = content.map((p) => slotKey(p));
-          const next = goal.find((p) => !have.includes(slotKey(p)))!;
-          const slots = slotsFor(content, next.tile);
-          // An empty cell centers the first stroke; follow that shift for the rest of the letter.
-          const slot = content.length
-            ? slots.find((s) => slotKey(s.placement) === slotKey(next))
-            : slots.find((s) => s.placement.y === next.y && (s.placement.rot ?? 0) === (next.rot ?? 0));
-          expect(slot, `${a}→${b}: can't add ${next.tile}`).toBeDefined();
-          if (!content.length) goal = goal.map((p) => ({ ...p, x: p.x + slot!.placement.x - next.x }));
+        // Then keep taking any slot that builds toward b: it must arrive in exactly the number of
+        // strokes b is missing, never getting stuck.
+        const need = target.length - content.length;
+        for (let step = 0; step < need; step++) {
+          const slot = TILE_IDS.flatMap((t) => slotsFor(content, t)).find((s) => s.toward.includes(b));
+          expect(slot, `${a}→${b}: stuck after ${step} strokes`).toBeDefined();
           content = [...content, slot!.placement];
         }
+        expect(recognize(content), `${a}→${b}`).toBe(b);
       }
     }
   });
@@ -78,7 +74,17 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
   it('accepts only the strokes that grow a letter into a bigger one', () => {
     expect(slotsFor(glyph('F'), 'H').map((s) => s.toward)).toEqual([['E']]);
     expect(slotsFor(glyph('P'), 'SB').map((s) => s.toward)).toEqual([['R']]);
-    expect(slotsFor(glyph('V'), 'BV').map((s) => s.toward)).toEqual([['W'], ['W']]); // either side
+    expect(slotsFor(glyph('V'), 'BV').map((s) => s.toward)).toEqual([['W']]); // to the right only
+  });
+
+  it('grows letters rightward only, so a stroke never has two equivalent spots', () => {
+    // A lone stem could be either side of an H; the crossbar is only offered on its right.
+    const stem = [{ tile: 'LV' as const, x: 0, y: 1, rot: 0 }];
+    const bars = slotsFor(stem, 'H');
+    expect(bars.filter((s) => s.placement.y === 1).map((s) => s.placement.x)).toEqual([0.5]);
+    expect(bars.every((s) => s.placement.x >= 0)).toBe(true); // T's bar is centered on the stem
+    // A second stem (H, N, M) also only goes to the right.
+    expect(slotsFor(stem, 'LV').every((s) => s.placement.x > 0)).toBe(true);
   });
 
   it("only lets A's leftover crossbar take its chevron back", () => {
@@ -104,14 +110,17 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
     }
   });
 
-  it('a partial letter can always get its missing stroke back', () => {
+  it('a partial letter can always be completed with the stroke it is missing', () => {
     for (const ch of Object.keys(LETTERS)) {
       const parts = glyph(ch);
       parts.forEach((missing, i) => {
         const content = parts.filter((_, k) => k !== i);
         if (!content.length) return;
-        const keys = slotsFor(content, missing.tile).map((s) => slotKey(s.placement));
-        expect(keys, `${ch} without ${slotKey(missing)}`).toContain(slotKey(missing));
+        // The slot may sit to the right of the original spot (letters grow rightward), but it
+        // must complete the same letter.
+        const slot = slotsFor(content, missing.tile).find((s) => s.toward.includes(ch));
+        expect(slot, `${ch} without ${slotKey(missing)}`).toBeDefined();
+        expect(recognize([...content, slot!.placement])).toBe(ch);
       });
     }
   });

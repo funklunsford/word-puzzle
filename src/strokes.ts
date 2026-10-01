@@ -65,10 +65,17 @@ export function slotsFor(content: Placement[], tile: TileId): Slot[] {
   const slots = new Map<string, Slot>();
   for (const [ch, g] of Object.entries(LETTERS)) {
     if (g.parts.length <= content.length) continue;
+    // The cell's strokes may fit this letter in more than one place (a lone stem is either side
+    // of an H). Use only the rightmost fit, so letters always grow rightward from what's there.
+    let missing: Placement[] | null = null;
+    let bestDx = -Infinity;
     for (const dx of alignments(content, g.parts)) {
       const placed = g.parts.map((p) => shift(p, dx));
-      const missing = minus(placed, content);
-      if (missing.length !== placed.length - content.length) continue; // not a subset of this letter
+      const rest = minus(placed, content);
+      if (rest.length !== placed.length - content.length) continue; // not a subset of this letter
+      if (dx > bestDx) [bestDx, missing] = [dx, rest];
+    }
+    if (missing) {
       for (const m of missing) {
         if (m.tile !== tile) continue;
         const p = content.length ? m : { ...m, x: EMPTY_CELL_X };
