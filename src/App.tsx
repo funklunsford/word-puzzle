@@ -2,9 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useAnimate } from 'motion/react';
 import type { TileId } from './glyphs';
 import {
-  CHARGES,
-  checkPartial,
-  chargesLeft,
   newGame,
   play,
   playableLetters,
@@ -25,7 +22,6 @@ function describe(p: Play): string {
   const parts = [`+${p.score}`];
   if (p.pangram) parts.push('PANGRAM!');
   if (p.spicy) parts.push('🌶️ ×2');
-  if (p.smushed.length) parts.push('smush ×2');
   return parts.join('  ');
 }
 
@@ -36,7 +32,6 @@ export function App() {
   const [word, setWord] = useState('');
   const [toast, setToast] = useState<Toast | null>(null);
   const [showAnswers, setShowAnswers] = useState(false);
-  const [charges, setCharges] = useState(CHARGES);
   const [width, setWidth] = useState(() => Math.min(window.innerWidth, 640) - 32);
   const [scope, animateWord] = useAnimate();
   const tileEls = useRef(new Map<TileId, Element>());
@@ -54,10 +49,10 @@ export function App() {
 
   useEffect(() => {
     if (!board) return;
-    setState(newGame(board, charges));
+    setState(newGame(board));
     setWord('');
     setShowAnswers(false);
-  }, [board, charges]);
+  }, [board]);
 
   const registerTile = useCallback((tile: TileId, el: Element | null) => {
     if (el) tileEls.current.set(tile, el);
@@ -65,10 +60,6 @@ export function App() {
   const tileEl = useCallback((tile: TileId) => tileEls.current.get(tile) ?? null, []);
 
   const playable = useMemo(() => (board ? playableLetters(board.tiles) : new Set<string>()), [board]);
-  const blocked = useMemo(() => {
-    if (!board || !state) return new Set<string>();
-    return new Set([...playable].filter((ch) => [...tilesFor(ch)].some((t) => chargesLeft(state, board, t) <= 0)));
-  }, [board, state, playable]);
   const remaining = useMemo(() => (board && state ? remainingWords(state, board) : []), [board, state]);
 
   const say = (text: string, tone: Toast['tone']) => setToast({ id: Date.now(), text, tone });
@@ -116,7 +107,6 @@ export function App() {
   if (!board || !state) return <div className="app loading">Loading…</div>;
 
   const inUse = tilesFor(word);
-  const hint = word ? checkPartial(state, board, word) : null;
   const pangramFound = state.plays.some((p) => p.pangram);
 
   return (
@@ -135,7 +125,7 @@ export function App() {
       <div className="scoreline">
         <span className="score">{state.score}</span>
         <span className="meta">
-          {state.plays.length} words · {remaining.length} still possible
+          {state.plays.length} found · {remaining.length} left
           {pangramFound ? ' · pangram ✓' : ''}
         </span>
       </div>
@@ -144,7 +134,6 @@ export function App() {
 
       <div className="word-area">
         <WordLine word={word} maxWidth={width} tileEl={tileEl} scope={scope} />
-        <div className="hint">{hint ?? ' '}</div>
         <AnimatePresence>
           {toast && (
             <motion.div
@@ -160,10 +149,10 @@ export function App() {
         </AnimatePresence>
       </div>
 
-      <Keyboard playable={playable} blocked={blocked} onKey={onKey} />
+      <Keyboard playable={playable} onKey={onKey} />
 
       {remaining.length === 0 && (
-        <div className="done">Board exhausted. Final score {state.score}.</div>
+        <div className="done">All words found! Final score {state.score}.</div>
       )}
 
       <section className="found">
@@ -176,16 +165,8 @@ export function App() {
       </section>
 
       <footer className="playtest">
-        <button onClick={() => setState(newGame(board, charges))}>Restart</button>
-        <select value={charges} onChange={(e) => setCharges(Number(e.target.value))} aria-label="Charges per tile">
-          {[3, 5, 7, 10].map((n) => (
-            <option key={n} value={n}>
-              {n} charges
-            </option>
-          ))}
-        </select>
+        <button onClick={() => setState(newGame(board))}>Restart</button>
         <button onClick={() => setShowAnswers((s) => !s)}>{showAnswers ? 'Hide' : 'Show'} possible words</button>
-        {board.tied?.length ? <span>Tied tiles: {board.tied.join(', ')}</span> : null}
         {showAnswers && (
           <p className="answers">
             <strong>Pangrams:</strong> {board.pangrams.join(', ')}

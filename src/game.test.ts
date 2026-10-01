@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LETTERS, TILE_IDS, recipe } from './glyphs';
-import { CHARGES, PANGRAM_BONUS, check, newGame, play, playableLetters, remainingWords, strokeCount, tilesFor, type Board } from './game';
+import { PANGRAM_BONUS, check, newGame, play, playableLetters, remainingWords, strokeCount, tilesFor, type Board } from './game';
 
 // A tiny hand-made board so tests don't depend on the word list.
 const board: Board = {
@@ -51,38 +51,24 @@ describe('game', () => {
     expect(check(s, board, 'BLEB')).toMatchObject({ ok: false, reason: 'Not in word list' });
   });
 
-  it('charges one per tile per word, regardless of repeats', () => {
-    const r = play(newGame(board), board, 'BELL');
-    if ('error' in r) throw new Error(r.error);
-    expect(r.state.charges.H).toBe(CHARGES - 1);
-    expect(r.state.charges.P).toBe(CHARGES - 1);
-    expect(r.state.charges.LV).toBeUndefined(); // center is unlimited
-  });
-
-  it('doubles for spicy, doubles again for smush, adds pangram bonus', () => {
-    const s = newGame(board);
-    s.charges.SB = 1;
-    s.spicy = 'H';
-    const r = play(s, board, 'BLURT');
+  it('doubles for spicy and adds the pangram bonus', () => {
+    const r = play(newGame(board), board, 'BLURT');
     if ('error' in r) throw new Error(r.error);
     const base = strokeCount('BLURT');
-    expect(r.play).toMatchObject({ base, spicy: true, smushed: ['SB'], pangram: true });
-    expect(r.play.score).toBe(base * 4 + PANGRAM_BONUS);
+    expect(r.play).toMatchObject({ base, spicy: true, pangram: true });
+    expect(r.play.score).toBe(base * 2 + PANGRAM_BONUS);
   });
 
-  it('moves the spicy tile and skips the center and smushed tiles', () => {
-    const s = newGame(board);
-    s.charges.P = 0;
-    const r = play(s, board, 'TILE');
+  it('moves the spicy tile through non-center tiles', () => {
+    const r = play(newGame(board), board, 'TILE');
     if ('error' in r) throw new Error(r.error);
-    expect(r.state.spicy).toBe('SB'); // H -> (P smushed) -> SB
+    expect(r.state.spicy).toBe('P'); // H -> P (LV is the center)
   });
 
-  it('blocks words that need a smushed tile and drops them from remaining', () => {
-    const s = newGame(board);
-    s.charges.P = 0;
-    expect(check(s, board, 'PILE')).toMatchObject({ ok: false });
-    expect(remainingWords(s, board)).not.toContain('PILE');
-    expect(remainingWords(s, board)).toContain('TILE');
+  it('rejects repeats and tracks remaining words', () => {
+    const r = play(newGame(board), board, 'TILE');
+    if ('error' in r) throw new Error(r.error);
+    expect(check(r.state, board, 'TILE')).toMatchObject({ ok: false, reason: 'Already found' });
+    expect(remainingWords(r.state, board)).not.toContain('TILE');
   });
 });

@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { TILES, type TileId } from '../glyphs';
-import { chargesLeft, type Board as BoardData, type GameState } from '../game';
+import type { Board as BoardData, GameState } from '../game';
 import { TileStroke } from './Glyph';
 import { TILE_BOX } from './Stroke';
 
@@ -21,14 +21,12 @@ export function Board({ board, state, inUse, registerTile }: Props) {
     <div className="board">
       {order.map((tile) => {
         const isCenter = tile === board.center;
-        const left = chargesLeft(state, board, tile);
-        const smushed = left <= 0;
         const using = inUse.has(tile);
         return (
           <motion.div
             key={tile}
-            className={`tile${isCenter ? ' center' : ''}${smushed ? ' smushed' : ''}${using ? ' using' : ''}`}
-            animate={{ y: using ? -6 : 0, scaleY: smushed ? 0.82 : 1 }}
+            className={`tile${isCenter ? ' center' : ''}${using ? ' using' : ''}`}
+            animate={{ y: using ? -6 : 0 }}
             transition={{ type: 'spring', stiffness: 500, damping: 22 }}
             title={TILES[tile].name}
           >
@@ -40,19 +38,6 @@ export function Board({ board, state, inUse, registerTile }: Props) {
             >
               <TileStroke tile={tile} />
             </svg>
-            <div className="dots">
-              {isCenter ? (
-                <span className="infinite">∞</span>
-              ) : (
-                Array.from({ length: state.maxCharges }, (_, i) => (
-                  <motion.span
-                    key={i}
-                    className={`dot${i < left ? ' full' : ''}${using && i === left - 1 ? ' spending' : ''}`}
-                    animate={{ scale: i < left ? 1 : 0.6 }}
-                  />
-                ))
-              )}
-            </div>
           </motion.div>
         );
       })}

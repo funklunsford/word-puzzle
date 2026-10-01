@@ -214,10 +214,6 @@ select,
     0 6px 16px color-mix(in srgb, var(--ink) 14%, transparent);
 }
 
-.tile.smushed {
-  opacity: 0.35;
-  filter: grayscale(1);
-}
 
 .tile-svg {
   width: 100%;
@@ -233,43 +229,11 @@ select,
   font-size: 18px;
 }
 
-.dots {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 2px;
-  min-height: 10px;
-  max-width: 48px;
-  align-items: center;
-}
 
-.dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--line);
-}
 
-.dot.full {
-  background: var(--ink);
-}
 
-.dot.spending {
-  animation: pulse 0.8s ease-in-out infinite;
-}
 
-@keyframes pulse {
-  50% {
-    opacity: 0.25;
-  }
-}
 
-.infinite {
-  color: var(--gold);
-  font-weight: 800;
-  font-size: 14px;
-  line-height: 10px;
-}
 
 .word-area {
   position: relative;
@@ -367,21 +331,13 @@ select,
 }
 
 .key.wide {
-  flex: 1.6 1 0;
-  max-width: 76px;
+  flex: 0 1 120px;
+  max-width: 120px;
   font-size: 12px;
   letter-spacing: 0.04em;
 }
 
-.key:disabled {
-  opacity: 0.18;
-  cursor: default;
-}
 
-.key.blocked {
-  opacity: 0.4;
-  filter: grayscale(1);
-}
 
 .key:not(:disabled):active {
   transform: translateY(1px);
