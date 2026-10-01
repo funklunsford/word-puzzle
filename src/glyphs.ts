@@ -24,7 +24,7 @@ export const TILES: Record<TileId, TileShape> = {
   LD: { id: 'LD', name: 'Rising slash', path: 'M-0.5 1 L0.5 -1', rotates: false },
   LB: { id: 'LB', name: 'Falling slash', path: 'M-0.5 -1 L0.5 1', rotates: false },
   SB: { id: 'SB', name: 'Tail', path: 'M-0.25 -0.5 L0.25 0.5', rotates: false },
-  BV: { id: 'BV', name: 'Big chevron', path: 'M-0.8 -1 L0 1 L0.8 -1', rotates: true, display: 90 },
+  BV: { id: 'BV', name: 'Big chevron', path: 'M-1 -1 L0 1 L1 -1', rotates: true, display: 90 },
   SC: { id: 'SC', name: 'Small chevron', path: 'M-1 -0.5 L0 0.5 L1 -0.5', rotates: true, display: 180 },
   C: { id: 'C', name: 'Big arc', path: 'M0.5 -1 A1 1 0 0 0 0.5 1', rotates: true, display: 90 },
   P: { id: 'P', name: 'Bowl', path: 'M-0.5 -0.5 L0 -0.5 A0.5 0.5 0 0 1 0 0.5 L-0.5 0.5', rotates: true },
@@ -41,7 +41,7 @@ const TILE_EXTENT: Record<TileId, [number, number]> = {
   LD: [0.5, 1],
   LB: [0.5, 1],
   SB: [0.25, 0.5],
-  BV: [0.8, 1],
+  BV: [1, 1],
   SC: [1, 0.5],
   C: [0.5, 1],
   P: [0.5, 0.5],
@@ -77,7 +77,8 @@ export interface LetterGlyph {
 const p = (tile: TileId, x: number, y: number, rot = 0): Placement => ({ tile, x, y, rot });
 
 export const LETTERS: Record<string, LetterGlyph> = {
-  A: { width: 1.6, parts: [p('BV', 0.8, 1, 180), p('H', 0.8, 1.25)] },
+  // The chevron is 1 wide at mid-height, so A's crossbar sits at the same height as E/F/H's.
+  A: { width: 2, parts: [p('BV', 1, 1, 180), p('H', 1, 1)] },
   B: { width: 1, parts: [p('LV', 0, 1), p('P', 0.5, 0.5), p('P', 0.5, 1.5)] },
   C: { width: 1, parts: [p('C', 0.5, 1)] },
   D: { width: 1, parts: [p('LV', 0, 1), p('C', 0.5, 1, 180)] },
@@ -99,8 +100,8 @@ export const LETTERS: Record<string, LetterGlyph> = {
   S: { width: 1, parts: [p('SA', 0.25, 0.5), p('SA', 0.75, 1.5, 180)] },
   T: { width: 1, parts: [p('H', 0.5, 0), p('LV', 0.5, 1)] },
   U: { width: 1, parts: [p('SV', 0, 0.5), p('SV', 1, 0.5), p('P', 0.5, 1.5, 90)] },
-  V: { width: 1.6, parts: [p('BV', 0.8, 1)] },
-  W: { width: 3.2, parts: [p('BV', 0.8, 1), p('BV', 2.4, 1)] },
+  V: { width: 2, parts: [p('BV', 1, 1)] },
+  W: { width: 4, parts: [p('BV', 1, 1), p('BV', 3, 1)] },
   X: { width: 1, parts: [p('LD', 0.5, 1), p('LB', 0.5, 1)] },
   Y: { width: 2, parts: [p('SC', 1, 0.5), p('SV', 1, 1.5)] },
   Z: { width: 1, parts: [p('H', 0.5, 0), p('H', 0.5, 2), p('LD', 0.5, 1)] },

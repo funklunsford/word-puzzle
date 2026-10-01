@@ -87,13 +87,12 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
     expect(slotsFor(stem, 'LV').every((s) => s.placement.x > 0)).toBe(true);
   });
 
-  it("only lets A's leftover crossbar take its chevron back", () => {
+  it("treats A's leftover crossbar like any middle crossbar", () => {
+    // Regression: A's bar used to sit lower than E/F/H's, so on its own it accepted nothing but
+    // its chevron, and an empty cell offered two nearly identical middle heights.
     const crossbar = glyph('A').filter((p) => p.tile !== 'BV');
-    for (const tile of TILE_IDS) {
-      const slots = slotsFor(crossbar, tile);
-      if (tile === 'BV') expect(slots.map((s) => s.toward)).toEqual([['A']]);
-      else expect(slots, tile).toEqual([]);
-    }
+    expect(slotsFor(crossbar, 'BV').flatMap((s) => s.toward)).toEqual(['A']);
+    expect(slotsFor(crossbar, 'LV').flatMap((s) => s.toward).sort()).toEqual(['E', 'F', 'H', 'H']);
   });
 
   it('every offered slot keeps the cell part of a real letter', () => {
@@ -129,8 +128,8 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
     const bars = slotsFor([], 'LV');
     expect(bars).toHaveLength(1);
     expect(bars[0].placement.x).toBe(EMPTY_CELL_X);
-    // Crossbars differ by height (top, middle, A's lower bar, bottom), so each height is distinct.
-    expect(new Set(slotsFor([], 'H').map((s) => s.placement.y))).toEqual(new Set([0, 1, 1.25, 2]));
+    // Crossbars differ only by height: top, middle, bottom.
+    expect(new Set(slotsFor([], 'H').map((s) => s.placement.y))).toEqual(new Set([0, 1, 2]));
   });
 });
 
