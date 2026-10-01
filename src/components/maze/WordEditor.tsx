@@ -20,6 +20,8 @@ interface Drag {
   /** Valid drop slots per cell, computed once when the drag starts. */
   slots: Slot[][];
   target: { cell: number; slot: Slot } | null;
+  /** The cell under the pointer: the only one that shows (and accepts) drop slots. */
+  overCell: number | null;
   overWord: boolean;
 }
 
@@ -50,23 +52,26 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
   const without = (cell: number, source: Source | undefined) =>
     source?.kind === 'cell' && source.cell === cell ? cells[cell].filter((_, i) => i !== source.index) : cells[cell];
 
-  /** Nearest drop slot to a screen point, and whether the point is over the word. */
-  const locate = (d: Drag, x: number, y: number): Pick<Drag, 'target' | 'overWord'> => {
+  /** The cell under a screen point, its nearest drop slot, and whether the point is over the word. */
+  const locate = (d: Drag, x: number, y: number): Pick<Drag, 'target' | 'overCell' | 'overWord'> => {
+    const inside = (el: Element | null | undefined) => {
+      const r = el?.getBoundingClientRect();
+      return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    };
+    const c = svgs.current.findIndex((el) => inside(el));
+    const overCell = c >= 0 ? c : null;
     let target: Drag['target'] = null;
-    let bestD = SNAP_RADIUS;
-    d.slots.forEach((cellSlots, c) => {
-      const m = svgs.current[c]?.getScreenCTM();
-      if (!m) return;
+    const m = overCell !== null ? svgs.current[overCell]?.getScreenCTM() : null;
+    if (overCell !== null && m) {
       const p = new DOMPoint(x, y).matrixTransform(m.inverse());
-      const lx = p.x - offsets[c];
-      for (const s of cellSlots) {
+      const lx = p.x - offsets[overCell];
+      let bestD = SNAP_RADIUS;
+      for (const s of d.slots[overCell]) {
         const dist = Math.hypot(s.placement.x - lx, s.placement.y - p.y);
-        if (dist < bestD) [bestD, target] = [dist, { cell: c, slot: s }];
+        if (dist < bestD) [bestD, target] = [dist, { cell: overCell, slot: s }];
       }
-    });
-    const r = wordRef.current?.getBoundingClientRect();
-    const overWord = !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-    return { target, overWord };
+    }
+    return { target, overCell, overWord: inside(wordRef.current) };
   };
 
   const finish = (d: Drag) => {
@@ -91,7 +96,7 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
     if (disabled || dragRef.current) return;
     e.preventDefault();
     const slots = cells.map((_, c) => slotsFor(without(c, source), tile));
-    const d0: Drag = { tile, rot, source, slots, x: e.clientX, y: e.clientY, target: null, overWord: true };
+    const d0: Drag = { tile, rot, source, slots, x: e.clientX, y: e.clientY, target: null, overCell: null, overWord: true };
     dragRef.current = d0;
     setDrag(d0);
     const update = (ev: PointerEvent) => {
@@ -135,7 +140,8 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
                 height={CELL_H * unit}
               >
                 <g className="cell-content" style={{ transform: `translate(${offsets[c]}px, 0px)` }}>
-                  {drag?.slots[c].map((s) => (
+                  {drag?.overCell === c &&
+                    drag.slots[c].map((s) => (
                     <path
                       key={slotKey(s.placement)}
                       className={`slot${drag?.target?.cell === c && drag.target.slot === s ? ' hot' : ''}`}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { LETTERS, TILE_IDS } from './glyphs';
+import { LETTERS, TILE_IDS, type Placement } from './glyphs';
+import { collides } from './geometry';
 import { letterDiff, recognize, slotKey, slotsFor, wordDistance } from './strokes';
 
 const glyph = (ch: string, dx = 0) => LETTERS[ch].parts.map((p) => ({ ...p, x: p.x + dx }));
@@ -95,6 +96,64 @@ describe('slotsFor when the cell no longer fits any letter', () => {
     // An F can only grow into an E, so the only crossbar slot offered is E's bottom bar.
     const slots = slotsFor(glyph('F'), 'H');
     expect(slots.map((s) => s.placement.y)).toEqual([2]);
+  });
+});
+
+describe('slotsFor never offers a colliding drop', () => {
+  /** These strokes are all part of one real letter (where crossings like X's are fine). */
+  const formsLetterPart = (content: Placement[]) =>
+    Object.values(LETTERS).some((g) =>
+      g.parts.some((anchor) =>
+        content.some((c) => {
+          if (c.tile !== anchor.tile || c.y !== anchor.y || (c.rot ?? 0) !== (anchor.rot ?? 0)) return false;
+          const dx = c.x - anchor.x;
+          const rest = g.parts.map((p) => slotKey({ ...p, x: p.x + dx }));
+          return content.every((q) => {
+            const i = rest.indexOf(slotKey(q));
+            if (i < 0) return false;
+            rest.splice(i, 1);
+            return true;
+          });
+        }),
+      ),
+    );
+
+  const check = (content: Placement[], label: string) => {
+    for (const tile of TILE_IDS) {
+      for (const s of slotsFor(content, tile)) {
+        // Anything the new stroke crosses must belong to one letter with it (like X's slashes).
+        const crossed = content.filter((c) => collides(s.placement, c));
+        if (crossed.length && !formsLetterPart([...crossed, s.placement])) {
+          throw new Error(`${label} + ${slotKey(s.placement)} collides with ${crossed.map((c) => slotKey(c)).join(', ')}`);
+        }
+      }
+    }
+  };
+
+  it("doesn't put a long bar through A's leftover crossbar", () => {
+    const crossbar = glyph('A').filter((p) => p.tile !== 'BV');
+    const through = slotsFor(crossbar, 'LV').filter((s) => collides(s.placement, crossbar[0]));
+    expect(through).toEqual([]);
+  });
+
+  it('holds for partial letters', () => {
+    for (const ch of Object.keys(LETTERS)) {
+      const parts = glyph(ch);
+      parts.forEach((_, i) => check(parts.filter((__, k) => k !== i), `${ch} minus #${i}`));
+    }
+  });
+
+  it('holds for mixed strokes that fit no letter', () => {
+    // One stroke from each of two different letters, at their own positions.
+    const letters = Object.keys(LETTERS);
+    for (let i = 0; i < letters.length; i += 3) {
+      for (let j = 1; j < letters.length; j += 4) {
+        const a = glyph(letters[i])[0];
+        const b = glyph(letters[j]).at(-1)!;
+        if (slotKey(a) === slotKey(b) || collides(a, b)) continue;
+        check([a, b], `${letters[i]}[0] + ${letters[j]}[-1]`);
+      }
+    }
   });
 });
 

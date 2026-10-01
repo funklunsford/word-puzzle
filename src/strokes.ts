@@ -4,6 +4,7 @@
 // Shapes are compared up to a horizontal shift, so a lone long bar is the same shape whether it
 // sits at x = 0 (as in I) or x = 0.5 (as in T).
 
+import { collides } from './geometry';
 import { LETTERS, xExtent, type Placement, type TileId } from './glyphs';
 
 const norm = (r = 0) => ((r % 360) + 360) % 360;
@@ -74,15 +75,20 @@ const center = (parts: Placement[]) => {
  * offered. When the cell is still part of a real letter that means exactly the drops that keep it
  * so (remove extras, then add, always works). When it isn't (e.g. A's crossbar left alone after
  * removing the chevron), it falls back to positions that keep fewer strokes, down to plain
- * letter positions centered on the cell, so a drop is always possible.
+ * letter positions centered on (or beside) the cell's strokes. A drop never crosses or overlaps a stroke that isn't part
+ * of the letter it was offered from.
  */
 export function slotsFor(content: Placement[], tile: TileId): Slot[] {
   const slots = new Map<string, Slot & { fit: number }>();
   const offer = (ch: string, placed: Placement[]) => {
     const missing = minus(placed, content);
     const fit = placed.length - missing.length;
+    // Strokes this letter doesn't account for. The new stroke may not cross or overlap them
+    // (crossings within the letter itself, like X's, are fine).
+    const strangers = minus(content, placed);
     for (const p of missing) {
       if (p.tile !== tile) continue;
+      if (strangers.some((s) => collides(p, s))) continue;
       const k = slotKey(p);
       const s = slots.get(k);
       if (!s || fit > s.fit) slots.set(k, { placement: p, toward: [ch], fit });
@@ -92,8 +98,10 @@ export function slotsFor(content: Placement[], tile: TileId): Slot[] {
   for (const [ch, g] of Object.entries(LETTERS)) {
     if (!g.parts.some((p) => p.tile === tile)) continue;
     const shifts = new Set(anyAlignments(content, g.parts));
-    // Unanchored: the letter centered on what's already in the cell (or at the origin if empty).
-    shifts.add(content.length ? r2(center(content) - center(g.parts)) : 0);
+    // Unanchored: the letter centered on what's already in the cell (or at the origin if empty),
+    // plus a few positions either side so a stroke can sit beside strokes it would otherwise cross.
+    if (!content.length) shifts.add(0);
+    else for (const k of [0, -0.5, 0.5, -1, 1, -1.5, 1.5]) shifts.add(r2(center(content) - center(g.parts) + k));
     for (const dx of shifts) offer(ch, g.parts.map((p) => shift(p, dx)));
   }
   const best = Math.max(0, ...[...slots.values()].map((s) => s.fit));
