@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { TILES, TILE_IDS, placementTransform, xExtent, type Placement, type TileId } from '../../glyphs';
-import { recognize, slotKey, slotsFor, type Slot } from '../../strokes';
+import { EMPTY_CELL_X, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { STROKE } from '../Glyph';
 
 const CELL_W = 4;
@@ -35,7 +35,7 @@ interface Props {
 
 /** Offset that centers a cell's strokes horizontally. */
 function centerOffset(content: Placement[]): number {
-  if (!content.length) return -0.5;
+  if (!content.length) return -EMPTY_CELL_X;
   const [lo, hi] = xExtent(content);
   return -(lo + hi) / 2;
 }
@@ -170,7 +170,9 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
                   })}
                 </g>
               </svg>
-              <span className="cell-letter">{letter ?? '·'}</span>
+              <span className="cell-letter">
+                {drag?.target?.cell === c ? `→ ${drag.target.slot.toward.join(' ')}` : (letter ?? '·')}
+              </span>
             </div>
           );
         })}

@@ -4,8 +4,7 @@
 // Shapes are compared up to a horizontal shift, so a lone long bar is the same shape whether it
 // sits at x = 0 (as in I) or x = 0.5 (as in T).
 
-import { collides } from './geometry';
-import { LETTERS, xExtent, type Placement, type TileId } from './glyphs';
+import { LETTERS, type Placement, type TileId } from './glyphs';
 
 const norm = (r = 0) => ((r % 360) + 360) % 360;
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -53,60 +52,38 @@ export interface Slot {
   toward: string[];
 }
 
-/** Shifts that line any stroke of `content` up with a same-shaped stroke of `glyph`. */
-function anyAlignments(content: Placement[], glyph: Placement[]): number[] {
-  const out = new Set<number>();
-  for (const c of content) {
-    for (const g of glyph) if (g.tile === c.tile && r2(g.y) === r2(c.y) && norm(g.rot) === norm(c.rot)) out.add(r2(c.x - g.x));
-  }
-  return [...out];
-}
-
-const center = (parts: Placement[]) => {
-  const [lo, hi] = xExtent(parts);
-  return (lo + hi) / 2;
-};
-
 /**
- * Where a stroke of `tile` may be dropped into a cell.
+ * Where a stroke of `tile` may be dropped into a cell: only positions where the cell's strokes
+ * plus the new one are all part of a single real letter, at that letter's exact positions. So a
+ * complete T accepts nothing (no letter contains a T), while an F accepts only E's bottom bar.
+ * Any change is still possible by removing strokes first, then adding.
  *
- * Each candidate is a position the tile has in some letter, lined up with the cell's strokes; its
- * "fit" is how many of those strokes that letter would keep. Only the best-fitting positions are
- * offered. When the cell is still part of a real letter that means exactly the drops that keep it
- * so (remove extras, then add, always works). When it isn't (e.g. A's crossbar left alone after
- * removing the chevron), it falls back to positions that keep fewer strokes, down to plain
- * letter positions centered on (or beside) the cell's strokes. A drop never crosses or overlaps a stroke that isn't part
- * of the letter it was offered from.
+ * In an empty cell every placement of a stroke is equivalent up to shift, so each distinct
+ * stroke (shape, height, orientation) is offered once, centered.
  */
 export function slotsFor(content: Placement[], tile: TileId): Slot[] {
-  const slots = new Map<string, Slot & { fit: number }>();
-  const offer = (ch: string, placed: Placement[]) => {
-    const missing = minus(placed, content);
-    const fit = placed.length - missing.length;
-    // Strokes this letter doesn't account for. The new stroke may not cross or overlap them
-    // (crossings within the letter itself, like X's, are fine).
-    const strangers = minus(content, placed);
-    for (const p of missing) {
-      if (p.tile !== tile) continue;
-      if (strangers.some((s) => collides(p, s))) continue;
-      const k = slotKey(p);
-      const s = slots.get(k);
-      if (!s || fit > s.fit) slots.set(k, { placement: p, toward: [ch], fit });
-      else if (fit === s.fit && !s.toward.includes(ch)) s.toward.push(ch);
-    }
-  };
+  const slots = new Map<string, Slot>();
   for (const [ch, g] of Object.entries(LETTERS)) {
-    if (!g.parts.some((p) => p.tile === tile)) continue;
-    const shifts = new Set(anyAlignments(content, g.parts));
-    // Unanchored: the letter centered on what's already in the cell (or at the origin if empty),
-    // plus a few positions either side so a stroke can sit beside strokes it would otherwise cross.
-    if (!content.length) shifts.add(0);
-    else for (const k of [0, -0.5, 0.5, -1, 1, -1.5, 1.5]) shifts.add(r2(center(content) - center(g.parts) + k));
-    for (const dx of shifts) offer(ch, g.parts.map((p) => shift(p, dx)));
+    if (g.parts.length <= content.length) continue;
+    for (const dx of alignments(content, g.parts)) {
+      const placed = g.parts.map((p) => shift(p, dx));
+      const missing = minus(placed, content);
+      if (missing.length !== placed.length - content.length) continue; // not a subset of this letter
+      for (const m of missing) {
+        if (m.tile !== tile) continue;
+        const p = content.length ? m : { ...m, x: EMPTY_CELL_X };
+        const k = slotKey(p);
+        const s = slots.get(k) ?? { placement: p, toward: [] };
+        if (!s.toward.includes(ch)) s.toward.push(ch);
+        slots.set(k, s);
+      }
+    }
   }
-  const best = Math.max(0, ...[...slots.values()].map((s) => s.fit));
-  return [...slots.values()].filter((s) => s.fit === best).map(({ placement, toward }) => ({ placement, toward }));
+  return [...slots.values()];
 }
+
+/** Where a first stroke goes in an empty cell (the cell's display center). */
+export const EMPTY_CELL_X = 0.5;
 
 // ---------- Word distance ----------
 
