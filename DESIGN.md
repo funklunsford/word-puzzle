@@ -105,3 +105,22 @@ The PoC answers two questions: **is the game feasible, and is it fun as a puzzle
 - **Games are short.** With 5 charges per tile, a 6-tile board ran out after **6 words**, because each word spends about 3–4 of the ~25 charges. That may be a tight optimization puzzle or may feel too short; the play-test footer has a charges selector (3/5/7/10) for comparison.
 - **The word list is permissive.** ENABLE accepts obscure words (SWINK, OXIM). A daily game would need a curated list.
 - **S now uses its own tile (2026-10-01).** Two bowls always left a bar across the middle of the S, so S is now two plain half-circles (`SA`). As a result, S and most plurals only appear on boards that include `SA`.
+
+## Pivot: Stroke Maze (2026-10-01)
+In Smush-style play the letters, not the strokes, did the work. The new core loop makes strokes the mechanism.
+
+- **Rooms are words; doors are stroke edits.** From the current word, drag strokes on, off or to a new position (each drag is 1 stroke). Landing on a real 4-letter word opens a door into that room. A step may use **up to 3 strokes**.
+- **Fog of war:** you see the rooms you've visited and how many doors the current room has, but not where they lead.
+- **Goal and score:** get from a start word to a goal word using the **fewest total strokes**. Each puzzle shows the best possible total (Dijkstra over the word graph).
+- **Snapping:** while you drag, each cell shows only the drop slots that keep it part of some real letter. Every letter-to-letter change is still possible (remove the extra strokes, then add the new ones); `src/strokes.test.ts` checks all 676 letter pairs.
+- **Why 3 strokes per step** (ENABLE, 4-letter words):
+
+  | Strokes per step | Main connected maze | Typical doors |
+  |---|---|---|
+  | 1 | 11 words | 0 |
+  | 2 | 6% of words | 1 |
+  | **3** | **75% of words** | **5–6** |
+  | 4 | 97% of words | 11 (routes too short) |
+
+- Words are ENABLE-only for now, so rooms and door counts include obscure words (PEAN, LUNT).
+- The old Smush prototype is still at `/#smush`.

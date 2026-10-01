@@ -33,6 +33,34 @@ export const TILES: Record<TileId, TileShape> = {
 
 export const TILE_IDS = Object.keys(TILES) as TileId[];
 
+/** Half-width and half-height of each tile at rotation 0, in units. */
+const TILE_EXTENT: Record<TileId, [number, number]> = {
+  LV: [0, 1],
+  SV: [0, 0.5],
+  H: [0.5, 0],
+  LD: [0.5, 1],
+  LB: [0.5, 1],
+  SB: [0.25, 0.5],
+  BV: [0.8, 1],
+  SC: [1, 0.5],
+  C: [0.5, 1],
+  P: [0.5, 0.5],
+  SA: [0.25, 0.5],
+};
+
+/** Horizontal extent [min, max] of a set of placements. */
+export function xExtent(parts: Placement[]): [number, number] {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const p of parts) {
+    const [hx, hy] = TILE_EXTENT[p.tile];
+    const half = (p.rot ?? 0) % 180 === 0 ? hx : hy;
+    lo = Math.min(lo, p.x - half);
+    hi = Math.max(hi, p.x + half);
+  }
+  return [lo, hi];
+}
+
 export interface Placement {
   tile: TileId;
   x: number;
