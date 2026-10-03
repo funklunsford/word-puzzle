@@ -567,40 +567,36 @@ select,
   pointer-events: stroke;
 }
 
-/* A hovered placed stroke: tinted, with a small × (tapping removes it). */
+/* A hovered placed stroke is tinted red: tapping removes it. */
 .remove-tint {
   opacity: 0.55;
   pointer-events: none;
-}
-
-.remove-badge {
-  pointer-events: none;
-}
-
-.remove-badge circle {
-  fill: var(--spicy);
-}
-
-.remove-badge path {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 0.05;
-  stroke-linecap: round;
 }
 
 .editor.disabled .hit {
   cursor: default;
 }
 
-.preview {
-  opacity: 0.7;
+.held {
+  opacity: 0.75;
+  pointer-events: none;
 }
 
-.cell.no-fit {
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--spicy) 55%, transparent);
+.held.misfit {
+  opacity: 0.9;
 }
 
-.cell.no-fit .cell-letter {
+/* Marks the spot a rotatable stroke is locked onto: circle the cursor around it to turn it. */
+.twist-ring {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 0.04;
+  stroke-dasharray: 0.12 0.12;
+  opacity: 0.6;
+}
+
+/* The held stroke doesn't fit (here, or at this orientation): the letter goes red. */
+.cell.red .cell-letter {
   color: var(--spicy);
   opacity: 1;
 }
@@ -629,8 +625,10 @@ select,
 
 .tray-tile {
   position: relative;
-  width: 52px;
-  height: 52px;
+  flex: 1 1 40px;
+  min-width: 40px;
+  max-width: 52px;
+  aspect-ratio: 1;
   padding: 6px;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -669,37 +667,84 @@ select,
   transition: opacity 0.1s;
 }
 
-.step {
+.room-body {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.room-body.side {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.room-body .editor {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Step panel: strokes used this step, what to do, and Undo / Reset. */
+.step-panel {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
   font-size: 13px;
   color: var(--muted);
 }
 
-.step-msg {
-  flex: 1;
-  min-width: 160px;
-}
-
 .pips {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .pip {
-  width: 10px;
-  height: 10px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  border: 1.5px solid var(--ink);
+  border: 2px solid var(--ink);
+  transition: background 0.15s;
 }
 
 .pip.used {
   background: var(--ink);
 }
 
-.step button,
+.step-count {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.step-status {
+  margin: 0;
+  color: var(--ink);
+}
+
+.step-status.out {
+  color: var(--spicy);
+}
+
+.how {
+  margin: 0;
+  padding-left: 16px;
+  line-height: 1.4;
+}
+
+.how li + li {
+  margin-top: 4px;
+}
+
+.step-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.step-buttons button,
 .maze .playtest button,
 .maze select {
   font: inherit;
@@ -712,7 +757,7 @@ select,
   cursor: pointer;
 }
 
-.step button:disabled {
+.step-buttons button:disabled {
   opacity: 0.4;
   cursor: default;
 }

@@ -47,6 +47,18 @@ describe('inkOutline', () => {
   });
 });
 
+describe('squeeze', () => {
+  it("narrows a stroke's path but keeps the pen width", () => {
+    const xs = (d: string) => points(d).map((p) => p[0]);
+    const span = (v: number[]) => Math.max(...v) - Math.min(...v);
+    const full = span(xs(inkOutline('BV', 0, 0)));
+    const half = span(xs(inkOutline('BV', 0, 0, 0, 0.5)));
+    expect(half).toBeLessThan(full * 0.65);
+    // A vertical bar's width doesn't change: the squeeze applies to the path, not the ink.
+    expect(span(xs(inkOutline('LV', 0, 0, 0, 0.5)))).toBeCloseTo(span(xs(inkOutline('LV', 0, 0))), 2);
+  });
+});
+
 describe('inkSeed', () => {
   it('is stable for a stroke regardless of horizontal position (letters look the same everywhere)', () => {
     expect(inkSeed({ tile: 'H', x: 0.5, y: 1, rot: 0 })).toBe(inkSeed({ tile: 'H', x: 2.5, y: 1, rot: 0 }));

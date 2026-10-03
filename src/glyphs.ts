@@ -70,6 +70,11 @@ export interface Placement {
 export interface LetterGlyph {
   width: number;
   parts: Placement[];
+  /**
+   * Draw the letter squeezed horizontally by this factor once it's formed. Display only: the
+   * strokes and their positions (and so the game rules) are unchanged.
+   */
+  squeeze?: number;
 }
 
 const p = (tile: TileId, x: number, y: number, rot = 0): Placement => ({ tile, x, y, rot });
@@ -100,11 +105,15 @@ export const LETTERS: Record<string, LetterGlyph> = {
   T: { width: 1, parts: [p('H', 0.5, 0), p('LV', 0.5, 1)] },
   U: { width: 1, parts: [p('SV', 0, 0.5), p('SV', 1, 0.5), p('P', 0.5, 1.5, 90)] },
   V: { width: 2, parts: [p('BV', 1, 1)] },
-  W: { width: 4, parts: [p('BV', 1, 1), p('BV', 3, 1)] },
+  // Two full chevrons are 4 wide; once formed, W is drawn 2.5 wide (V's chevrons are untouched).
+  W: { width: 4, squeeze: 0.625, parts: [p('BV', 1, 1), p('BV', 3, 1)] },
   X: { width: 1, parts: [p('LD', 0.5, 1), p('LB', 0.5, 1)] },
   Y: { width: 2, parts: [p('SC', 1, 0.5), p('SV', 1, 1.5)] },
   Z: { width: 1, parts: [p('H', 0.5, 0), p('H', 0.5, 2), p('LD', 0.5, 1)] },
 };
+
+/** How wide a letter is drawn (its width after any squeeze). */
+export const drawnWidth = (letter: string) => LETTERS[letter].width * (LETTERS[letter].squeeze ?? 1);
 
 /** Tile counts needed to build a letter. */
 export function recipe(letter: string): Map<TileId, number> {

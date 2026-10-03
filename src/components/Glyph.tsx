@@ -1,4 +1,4 @@
-import { LETTERS, type Placement, type TileId } from '../glyphs';
+import { LETTERS, drawnWidth, type Placement, type TileId } from '../glyphs';
 import { inkOutline, inkSeed } from '../ink';
 
 const PAD = 0.3;
@@ -18,25 +18,37 @@ interface TileStrokeProps {
   /** Overrides the stroke's colour (e.g. a removal tint). */
   fill?: string;
   className?: string;
+  /** Narrow the stroke horizontally (a formed W); see LetterGlyph.squeeze. */
+  squeeze?: number;
 }
 
 /** One stroke, drawn in ink (see ink.ts). The only place strokes are rendered. */
-export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink' }: TileStrokeProps) {
+export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink', squeeze = 1 }: TileStrokeProps) {
   return (
     <path
       className={className}
-      d={inkOutline(tile, rot, seed ?? inkSeed({ tile, x, y, rot }), minHalfWidth)}
+      d={inkOutline(tile, rot, seed ?? inkSeed({ tile, x, y, rot }), minHalfWidth, squeeze)}
       transform={x || y ? `translate(${x} ${y})` : undefined}
       fill={fill ?? `var(--t-${tile})`}
     />
   );
 }
 
-export function PlacedStrokes({ parts, minHalfWidth }: { parts: Placement[]; minHalfWidth?: number }) {
+/** A letter's strokes in its own coordinates; `squeeze` narrows it towards x = 0. */
+export function PlacedStrokes({ parts, minHalfWidth, squeeze = 1 }: { parts: Placement[]; minHalfWidth?: number; squeeze?: number }) {
   return (
     <>
       {parts.map((part, i) => (
-        <TileStroke key={i} tile={part.tile} rot={part.rot} x={part.x} y={part.y} minHalfWidth={minHalfWidth} />
+        <TileStroke
+          key={i}
+          tile={part.tile}
+          rot={part.rot}
+          x={part.x * squeeze}
+          y={part.y}
+          seed={inkSeed(part)}
+          minHalfWidth={minHalfWidth}
+          squeeze={squeeze}
+        />
       ))}
     </>
   );
@@ -45,7 +57,7 @@ export function PlacedStrokes({ parts, minHalfWidth }: { parts: Placement[]; min
 /** A single letter as its own SVG, `size` px tall at cap height. */
 export function Glyph({ letter, size = 64 }: { letter: string; size?: number }) {
   const glyph = LETTERS[letter];
-  const w = glyph.width + PAD * 2;
+  const w = drawnWidth(letter) + PAD * 2;
   const h = 2 + PAD * 2 + 0.6; // room for Q's tail
   return (
     <svg
@@ -54,7 +66,7 @@ export function Glyph({ letter, size = 64 }: { letter: string; size?: number }) 
       width={(size * w) / 2}
       aria-label={letter}
     >
-      <PlacedStrokes parts={glyph.parts} minHalfWidth={minHalfWidthAt(size / 2)} />
+      <PlacedStrokes parts={glyph.parts} minHalfWidth={minHalfWidthAt(size / 2)} squeeze={glyph.squeeze} />
     </svg>
   );
 }
@@ -66,7 +78,7 @@ export function GlyphWord({ word, size = 48 }: { word: string; size?: number }) 
   let x = 0;
   const letters = [...word].map((ch) => {
     const at = x;
-    x += LETTERS[ch].width + GAP;
+    x += drawnWidth(ch) + GAP;
     return { ch, at };
   });
   const w = Math.max(x - GAP, 0) + PAD * 2;
@@ -75,7 +87,7 @@ export function GlyphWord({ word, size = 48 }: { word: string; size?: number }) 
     <svg viewBox={`${-PAD} ${-PAD} ${w} ${h}`} height={(size * h) / 2} width={(size * w) / 2} aria-label={word}>
       {letters.map(({ ch, at }, i) => (
         <g key={i} transform={`translate(${at} 0)`}>
-          <PlacedStrokes parts={LETTERS[ch].parts} minHalfWidth={minHalfWidthAt(size / 2)} />
+          <PlacedStrokes parts={LETTERS[ch].parts} minHalfWidth={minHalfWidthAt(size / 2)} squeeze={LETTERS[ch].squeeze} />
         </g>
       ))}
     </svg>

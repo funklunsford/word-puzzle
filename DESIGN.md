@@ -115,9 +115,9 @@ In Smush-style play the letters, not the strokes, did the work. The new core loo
 - **Placement rules** (`slotsFor` in `src/strokes.ts`):
   - A drop must keep the cell part of one real letter, at that letter's exact positions. A complete letter accepts nothing unless a bigger letter contains it (F→E, P→R, O→Q, V→W).
   - Letters grow rightward from the strokes already there, so a stroke never has two equivalent spots.
-  - No two spots share a position. Where orientations compete for one spot (an empty cell's chevron as `v` or `^`), the upright one wins; the other letter is built in another order (A: crossbar first).
+  - One spot can take a rotatable stroke in several orientations (an empty cell's chevron as V's `v` or A's `^`); the player chooses by twisting (see below). *(Briefly, the upright orientation won automatically; twisting replaced that.)*
   - Every letter-to-letter change is still possible (remove the extra strokes, then add the new ones); `src/strokes.test.ts` checks all 676 letter pairs.
-- **Dragging:** only the hovered cell reacts, and it previews just the one spot nearest the pointer, drawn as the stroke itself turning into its final orientation. A cell with no valid spot says "no fit". Rotatable strokes carry a ↻ badge in the tray.
+- **Dragging:** only the hovered cell reacts. Fixed strokes preview at the spot nearest the pointer. Rotatable strokes (chevrons, arcs, bowls) lock onto the nearest spot and keep the orientation they're held at; see *Twisting* below. A cell where nothing fits, or where the held orientation doesn't fit, turns the whole letter red. Rotatable strokes carry a ↻ badge in the tray.
 - **Why 3 strokes per step** (ENABLE, 4-letter words):
 
   | Strokes per step | Main connected maze | Typical doors |
@@ -133,7 +133,7 @@ In Smush-style play the letters, not the strokes, did the work. The new core loo
 ## Familiar words, one maze, tap-to-remove, ink (2026-10-02)
 - **Words.** Rooms are the 1,845 four-letter words in `data/familiar-4.txt`: SCOWL size 35 (everyday vocabulary), lowercase entries only (no names or abbreviations), also valid in ENABLE, minus a small blocklist of sexual terms, slurs and swears (`src/wordlist.ts`). With 3 strokes per step, 72% of them form one connected maze (median 4 doors), about as connected as the old ENABLE maze (75%, 6). SCOWL size 50 added almost no connectivity and brought back esoteric words (ABBE, KITH, TYRO), so it isn't used.
 - **One maze.** WILD → TAME, best 14 strokes over 5 rooms (WILD → WILL → VILE → TILE → TALE → TAME), 5 doors at the start. Set by `START`/`GOAL` in `scripts/mazes.ts`.
-- **Removing strokes.** Tap a placed stroke to remove it (1 stroke); dragging still moves it, and dragging it off the word also removes it. Hovering a stroke tints it red with a small ×, and the step hint explains both gestures.
+- **Removing strokes.** Tap a placed stroke to remove it (1 stroke); dragging still moves it, and dragging it off the word also removes it. Hovering a stroke tints it red.
 - **Ink.** Strokes are drawn as filled outlines from a broad nib held at 38° (downstrokes thicker than crossbars) with a gentle seeded wobble and slightly lighter ends (`src/ink.ts`). The wobble ignores horizontal position, so a letter looks the same everywhere, like a font. Small glyphs keep a minimum weight of about 1.2 px. Game geometry still uses the plain centreline paths.
 - **Palette.** Stroke colours are earth pigments (slate, terracotta, ochre, sage, moss, verdigris, plum, heather, clay); backgrounds are unchanged.
 
@@ -143,3 +143,8 @@ In Smush-style play the letters, not the strokes, did the work. The new core loo
 > Copyright 2000-2026 by Kevin Atkinson
 >
 > Permission to use, copy, modify, distribute, and sell any part of the English Speller Database (ESDB, previously known as SCOWLv2), or word lists created from it, is hereby granted without fee, provided that the above copyright notice appears in all copies and that both the above copyright notice and this notice appear in supporting documentation. Kevin Atkinson makes no representations about the suitability of this database for any purpose. It is provided "as is" without express or implied warranty.
+
+## Twisting, step panel, squeezed W (2026-10-02)
+- **Twisting.** A held chevron, arc or bowl keeps the orientation it's held at (a tray chevron arrives as `<`). Over a cell it locks onto the nearest spot, drawn in place with a faint ring. Bring the cursor right over the spot (within 0.45 units) and it's armed: circling the cursor around the spot then turns the stroke with it, snapping to quarter turns. Straight moves don't turn it, so dragging past a spot is safe. Moving more than 1.6 units away lets it lock onto another spot, and the lock holds past the cell's edge (a V's partner spot for W sits right at the edge). Release drops the stroke only if its current orientation makes a letter; otherwise the letter is red and the label says "↻ circle to turn".
+- **Step panel.** Left of the word (above it on narrow screens): this step's dots ("2 of 3 strokes"), a status line, the instructions, and Undo / Reset step.
+- **W.** Two full chevrons make W 4 wide; once formed it's drawn squeezed to 2.5 wide (`squeeze` in `LETTERS`, display only; tap areas squeeze to match). A lone V's chevron is never squeezed.

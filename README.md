@@ -1,6 +1,6 @@
 # Stroke Maze
 
-A word maze where every letter is built from pen strokes. Each word is a room: drag strokes in from the tray, tap a stroke to remove it, or drag it somewhere else (up to 3 strokes per step) to turn the current word into another everyday word, and find the cheapest route from WILD to TAME. See [DESIGN.md](DESIGN.md) for the rules and design notes.
+A word maze where every letter is built from pen strokes. Each word is a room: drag strokes in from the tray, tap a stroke to remove it, drag it somewhere else, or twist a chevron, arc or bowl by circling the cursor around its spot (up to 3 strokes per step) to turn the current word into another everyday word, and find the cheapest route from WILD to TAME. See [DESIGN.md](DESIGN.md) for the rules and design notes.
 
 ```bash
 npm install

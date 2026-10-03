@@ -22,6 +22,9 @@ interface Visit {
   cost: number;
 }
 
+/** Width of the step panel (dots, instructions, Undo) when it sits left of the word. */
+const PANEL_W = 168;
+
 const cellsFor = (word: string): Placement[][] => [...word].map((ch) => LETTERS[ch].parts.map((p) => ({ ...p })));
 
 function useWidth() {
@@ -111,7 +114,9 @@ export function MazeApp() {
   if (!data || !puzzle || !room) return <div className="maze loading">Loading…</div>;
 
   const wide = width >= 720;
-  const available = Math.min(width, 760) - 32 - (wide ? 72 : 0);
+  // The step panel sits left of the word when there's room, otherwise above it.
+  const sidePanel = width >= 640;
+  const available = Math.min(width, 760) - 32 - (wide ? 72 : 0) - (sidePanel ? PANEL_W + 16 : 0);
   const unit = Math.max(13, Math.min(28, available / 17.5));
   const visited = new Set(trail.map((v) => v.word));
   const found = roomExits.filter((x) => visited.has(x.word)).length;
@@ -143,27 +148,42 @@ export function MazeApp() {
             </span>
           </div>
 
-          <WordEditor cells={cells} unit={unit} disabled={won || locked} onEdit={onEdit} onHoverTile={setHoverTile} />
-
-          <div className="step">
-            <span className="pips" aria-label={`${stepEdits} of ${STEP_LIMIT} strokes this step`}>
-              {Array.from({ length: STEP_LIMIT }, (_, i) => (
-                <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
-              ))}
-            </span>
-            <span className="step-msg">
-              {locked
-                ? 'Out of strokes for this step. Undo to try another way.'
-                : stepEdits
-                  ? 'Keep going: land on a real word to open a door.'
-                  : 'Drag strokes in from the tray. Tap a stroke to remove it, or drag it somewhere else. Up to 3 per step.'}
-            </span>
-            <button onClick={undo} disabled={!history.length}>
-              Undo
-            </button>
-            <button onClick={resetStep} disabled={!history.length}>
-              Reset step
-            </button>
+          <div className={`room-body${sidePanel ? ' side' : ''}`}>
+            <aside className="step-panel" style={sidePanel ? { width: PANEL_W } : undefined}>
+              <span className="label">This step</span>
+              <div className="pips" aria-label={`${stepEdits} of ${STEP_LIMIT} strokes this step`}>
+                {Array.from({ length: STEP_LIMIT }, (_, i) => (
+                  <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
+                ))}
+              </div>
+              <span className="step-count">
+                {stepEdits} of {STEP_LIMIT} strokes
+              </span>
+              <p className={`step-status${locked ? ' out' : ''}`}>
+                {locked
+                  ? 'Out of strokes for this step. Undo to try another way.'
+                  : stepEdits
+                    ? 'Keep going: land on a real word to open a door.'
+                    : 'Change the word into another real word to open a door.'}
+              </p>
+              <ul className="how">
+                <li>Drag strokes in from the tray.</li>
+                <li>Tap a stroke to remove it, or drag it to move it.</li>
+                <li>
+                  To turn a chevron, arc or bowl, hold it right over its spot, then circle the cursor around the spot{' '}
+                  <span aria-hidden>↻</span>.
+                </li>
+              </ul>
+              <div className="step-buttons">
+                <button onClick={undo} disabled={!history.length}>
+                  Undo
+                </button>
+                <button onClick={resetStep} disabled={!history.length}>
+                  Reset step
+                </button>
+              </div>
+            </aside>
+            <WordEditor cells={cells} unit={unit} disabled={won || locked} onEdit={onEdit} onHoverTile={setHoverTile} />
           </div>
         </section>
 

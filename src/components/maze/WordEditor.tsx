@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { TILES, TILE_IDS, xExtent, type Placement, type TileId } from '../../glyphs';
+import { LETTERS, TILES, TILE_IDS, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed } from '../../ink';
 import { EMPTY_CELL_X, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
@@ -12,17 +12,36 @@ const CELL_H = 3.6;
 const TAP_SLOP = 6;
 /** Tray tiles draw their 2.4-unit box in about 40 px. */
 const TRAY_PX_PER_UNIT = 40 / 2.4;
-const PREVIEW_SPRING = { type: 'spring', stiffness: 420, damping: 24 } as const;
 const PLACE_SPRING = { type: 'spring', stiffness: 600, damping: 20 } as const;
 
-/** Signed rotation from `from` to `to` the short way round, in degrees. */
-const turn = (from: number, to: number) => ((((to - from) % 360) + 540) % 360) - 180;
+// Twisting (units, in the cell's coordinates). Bring the cursor within ARM of the spot a rotatable
+// stroke is locked onto, then circle around the spot to turn it; straight moves don't turn it.
+// Moving further than RELEASE from the spot lets the stroke lock onto a different spot.
+const ARM = 0.45;
+const RELEASE = 1.6;
+const RING = 0.95;
+
+const norm = (deg: number) => ((deg % 360) + 360) % 360;
+/** Shortest signed angle from one direction to another, in degrees. */
+const wrap = (deg: number) => norm(deg + 180) - 180;
+/** The quarter turn nearest to `turn` (unwrapped, so turn − quarter is the leftover twist). */
+const quarter = (turn: number) => Math.round(turn / 90) * 90;
 
 type Source = { kind: 'tray' } | { kind: 'cell'; cell: number; index: number };
 
+/** The spot a rotatable stroke is locked onto while it's held over a cell. */
+interface Aim {
+  cell: number;
+  x: number;
+  y: number;
+  /** The cursor has been brought onto the spot, so circling it now twists the stroke. */
+  armed: boolean;
+  /** Cursor's last angle around the spot (degrees), or null when it's too close to measure. */
+  angle: number | null;
+}
+
 interface Drag {
   tile: TileId;
-  rot: number;
   source: Source;
   /** Where the press started, to tell a tap from a drag. */
   startX: number;
@@ -31,8 +50,12 @@ interface Drag {
   moved: boolean;
   x: number;
   y: number;
-  /** Valid drop slots per cell, computed once when the drag starts. */
+  /** Orientation of the held stroke in degrees (continuous while it's being twisted). */
+  turn: number;
+  /** Valid drop slots per cell (every orientation that fits), computed when the drag starts. */
   slots: Slot[][];
+  aim: Aim | null;
+  /** Where a release would place the stroke, if its current orientation fits there. */
   target: { cell: number; slot: Slot } | null;
   /** The cell under the pointer: the only one that previews (and accepts) a drop. */
   overCell: number | null;
@@ -56,8 +79,8 @@ function centerOffset(content: Placement[]): number {
 
 /**
  * The current word as editable strokes, plus the tray of strokes to drag in. Drag a stroke in
- * from the tray, drag a placed stroke to move it (or off the word to remove it), or tap a
- * placed stroke to remove it.
+ * from the tray, drag a placed stroke to move it (or off the word to remove it), tap a placed
+ * stroke to remove it, and twist chevrons, arcs and bowls by circling the cursor around their spot.
  */
 export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -72,29 +95,61 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
   const without = (cell: number, source: Source | undefined) =>
     source?.kind === 'cell' && source.cell === cell ? cells[cell].filter((_, i) => i !== source.index) : cells[cell];
 
-  /**
-   * The cell under a screen point, the single slot a drop there would use (the nearest valid one
-   * anywhere in that cell), and whether the point is over the word.
-   */
-  const locate = (d: Drag, x: number, y: number): Pick<Drag, 'target' | 'overCell' | 'overWord'> => {
+  /** Where the held stroke is over the word: the cell, the spot it's locked onto, its twist, and the drop. */
+  const locate = (d: Drag, x: number, y: number): Pick<Drag, 'target' | 'aim' | 'turn' | 'overCell' | 'overWord'> => {
     const inside = (el: Element | null | undefined) => {
       const r = el?.getBoundingClientRect();
       return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
     };
-    const c = svgs.current.findIndex((el) => inside(el));
-    const overCell = c >= 0 ? c : null;
-    let target: Drag['target'] = null;
-    const m = overCell !== null ? svgs.current[overCell]?.getScreenCTM() : null;
-    if (overCell !== null && m) {
+    const toCell = (cell: number) => {
+      const m = svgs.current[cell]?.getScreenCTM();
+      if (!m) return null;
       const p = new DOMPoint(x, y).matrixTransform(m.inverse());
-      const lx = p.x - offsets[overCell];
-      let bestD = Infinity;
-      for (const s of d.slots[overCell]) {
-        const dist = Math.hypot(s.placement.x - lx, s.placement.y - p.y);
-        if (dist < bestD) [bestD, target] = [dist, { cell: overCell, slot: s }];
-      }
+      return { lx: p.x - offsets[cell], ly: p.y };
+    };
+    // A locked stroke keeps its spot while the cursor circles nearby, even past the cell's edge
+    // (a V's partner spot for W sits right at the edge).
+    let overCell: number | null = null;
+    if (d.aim) {
+      const q = toCell(d.aim.cell);
+      if (q && Math.hypot(q.lx - d.aim.x, q.ly - d.aim.y) <= RELEASE) overCell = d.aim.cell;
     }
-    return { target, overCell, overWord: inside(wordRef.current) };
+    if (overCell === null) {
+      const c = svgs.current.findIndex((el) => inside(el));
+      overCell = c >= 0 ? c : null;
+    }
+    const overWord = inside(wordRef.current);
+    const m = overCell !== null ? svgs.current[overCell]?.getScreenCTM() : null;
+    if (overCell === null || !m || !d.slots[overCell].length) {
+      return { overCell, overWord, target: null, aim: null, turn: d.turn };
+    }
+    const p = new DOMPoint(x, y).matrixTransform(m.inverse());
+    const lx = p.x - offsets[overCell];
+    const ly = p.y;
+    const slots = d.slots[overCell];
+    const dist = (q: { x: number; y: number }) => Math.hypot(q.x - lx, q.y - ly);
+    const nearest = slots.reduce((a, b) => (dist(b.placement) < dist(a.placement) ? b : a));
+
+    // Fixed strokes simply go to the nearest spot.
+    if (!TILES[d.tile].rotates) return { overCell, overWord, target: { cell: overCell, slot: nearest }, aim: null, turn: d.turn };
+
+    // Rotatable strokes lock onto a spot; circling the cursor around it turns them.
+    let aim = d.aim;
+    const stray = !aim || aim.cell !== overCell || dist(aim) > RELEASE;
+    if (stray && (!aim || aim.cell !== overCell || aim.x !== nearest.placement.x || aim.y !== nearest.placement.y)) {
+      aim = { cell: overCell, x: nearest.placement.x, y: nearest.placement.y, armed: false, angle: null };
+    }
+    let turn = d.turn;
+    if (dist(aim!) < ARM) {
+      aim = { ...aim!, armed: true, angle: null };
+    } else if (aim!.armed) {
+      const angle = (Math.atan2(ly - aim!.y, lx - aim!.x) * 180) / Math.PI;
+      if (aim!.angle !== null) turn += wrap(angle - aim!.angle);
+      aim = { ...aim!, angle };
+    }
+    const q = norm(quarter(turn));
+    const slot = slots.find((s) => s.placement.x === aim!.x && s.placement.y === aim!.y && norm(s.placement.rot ?? 0) === q);
+    return { overCell, overWord, target: slot ? { cell: overCell, slot } : null, aim, turn };
   };
 
   const finish = (d: Drag) => {
@@ -129,14 +184,15 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
     const slots = cells.map((_, c) => slotsFor(without(c, source), tile));
     const d0: Drag = {
       tile,
-      rot,
       source,
       startX: e.clientX,
       startY: e.clientY,
       moved: false,
       x: e.clientX,
       y: e.clientY,
+      turn: rot,
       slots,
+      aim: null,
       target: null,
       overCell: null,
       overWord: true,
@@ -173,19 +229,28 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
     if (index >= 0) start(e, p.tile, p.rot ?? 0, { kind: 'cell', cell, index });
   };
 
+  const held = drag?.moved ? drag : null;
   // While dragging, the carried stroke leaves its cell (a tap leaves it in place until released).
-  const carried = drag?.moved && drag.source.kind === 'cell' ? drag.source : null;
-  const removing = drag?.moved && drag.source.kind === 'cell' && !drag.target && !drag.overWord;
+  const carried = held?.source.kind === 'cell' ? held.source : null;
+  const removing = !!held && held.source.kind === 'cell' && !held.target && !held.aim && !held.overWord;
 
   return (
     <div className={`editor${disabled ? ' disabled' : ''}`}>
       <div className="word-cells" ref={wordRef}>
         {cells.map((content, c) => {
           const letter = recognize(content);
-          const noFit = drag?.moved && drag.overCell === c && !drag.slots[c].length;
+          const squeeze = (letter && LETTERS[letter].squeeze) || 1;
+          const [lo, hi] = content.length ? xExtent(content) : [0, 0];
+          const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * squeeze;
           const shown = content.filter((_, i) => !(carried?.cell === c && carried.index === i));
+          const target = held?.target?.cell === c ? held.target : null;
+          const aim = held?.aim?.cell === c ? held.aim : null;
+          // Nothing fits here, or the held stroke's current orientation doesn't: the letter goes red.
+          const noFit = !!held && held.overCell === c && !held.slots[c].length;
+          const misfit = !!aim && !target;
+          const red = noFit || misfit;
           return (
-            <div className={`cell${letter ? ' formed' : ''}${noFit ? ' no-fit' : ''}`} key={c}>
+            <div className={`cell${letter ? ' formed' : ''}${red ? ' red' : ''}`} key={c}>
               <svg
                 ref={(el) => {
                   svgs.current[c] = el;
@@ -195,12 +260,10 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
                 height={CELL_H * unit}
               >
                 <g className="cell-content" style={{ transform: `translate(${offsets[c]}px, 0px)` }}>
-                  {drag?.target?.cell === c && (
-                    <Preview placement={drag.target.slot.placement} from={drag.rot} minHalfWidth={minHalf} />
-                  )}
                   <AnimatePresence>
                     {shown.map((p) => {
                       const key = slotKey(p);
+                      const x = squeezed(p.x);
                       const removable = !drag && !disabled && hover?.cell === c && hover.key === key;
                       return (
                         <motion.g
@@ -211,26 +274,33 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
                           exit={{ scale: 0.5, opacity: 0, transition: { duration: 0.18 } }}
                           transition={PLACE_SPRING}
                         >
-                          <TileStroke tile={p.tile} rot={p.rot} x={p.x} y={p.y} seed={inkSeed(p)} minHalfWidth={minHalf} />
+                          <TileStroke
+                            tile={p.tile}
+                            rot={p.rot}
+                            x={x}
+                            y={p.y}
+                            seed={inkSeed(p)}
+                            minHalfWidth={minHalf}
+                            squeeze={squeeze}
+                            fill={red ? 'var(--spicy)' : undefined}
+                          />
                           {removable && (
-                            <>
-                              <TileStroke
-                                tile={p.tile}
-                                rot={p.rot}
-                                x={p.x}
-                                y={p.y}
-                                seed={inkSeed(p)}
-                                minHalfWidth={minHalf}
-                                fill="var(--spicy)"
-                                className="remove-tint"
-                              />
-                              <RemoveBadge x={p.x} y={p.y} />
-                            </>
+                            <TileStroke
+                              tile={p.tile}
+                              rot={p.rot}
+                              x={x}
+                              y={p.y}
+                              seed={inkSeed(p)}
+                              minHalfWidth={minHalf}
+                              squeeze={squeeze}
+                              fill="var(--spicy)"
+                              className="remove-tint"
+                            />
                           )}
                           <path
                             className="hit"
                             d={TILES[p.tile].path}
-                            transform={`translate(${p.x} ${p.y})${p.rot ? ` rotate(${p.rot})` : ''}`}
+                            transform={`translate(${x} ${p.y})${squeeze !== 1 ? ` scale(${squeeze} 1)` : ''}${p.rot ? ` rotate(${p.rot})` : ''}`}
                             onPointerDown={(e) => pressPlaced(e, c, p)}
                             onPointerEnter={() => {
                               onHoverTile(p.tile);
@@ -247,10 +317,23 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
                       );
                     })}
                   </AnimatePresence>
+                  {held && aim && (
+                    <Held tile={held.tile} x={aim.x} y={aim.y} turn={held.turn} fits={!!target} ring minHalfWidth={minHalf} />
+                  )}
+                  {held && !aim && target && (
+                    <Held
+                      tile={held.tile}
+                      x={target.slot.placement.x}
+                      y={target.slot.placement.y}
+                      turn={target.slot.placement.rot ?? 0}
+                      fits
+                      minHalfWidth={minHalf}
+                    />
+                  )}
                 </g>
               </svg>
               <span className="cell-letter">
-                {drag?.target?.cell === c ? `→ ${drag.target.slot.toward.join(' ')}` : noFit ? 'no fit' : (letter ?? '·')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? '↻ circle to turn' : noFit ? 'no fit' : (letter ?? '·')}
               </span>
             </div>
           );
@@ -265,7 +348,7 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
             <button
               key={t}
               className="tray-tile"
-              title={TILES[t].rotates ? `${TILES[t].name}: rotates to fit` : TILES[t].name}
+              title={TILES[t].rotates ? `${TILES[t].name}: circle the cursor around its spot to turn it` : TILES[t].name}
               onPointerDown={(e) => start(e, t, TILES[t].display ?? 0, { kind: 'tray' })}
               onPointerEnter={() => onHoverTile(t)}
               onPointerLeave={() => onHoverTile(null)}
@@ -283,48 +366,41 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
         )}
       </div>
 
-      {drag?.moved && (
+      {held && !held.aim && !held.target && (
         <svg
           className="drag-ghost"
           viewBox="-1.2 -1.2 2.4 2.4"
           width={2.4 * unit}
           height={2.4 * unit}
-          style={{ left: drag.x - 1.2 * unit, top: drag.y - 1.2 * unit, opacity: drag.target ? 0 : 1 }}
+          style={{ left: held.x - 1.2 * unit, top: held.y - 1.2 * unit }}
         >
-          <TileStroke tile={drag.tile} rot={drag.rot} minHalfWidth={minHalf} />
+          <Turned tile={held.tile} turn={held.turn} minHalfWidth={minHalf} />
         </svg>
       )}
     </div>
   );
 }
 
-/**
- * The stroke being dragged, shown where it will land. It turns from the orientation it's held in
- * (the tray's `<` for a chevron) to the slot's, so the player sees how it rotates into place.
- */
-function Preview({ placement, from, minHalfWidth }: { placement: Placement; from: number; minHalfWidth: number }) {
-  const to = placement.rot ?? 0;
+/** A stroke at any angle: inked at the nearest quarter turn, then turned the rest of the way. */
+function Turned({ tile, turn, minHalfWidth, fill }: { tile: TileId; turn: number; minHalfWidth: number; fill?: string }) {
+  const q = quarter(turn);
   return (
-    <g transform={`translate(${placement.x} ${placement.y})`}>
-      <motion.g
-        key={slotKey(placement)}
-        className="preview"
-        initial={{ rotate: turn(to, from), scale: 1.08 }}
-        animate={{ rotate: 0, scale: 1 }}
-        transition={PREVIEW_SPRING}
-      >
-        <TileStroke tile={placement.tile} rot={to} seed={inkSeed(placement)} minHalfWidth={minHalfWidth} />
-      </motion.g>
+    <g transform={turn !== q ? `rotate(${turn - q})` : undefined}>
+      <TileStroke tile={tile} rot={norm(q)} minHalfWidth={minHalfWidth} fill={fill} />
     </g>
   );
 }
 
-/** The small × shown on a hovered stroke: tapping removes it. */
-function RemoveBadge({ x, y }: { x: number; y: number }) {
+/**
+ * The held stroke shown on the spot it would drop into, at its current orientation: in its
+ * colour when that orientation fits, red when it doesn't. A faint ring marks where to circle.
+ */
+function Held(props: { tile: TileId; x: number; y: number; turn: number; fits: boolean; ring?: boolean; minHalfWidth: number }) {
+  const { tile, x, y, turn, fits, ring, minHalfWidth } = props;
   return (
-    <g className="remove-badge" transform={`translate(${x + 0.32} ${y - 0.32})`}>
-      <circle r={0.2} />
-      <path d="M-0.08 -0.08 L0.08 0.08 M0.08 -0.08 L-0.08 0.08" />
+    <g className={`held${fits ? '' : ' misfit'}`} transform={`translate(${x} ${y})`}>
+      {ring && <circle className="twist-ring" r={RING} />}
+      <Turned tile={tile} turn={turn} minHalfWidth={minHalfWidth} fill={fits ? undefined : 'var(--spicy)'} />
     </g>
   );
 }

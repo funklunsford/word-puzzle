@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LETTERS, TILE_IDS, recipe } from './glyphs';
+import { LETTERS, TILE_IDS, drawnWidth, recipe } from './glyphs';
 import { PANGRAM_BONUS, check, newGame, play, playableLetters, remainingWords, strokeCount, tilesFor, type Board } from './game';
 
 // A tiny hand-made board so tests don't depend on the word list.
@@ -21,6 +21,12 @@ describe('glyphs', () => {
   it('derives recipes from placements', () => {
     expect(Object.fromEntries(recipe('E'))).toEqual({ LV: 1, H: 3 });
     expect(Object.fromEntries(recipe('O'))).toEqual({ C: 2 });
+  });
+
+  it('draws a formed W at 2.5 wide while V stays 2 wide', () => {
+    expect(drawnWidth('W')).toBe(2.5);
+    expect(drawnWidth('V')).toBe(2);
+    expect(LETTERS.W.width).toBe(4); // the strokes themselves are unchanged
   });
 
   it('uses every tile in at least two letters (no single-letter strokes)', () => {

@@ -71,17 +71,18 @@ const outlines = new Map<string, string>();
 
 /**
  * Filled outline of a stroke at rotation `rot` (degrees clockwise, like SVG rotate), centred on
- * the origin. `seed` varies the wobble; `minHalfWidth` keeps thin parts visible at small sizes.
+ * the origin. `seed` varies the wobble; `minHalfWidth` keeps thin parts visible at small sizes;
+ * `squeeze` narrows the stroke's path horizontally (the pen width stays the same).
  */
-export function inkOutline(tile: TileId, rot = 0, seed = 0, minHalfWidth = 0): string {
-  const key = `${tile}|${rot}|${seed}|${minHalfWidth.toFixed(3)}`;
+export function inkOutline(tile: TileId, rot = 0, seed = 0, minHalfWidth = 0, squeeze = 1): string {
+  const key = `${tile}|${rot}|${seed}|${minHalfWidth.toFixed(3)}|${squeeze}`;
   const hit = outlines.get(key);
   if (hit) return hit;
 
   const t = (rot * Math.PI) / 180;
   const c = Math.cos(t);
   const s = Math.sin(t);
-  const pts = centerline(tile).map(([x, y]): Pt => [x * c - y * s, x * s + y * c]);
+  const pts = centerline(tile).map(([x, y]): Pt => [(x * c - y * s) * squeeze, x * s + y * c]);
   const n = pts.length;
   const along = [0];
   for (let k = 1; k < n; k++) along.push(along[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));

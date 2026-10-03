@@ -133,28 +133,17 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
   });
 });
 
-describe('slotsFor offers one spot per position', () => {
-  it('never offers two slots at the same position, for any cell', () => {
-    const contents: Placement[][] = [[]];
-    for (const g of Object.values(LETTERS)) {
-      const n = g.parts.length;
-      for (let mask = 1; mask < 1 << n; mask++) contents.push(g.parts.filter((_, i) => mask & (1 << i)));
-    }
-    for (const content of contents) {
-      for (const tile of TILE_IDS) {
-        const spots = slotsFor(content, tile).map((s) => `${s.placement.x},${s.placement.y}`);
-        expect(new Set(spots).size, `${content.map((c) => slotKey(c)).join('+') || 'empty'} + ${tile}`).toBe(spots.length);
-      }
-    }
+describe('slotsFor offers every orientation that fits at a spot (the player twists to choose)', () => {
+  it('lets an empty cell take the chevron as V or as A', () => {
+    const slots = slotsFor([], 'BV');
+    expect(new Set(slots.map((s) => `${s.placement.x},${s.placement.y}`)).size).toBe(1); // one spot
+    const toward = Object.fromEntries(slots.map((s) => [s.placement.rot ?? 0, s.toward]));
+    expect(toward).toEqual({ 0: ['V', 'W'], 180: ['A'] });
   });
 
-  it('offers the chevron upright (V) in an empty cell; A is built crossbar first', () => {
-    expect(slotsFor([], 'BV').map((s) => s.placement.rot ?? 0)).toEqual([0]);
-    const bar = slotsFor([], 'H').find((s) => s.placement.y === 1)!;
-    expect(bar.toward).toContain('A');
-    const chevron = slotsFor([bar.placement], 'BV');
-    expect(chevron.map((s) => s.toward)).toEqual([['A']]);
-    expect(recognize([bar.placement, chevron[0].placement])).toBe('A');
+  it('lets an empty cell take the big arc either way round (C or D)', () => {
+    const rots = slotsFor([], 'C').map((s) => s.placement.rot ?? 0).sort((a, b) => a - b);
+    expect(rots).toEqual([0, 180]);
   });
 
   it('builds S from two bowls, bottom bowl first', () => {
