@@ -17,7 +17,6 @@
   --t-SC: #b5679f;
   --t-C: #7c5ac9;
   --t-P: #d4566f;
-  --t-SA: #a8962a;
 
   color-scheme: light;
 }
@@ -42,7 +41,6 @@
     --t-SC: #dc8ec7;
     --t-C: #a98cf0;
     --t-P: #f07f95;
-    --t-SA: #d4c25a;
 
     color-scheme: dark;
   }
@@ -577,17 +575,17 @@ select,
   cursor: default;
 }
 
-.slot {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 0.12 0.18;
-  opacity: 0.45;
+.preview {
+  opacity: 0.7;
 }
 
-.slot.hot {
-  stroke-dasharray: none;
-  opacity: 0.9;
+.cell.no-fit {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--spicy) 55%, transparent);
+}
+
+.cell.no-fit .cell-letter {
+  color: var(--spicy);
+  opacity: 1;
 }
 
 .tray {
@@ -613,6 +611,7 @@ select,
 }
 
 .tray-tile {
+  position: relative;
   width: 52px;
   height: 52px;
   padding: 6px;
@@ -621,6 +620,16 @@ select,
   border-radius: 12px;
   cursor: grab;
   touch-action: none;
+}
+
+.rotate-badge {
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--muted);
+  pointer-events: none;
 }
 
 .tray-tile svg {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LETTERS, TILE_IDS, type Placement } from './glyphs';
+import { LETTERS, TILE_IDS, recipe, type Placement } from './glyphs';
 import { EMPTY_CELL_X, letterDiff, recognize, slotKey, slotsFor, wordDistance } from './strokes';
 
 const glyph = (ch: string, dx = 0) => LETTERS[ch].parts.map((p) => ({ ...p, x: p.x + dx }));
@@ -130,6 +130,38 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
     expect(bars[0].placement.x).toBe(EMPTY_CELL_X);
     // Crossbars differ only by height: top, middle, bottom.
     expect(new Set(slotsFor([], 'H').map((s) => s.placement.y))).toEqual(new Set([0, 1, 2]));
+  });
+});
+
+describe('slotsFor offers one spot per position', () => {
+  it('never offers two slots at the same position, for any cell', () => {
+    const contents: Placement[][] = [[]];
+    for (const g of Object.values(LETTERS)) {
+      const n = g.parts.length;
+      for (let mask = 1; mask < 1 << n; mask++) contents.push(g.parts.filter((_, i) => mask & (1 << i)));
+    }
+    for (const content of contents) {
+      for (const tile of TILE_IDS) {
+        const spots = slotsFor(content, tile).map((s) => `${s.placement.x},${s.placement.y}`);
+        expect(new Set(spots).size, `${content.map((c) => slotKey(c)).join('+') || 'empty'} + ${tile}`).toBe(spots.length);
+      }
+    }
+  });
+
+  it('offers the chevron upright (V) in an empty cell; A is built crossbar first', () => {
+    expect(slotsFor([], 'BV').map((s) => s.placement.rot ?? 0)).toEqual([0]);
+    const bar = slotsFor([], 'H').find((s) => s.placement.y === 1)!;
+    expect(bar.toward).toContain('A');
+    const chevron = slotsFor([bar.placement], 'BV');
+    expect(chevron.map((s) => s.toward)).toEqual([['A']]);
+    expect(recognize([bar.placement, chevron[0].placement])).toBe('A');
+  });
+
+  it('builds S from two bowls, bottom bowl first', () => {
+    expect(Object.fromEntries(recipe('S'))).toEqual({ P: 2 });
+    const bottom = slotsFor([], 'P').find((s) => s.toward.includes('S'))!;
+    const top = slotsFor([bottom.placement], 'P').find((s) => s.toward.includes('S'))!;
+    expect(recognize([bottom.placement, top.placement])).toBe('S');
   });
 });
 

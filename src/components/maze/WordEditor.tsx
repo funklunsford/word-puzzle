@@ -7,7 +7,10 @@ import { STROKE } from '../Glyph';
 const CELL_W = 4;
 const CELL_TOP = -0.7;
 const CELL_H = 3.6;
-const SNAP_RADIUS = 1.1;
+const PREVIEW_SPRING = { type: 'spring', stiffness: 420, damping: 24 } as const;
+
+/** Signed rotation from `from` to `to` the short way round, in degrees. */
+const turn = (from: number, to: number) => ((((to - from) % 360) + 540) % 360) - 180;
 
 type Source = { kind: 'tray' } | { kind: 'cell'; cell: number; index: number };
 
@@ -20,7 +23,7 @@ interface Drag {
   /** Valid drop slots per cell, computed once when the drag starts. */
   slots: Slot[][];
   target: { cell: number; slot: Slot } | null;
-  /** The cell under the pointer: the only one that shows (and accepts) drop slots. */
+  /** The cell under the pointer: the only one that previews (and accepts) a drop. */
   overCell: number | null;
   overWord: boolean;
 }
@@ -52,7 +55,10 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
   const without = (cell: number, source: Source | undefined) =>
     source?.kind === 'cell' && source.cell === cell ? cells[cell].filter((_, i) => i !== source.index) : cells[cell];
 
-  /** The cell under a screen point, its nearest drop slot, and whether the point is over the word. */
+  /**
+   * The cell under a screen point, the single slot a drop there would use (the nearest valid one
+   * anywhere in that cell), and whether the point is over the word.
+   */
   const locate = (d: Drag, x: number, y: number): Pick<Drag, 'target' | 'overCell' | 'overWord'> => {
     const inside = (el: Element | null | undefined) => {
       const r = el?.getBoundingClientRect();
@@ -65,7 +71,7 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
     if (overCell !== null && m) {
       const p = new DOMPoint(x, y).matrixTransform(m.inverse());
       const lx = p.x - offsets[overCell];
-      let bestD = SNAP_RADIUS;
+      let bestD = Infinity;
       for (const s of d.slots[overCell]) {
         const dist = Math.hypot(s.placement.x - lx, s.placement.y - p.y);
         if (dist < bestD) [bestD, target] = [dist, { cell: overCell, slot: s }];
@@ -129,8 +135,9 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
         {cells.map((content, c) => {
           const shown = without(c, drag?.source);
           const letter = recognize(content);
+          const noFit = drag?.overCell === c && !drag.slots[c].length;
           return (
-            <div className={`cell${letter ? ' formed' : ''}`} key={c}>
+            <div className={`cell${letter ? ' formed' : ''}${noFit ? ' no-fit' : ''}`} key={c}>
               <svg
                 ref={(el) => {
                   svgs.current[c] = el;
@@ -140,17 +147,7 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
                 height={CELL_H * unit}
               >
                 <g className="cell-content" style={{ transform: `translate(${offsets[c]}px, 0px)` }}>
-                  {drag?.overCell === c &&
-                    drag.slots[c].map((s) => (
-                    <path
-                      key={slotKey(s.placement)}
-                      className={`slot${drag?.target?.cell === c && drag.target.slot === s ? ' hot' : ''}`}
-                      d={TILES[s.placement.tile].path}
-                      transform={placementTransform(s.placement)}
-                      stroke={`var(--t-${s.placement.tile})`}
-                      strokeWidth={STROKE}
-                    />
-                  ))}
+                  {drag?.target?.cell === c && <Preview placement={drag.target.slot.placement} from={drag.rot} />}
                   {shown.map((p, i) => {
                     const index = drag?.source.kind === 'cell' && drag.source.cell === c && i >= drag.source.index ? i + 1 : i;
                     return (
@@ -171,7 +168,7 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
                 </g>
               </svg>
               <span className="cell-letter">
-                {drag?.target?.cell === c ? `→ ${drag.target.slot.toward.join(' ')}` : (letter ?? '·')}
+                {drag?.target?.cell === c ? `→ ${drag.target.slot.toward.join(' ')}` : noFit ? 'no fit' : (letter ?? '·')}
               </span>
             </div>
           );
@@ -186,7 +183,7 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
             <button
               key={t}
               className="tray-tile"
-              title={TILES[t].name}
+              title={TILES[t].rotates ? `${TILES[t].name}: rotates to fit` : TILES[t].name}
               onPointerDown={(e) => start(e, t, TILES[t].display ?? 0, { kind: 'tray' })}
               onPointerEnter={() => onHoverTile(t)}
               onPointerLeave={() => onHoverTile(null)}
@@ -200,6 +197,11 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
                   strokeWidth={STROKE}
                 />
               </svg>
+              {TILES[t].rotates && (
+                <span className="rotate-badge" aria-hidden>
+                  ↻
+                </span>
+              )}
             </button>
           ))
         )}
@@ -211,7 +213,7 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
           viewBox="-1.2 -1.2 2.4 2.4"
           width={2.4 * unit}
           height={2.4 * unit}
-          style={{ left: drag.x - 1.2 * unit, top: drag.y - 1.2 * unit, opacity: drag.target ? 0.35 : 1 }}
+          style={{ left: drag.x - 1.2 * unit, top: drag.y - 1.2 * unit, opacity: drag.target ? 0 : 1 }}
         >
           <path
             className="stroke"
@@ -223,5 +225,32 @@ export function WordEditor({ cells, unit, disabled, onEdit, onHoverTile }: Props
         </svg>
       )}
     </div>
+  );
+}
+
+/**
+ * The stroke being dragged, shown where it will land. It turns from the orientation it's held in
+ * (the tray's `<` for a chevron) to the slot's, so the player sees how it rotates into place.
+ */
+function Preview({ placement, from }: { placement: Placement; from: number }) {
+  const to = placement.rot ?? 0;
+  return (
+    <g transform={`translate(${placement.x} ${placement.y})`}>
+      <motion.g
+        key={slotKey(placement)}
+        className="preview"
+        initial={{ rotate: turn(to, from), scale: 1.08 }}
+        animate={{ rotate: 0, scale: 1 }}
+        transition={PREVIEW_SPRING}
+      >
+        <path
+          className="stroke"
+          d={TILES[placement.tile].path}
+          transform={to ? `rotate(${to})` : undefined}
+          stroke={`var(--t-${placement.tile})`}
+          strokeWidth={STROKE}
+        />
+      </motion.g>
+    </g>
   );
 }

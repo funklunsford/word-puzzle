@@ -23,6 +23,13 @@ describe('glyphs', () => {
     expect(Object.fromEntries(recipe('O'))).toEqual({ C: 2 });
   });
 
+  it('uses every tile in at least two letters (no single-letter strokes)', () => {
+    for (const t of TILE_IDS) {
+      const letters = Object.keys(LETTERS).filter((ch) => recipe(ch).has(t));
+      expect(letters.length, `${t} is only used by ${letters.join('')}`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it('has no tile that only ever appears alongside another tile', () => {
     for (const t of TILE_IDS) {
       const letters = Object.keys(LETTERS).filter((ch) => recipe(ch).has(t));

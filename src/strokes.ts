@@ -59,7 +59,8 @@ export interface Slot {
  * Any change is still possible by removing strokes first, then adding.
  *
  * In an empty cell every placement of a stroke is equivalent up to shift, so each distinct
- * stroke (shape, height, orientation) is offered once, centered.
+ * stroke (shape, height, orientation) is offered once, centered. No two slots ever share a
+ * position; where orientations compete for one spot, the upright one (rotation 0) wins.
  */
 export function slotsFor(content: Placement[], tile: TileId): Slot[] {
   const slots = new Map<string, Slot>();
@@ -86,7 +87,16 @@ export function slotsFor(content: Placement[], tile: TileId): Slot[] {
       }
     }
   }
-  return [...slots.values()];
+  // Never two spots in the same place: when one position takes the stroke in several
+  // orientations (an empty cell's chevron as V's `v` or A's `^`), keep the upright one. The
+  // others' letters are still buildable in another order (A: crossbar first, then `^`).
+  const byPosition = new Map<string, Slot>();
+  for (const s of slots.values()) {
+    const pos = `${r2(s.placement.x)},${r2(s.placement.y)}`;
+    const kept = byPosition.get(pos);
+    if (!kept || norm(s.placement.rot) < norm(kept.placement.rot)) byPosition.set(pos, s);
+  }
+  return [...byPosition.values()];
 }
 
 /** Where a first stroke goes in an empty cell (the cell's display center). */

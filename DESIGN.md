@@ -11,7 +11,8 @@ Decisions so far:
 - **Design rule:** no tile may appear only alongside another tile. Under per-word charges, such a tile is redundant because it can never be used up on its own.
 - **Tile identity (version B):** straight bars keep their orientation. Chevrons and arcs are rotatable shapes.
 
-## 1. Tile inventory (11 types)
+## 1. Tile inventory (10 types)
+**Rule: every stroke type is used by at least two letters** (enforced in `src/game.test.ts`).
 Every letter sits in a box 1 unit wide and 2 units tall.
 
 | Tile | Shape | Letters |
@@ -25,8 +26,7 @@ Every letter sits in a box 1 unit wide and 2 units tall.
 | `BV` | Big chevron, rotates | A (`^`), V, W |
 | `SC` | Small chevron, rotates | K (`<`), M and Y (`v`) |
 | `C`  | Big arc (half circle, full height), rotates | C D G O Q |
-| `P`  | Bowl (half circle with straight ends), rotates | B P R J U |
-| `SA` | Small arc (plain half circle), rotates | S |
+| `P`  | Bowl (half circle with straight ends), rotates | B P R S J U |
 
 ## 2. Letter recipes (uppercase)
 ```
@@ -34,7 +34,7 @@ A BV H      H LV LV H     O C C       V BV
 B LV P P    I LV          P LV P      W BV BV
 C C         J SV P        Q C C SB    X LD LB
 D LV C      K LV SC       R LV P SB   Y SC SV
-E LV H H H  L LV H        S SA SA     Z H H LD
+E LV H H H  L LV H        S P P       Z H H LD
 F LV H H    M LV LV SC    T LV H
 G C H SV    N LV LV LB    U SV SV P
 ```
@@ -104,7 +104,7 @@ The PoC answers two questions: **is the game feasible, and is it fun as a puzzle
 - **Tied tiles are structural.** Some strokes are only used by one or two letters (for example `LB` is used only by N and X), so on a given board they nearly always appear alongside another tile. The generator records these as `tied` and penalizes them instead of rejecting the board.
 - **Games are short.** With 5 charges per tile, a 6-tile board ran out after **6 words**, because each word spends about 3–4 of the ~25 charges. That may be a tight optimization puzzle or may feel too short; the play-test footer has a charges selector (3/5/7/10) for comparison.
 - **The word list is permissive.** ENABLE accepts obscure words (SWINK, OXIM). A daily game would need a curated list.
-- **S now uses its own tile (2026-10-01).** Two bowls always left a bar across the middle of the S, so S is now two plain half-circles (`SA`). As a result, S and most plurals only appear on boards that include `SA`.
+- **S is made of two bowls (2026-10-02).** A brief detour gave S its own small-arc tile; that broke the rule that every stroke is shared by at least two letters, so S went back to the bowl stroke of B/P/R. The bowls are offset by a quarter so their middle ends overlap into a short spine (no full-width middle bar, only a slight lean).
 
 ## Pivot: Stroke Maze (2026-10-01)
 In Smush-style play the letters, not the strokes, did the work. The new core loop makes strokes the mechanism.
@@ -112,7 +112,12 @@ In Smush-style play the letters, not the strokes, did the work. The new core loo
 - **Rooms are words; doors are stroke edits.** From the current word, drag strokes on, off or to a new position (each drag is 1 stroke). Landing on a real 4-letter word opens a door into that room. A step may use **up to 3 strokes**.
 - **Fog of war:** you see the rooms you've visited and how many doors the current room has, but not where they lead.
 - **Goal and score:** get from a start word to a goal word using the **fewest total strokes**. Each puzzle shows the best possible total (Dijkstra over the word graph).
-- **Snapping:** while you drag, each cell shows only the drop slots that keep it part of some real letter. Every letter-to-letter change is still possible (remove the extra strokes, then add the new ones); `src/strokes.test.ts` checks all 676 letter pairs.
+- **Placement rules** (`slotsFor` in `src/strokes.ts`):
+  - A drop must keep the cell part of one real letter, at that letter's exact positions. A complete letter accepts nothing unless a bigger letter contains it (F→E, P→R, O→Q, V→W).
+  - Letters grow rightward from the strokes already there, so a stroke never has two equivalent spots.
+  - No two spots share a position. Where orientations compete for one spot (an empty cell's chevron as `v` or `^`), the upright one wins; the other letter is built in another order (A: crossbar first).
+  - Every letter-to-letter change is still possible (remove the extra strokes, then add the new ones); `src/strokes.test.ts` checks all 676 letter pairs.
+- **Dragging:** only the hovered cell reacts, and it previews just the one spot nearest the pointer, drawn as the stroke itself turning into its final orientation. A cell with no valid spot says "no fit". Rotatable strokes carry a ↻ badge in the tray.
 - **Why 3 strokes per step** (ENABLE, 4-letter words):
 
   | Strokes per step | Main connected maze | Typical doors |
