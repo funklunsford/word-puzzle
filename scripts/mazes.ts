@@ -1,23 +1,21 @@
-// Build the 4-letter stroke maze from ENABLE and pick start/goal puzzles.
+// Build the stroke maze: one fixed puzzle over familiar 4-letter words.
 //
 //   npx vite-node scripts/mazes.ts
 //
-// Rooms are words; a door joins two words that are at most STEP_LIMIT stroke edits apart.
-// Each puzzle's `best` is the cheapest route in total strokes (Dijkstra).
+// Rooms are the words in data/familiar-4.txt (see scripts/familiar.ts); a door joins two words
+// that are at most STEP_LIMIT stroke edits apart. The puzzle's `best` is the cheapest route from
+// START to GOAL in total strokes (Dijkstra).
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { STEP_LIMIT, wordDistance } from '../src/strokes';
+import { parseWordList } from '../src/wordlist';
 
 const LENGTH = 4;
-const MIN_BEST = 10;
-const MAX_BEST = 16;
-const MIN_HOPS = 4;
-const PICK = 8;
+// Opposites make a nice maze: 14 strokes over 5 rooms, all everyday words.
+const START = 'WILD';
+const GOAL = 'TAME';
 
-const words = readFileSync(new URL('../data/enable1.txt', import.meta.url), 'utf8')
-  .split('\n')
-  .map((w) => w.trim().toUpperCase())
-  .filter((w) => w.length === LENGTH && /^[A-Z]+$/.test(w));
+const words = parseWordList(readFileSync(new URL('../data/familiar-4.txt', import.meta.url), 'utf8'));
 
 console.time('graph');
 const adj: { to: number; cost: number }[][] = words.map(() => []);
@@ -65,28 +63,14 @@ const degree = adj.map((a) => a.length);
 const connected = degree.filter((d) => d > 0).length;
 console.log(`${words.length} words, ${connected} with at least one door, median doors ${[...degree].sort((a, b) => a - b)[degree.length >> 1]}`);
 
-// Deterministic pseudo-random order so reruns give the same puzzles.
-let seed = 7;
-const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-const starts = words.map((_, i) => i).filter((i) => degree[i] >= 3).sort(() => rand() - 0.5);
+const s = words.indexOf(START);
+const g = words.indexOf(GOAL);
+if (s < 0 || g < 0) throw new Error(`${START} and ${GOAL} must both be in the word list`);
+const { dist, hops, prev } = dijkstra(s);
+if (!Number.isFinite(dist[g])) throw new Error(`${GOAL} is not reachable from ${START}`);
+const path: string[] = [];
+for (let c = g; c >= 0; c = prev[c]) path.unshift(words[c]);
+const puzzle = { start: START, goal: GOAL, best: dist[g], path };
+console.log(`${START} → ${GOAL}: best ${dist[g]} strokes / ${hops[g]} rooms, ${degree[s]} doors at the start   ${path.join(' → ')}`);
 
-const puzzles: { start: string; goal: string; best: number; path: string[] }[] = [];
-const used = new Set<string>();
-for (const s of starts) {
-  if (puzzles.length >= PICK) break;
-  if (used.has(words[s])) continue;
-  const { dist, hops, prev } = dijkstra(s);
-  const goals = words
-    .map((_, i) => i)
-    .filter((i) => dist[i] >= MIN_BEST && dist[i] <= MAX_BEST && hops[i] >= MIN_HOPS && degree[i] >= 2 && !used.has(words[i]));
-  if (!goals.length) continue;
-  const g = goals[Math.floor(rand() * goals.length)];
-  const path: string[] = [];
-  for (let c = g; c >= 0; c = prev[c]) path.unshift(words[c]);
-  puzzles.push({ start: words[s], goal: words[g], best: dist[g], path });
-  path.forEach((w) => used.add(w));
-  console.log(`${words[s]} → ${words[g]}  best ${dist[g]} strokes / ${hops[g]} rooms   ${path.join(' → ')}`);
-}
-
-writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, puzzles }));
-console.log(`wrote ${puzzles.length} puzzles`);
+writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, puzzle }));

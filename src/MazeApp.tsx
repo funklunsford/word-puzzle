@@ -14,7 +14,7 @@ interface Puzzle {
 
 interface MazeData {
   words: string[];
-  puzzles: Puzzle[];
+  puzzle: Puzzle;
 }
 
 interface Visit {
@@ -36,7 +36,6 @@ function useWidth() {
 
 export function MazeApp() {
   const [data, setData] = useState<MazeData | null>(null);
-  const [pi, setPi] = useState(0);
   const [room, setRoom] = useState('');
   const [cells, setCells] = useState<Placement[][]>([]);
   const [history, setHistory] = useState<Placement[][][]>([]);
@@ -52,7 +51,7 @@ export function MazeApp() {
       .then(setData);
   }, []);
 
-  const puzzle = data?.puzzles[pi];
+  const puzzle = data?.puzzle;
   const dict = useMemo(() => new Set(data?.words ?? []), [data]);
 
   const restart = useCallback(() => {
@@ -124,13 +123,6 @@ export function MazeApp() {
       <div className="maze-main">
         <header className="top">
           <h1>Stroke Maze</h1>
-          <select value={pi} onChange={(e) => setPi(Number(e.target.value))} aria-label="Puzzle">
-            {data.puzzles.map((_, i) => (
-              <option key={i} value={i}>
-                Maze {i + 1}
-              </option>
-            ))}
-          </select>
         </header>
 
         <section className="goal">
@@ -164,7 +156,7 @@ export function MazeApp() {
                 ? 'Out of strokes for this step. Undo to try another way.'
                 : stepEdits
                   ? 'Keep going: land on a real word to open a door.'
-                  : 'Drag strokes on, off, or around. Up to 3 per step.'}
+                  : 'Drag strokes in from the tray. Tap a stroke to remove it, or drag it somewhere else. Up to 3 per step.'}
             </span>
             <button onClick={undo} disabled={!history.length}>
               Undo
