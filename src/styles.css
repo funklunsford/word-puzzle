@@ -7,16 +7,18 @@
   --gold: #d9a520;
   --spicy: #e4572e;
 
-  --t-LV: #3f5fa8;
-  --t-SV: #6f95d6;
-  --t-H: #d0674a;
-  --t-LD: #5e9c7f;
-  --t-LB: #3e7f6c;
-  --t-SB: #2a9d9b;
-  --t-BV: #d99a3d;
-  --t-SC: #b5679f;
-  --t-C: #7c5ac9;
-  --t-P: #d4566f;
+  /* Stroke colours: earth pigments (slate, terracotta, ochre, sage, moss, verdigris, plum,
+     heather, clay). */
+  --t-LV: #3f5a74;
+  --t-SV: #6d859c;
+  --t-H: #b0583a;
+  --t-LD: #6f8c58;
+  --t-LB: #4e6b3f;
+  --t-SB: #3f7f73;
+  --t-BV: #b98a2f;
+  --t-SC: #8a4f70;
+  --t-C: #6b5b8f;
+  --t-P: #a8545d;
 
   color-scheme: light;
 }
@@ -31,16 +33,16 @@
     --gold: #f0c04a;
     --spicy: #ff7a4d;
 
-    --t-LV: #7d9ce8;
-    --t-SV: #a6c2f2;
-    --t-H: #ef8e6f;
-    --t-LD: #86c6a6;
-    --t-LB: #5fb096;
-    --t-SB: #4fc4c1;
-    --t-BV: #f0b65c;
-    --t-SC: #dc8ec7;
-    --t-C: #a98cf0;
-    --t-P: #f07f95;
+    --t-LV: #8fa6bf;
+    --t-SV: #b4c3d1;
+    --t-H: #d98a68;
+    --t-LD: #a9bf8e;
+    --t-LB: #7f9c6a;
+    --t-SB: #6fb0a3;
+    --t-BV: #dcb064;
+    --t-SC: #c18aa8;
+    --t-C: #a596c4;
+    --t-P: #d6908f;
 
     color-scheme: dark;
   }
@@ -55,12 +57,6 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: Inter, system-ui, sans-serif;
-}
-
-.stroke {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .gallery {
@@ -567,8 +563,29 @@ select,
   stroke-width: 0.8;
   stroke-linecap: round;
   stroke-linejoin: round;
-  cursor: grab;
+  cursor: pointer;
   pointer-events: stroke;
+}
+
+/* A hovered placed stroke: tinted, with a small × (tapping removes it). */
+.remove-tint {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.remove-badge {
+  pointer-events: none;
+}
+
+.remove-badge circle {
+  fill: var(--spicy);
+}
+
+.remove-badge path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 0.05;
+  stroke-linecap: round;
 }
 
 .editor.disabled .hit {

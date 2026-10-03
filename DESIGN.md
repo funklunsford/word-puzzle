@@ -127,5 +127,19 @@ In Smush-style play the letters, not the strokes, did the work. The new core loo
   | **3** | **75% of words** | **5–6** |
   | 4 | 97% of words | 11 (routes too short) |
 
-- Words are ENABLE-only for now, so rooms and door counts include obscure words (PEAN, LUNT).
+- Words: originally ENABLE-only (rooms like PEAN, LUNT); now familiar words only, see below.
 - The old Smush prototype is still at `/#smush`.
+
+## Familiar words, one maze, tap-to-remove, ink (2026-10-02)
+- **Words.** Rooms are the 1,845 four-letter words in `data/familiar-4.txt`: SCOWL size 35 (everyday vocabulary), lowercase entries only (no names or abbreviations), also valid in ENABLE, minus a small blocklist of sexual terms, slurs and swears (`src/wordlist.ts`). With 3 strokes per step, 72% of them form one connected maze (median 4 doors), about as connected as the old ENABLE maze (75%, 6). SCOWL size 50 added almost no connectivity and brought back esoteric words (ABBE, KITH, TYRO), so it isn't used.
+- **One maze.** WILD → TAME, best 14 strokes over 5 rooms (WILD → WILL → VILE → TILE → TALE → TAME), 5 doors at the start. Set by `START`/`GOAL` in `scripts/mazes.ts`.
+- **Removing strokes.** Tap a placed stroke to remove it (1 stroke); dragging still moves it, and dragging it off the word also removes it. Hovering a stroke tints it red with a small ×, and the step hint explains both gestures.
+- **Ink.** Strokes are drawn as filled outlines from a broad nib held at 38° (downstrokes thicker than crossbars) with a gentle seeded wobble and slightly lighter ends (`src/ink.ts`). The wobble ignores horizontal position, so a letter looks the same everywhere, like a font. Small glyphs keep a minimum weight of about 1.2 px. Game geometry still uses the plain centreline paths.
+- **Palette.** Stroke colours are earth pigments (slate, terracotta, ochre, sage, moss, verdigris, plum, heather, clay); backgrounds are unchanged.
+
+### Word list credit
+`data/familiar-4.txt` is derived from SCOWL / the English Speller Database, whose license asks that this notice appear in copies and supporting documentation:
+
+> Copyright 2000-2026 by Kevin Atkinson
+>
+> Permission to use, copy, modify, distribute, and sell any part of the English Speller Database (ESDB, previously known as SCOWLv2), or word lists created from it, is hereby granted without fee, provided that the above copyright notice appears in all copies and that both the above copyright notice and this notice appear in supporting documentation. Kevin Atkinson makes no representations about the suitability of this database for any purpose. It is provided "as is" without express or implied warranty.

@@ -1,25 +1,42 @@
-import { LETTERS, TILES, placementTransform, type Placement, type TileId } from '../glyphs';
+import { LETTERS, type Placement, type TileId } from '../glyphs';
+import { inkOutline, inkSeed } from '../ink';
 
-export const STROKE = 0.2;
 const PAD = 0.3;
 
-export function TileStroke({ tile, transform }: { tile: TileId; transform?: string }) {
+/** Smallest stroke half-width (in units) that still draws ~1.2 px thick at `pxPerUnit`. */
+export const minHalfWidthAt = (pxPerUnit: number) => 0.6 / pxPerUnit;
+
+interface TileStrokeProps {
+  tile: TileId;
+  /** Degrees clockwise. */
+  rot?: number;
+  x?: number;
+  y?: number;
+  minHalfWidth?: number;
+  /** Wobble seed; defaults to the stroke's own (see inkSeed). Pass it when drawing at the origin. */
+  seed?: number;
+  /** Overrides the stroke's colour (e.g. a removal tint). */
+  fill?: string;
+  className?: string;
+}
+
+/** One stroke, drawn in ink (see ink.ts). The only place strokes are rendered. */
+export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink' }: TileStrokeProps) {
   return (
     <path
-      className="stroke"
-      d={TILES[tile].path}
-      transform={transform}
-      stroke={`var(--t-${tile})`}
-      strokeWidth={STROKE}
+      className={className}
+      d={inkOutline(tile, rot, seed ?? inkSeed({ tile, x, y, rot }), minHalfWidth)}
+      transform={x || y ? `translate(${x} ${y})` : undefined}
+      fill={fill ?? `var(--t-${tile})`}
     />
   );
 }
 
-export function PlacedStrokes({ parts }: { parts: Placement[] }) {
+export function PlacedStrokes({ parts, minHalfWidth }: { parts: Placement[]; minHalfWidth?: number }) {
   return (
     <>
       {parts.map((part, i) => (
-        <TileStroke key={i} tile={part.tile} transform={placementTransform(part)} />
+        <TileStroke key={i} tile={part.tile} rot={part.rot} x={part.x} y={part.y} minHalfWidth={minHalfWidth} />
       ))}
     </>
   );
@@ -37,7 +54,7 @@ export function Glyph({ letter, size = 64 }: { letter: string; size?: number }) 
       width={(size * w) / 2}
       aria-label={letter}
     >
-      <PlacedStrokes parts={glyph.parts} />
+      <PlacedStrokes parts={glyph.parts} minHalfWidth={minHalfWidthAt(size / 2)} />
     </svg>
   );
 }
@@ -58,7 +75,7 @@ export function GlyphWord({ word, size = 48 }: { word: string; size?: number }) 
     <svg viewBox={`${-PAD} ${-PAD} ${w} ${h}`} height={(size * h) / 2} width={(size * w) / 2} aria-label={word}>
       {letters.map(({ ch, at }, i) => (
         <g key={i} transform={`translate(${at} 0)`}>
-          <PlacedStrokes parts={LETTERS[ch].parts} />
+          <PlacedStrokes parts={LETTERS[ch].parts} minHalfWidth={minHalfWidthAt(size / 2)} />
         </g>
       ))}
     </svg>

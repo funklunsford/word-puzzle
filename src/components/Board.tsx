@@ -52,7 +52,7 @@ export function Board({ board, state, inUse, preview, focusTile, onHoverTile, on
               viewBox={`${-TILE_BOX / 2} ${-TILE_BOX / 2} ${TILE_BOX} ${TILE_BOX}`}
               className="tile-svg"
             >
-              <TileStroke tile={tile} transform={TILES[tile].display ? `rotate(${TILES[tile].display})` : undefined} />
+              <TileStroke tile={tile} rot={TILES[tile].display} />
             </svg>
             <span className="tile-name">{TILES[tile].name}</span>
           </motion.button>

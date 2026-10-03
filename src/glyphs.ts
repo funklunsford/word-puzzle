@@ -112,7 +112,3 @@ export function recipe(letter: string): Map<TileId, number> {
   for (const part of LETTERS[letter].parts) counts.set(part.tile, (counts.get(part.tile) ?? 0) + 1);
   return counts;
 }
-
-export function placementTransform({ x, y, rot = 0 }: Placement): string {
-  return `translate(${x} ${y})${rot ? ` rotate(${rot})` : ''}`;
-}

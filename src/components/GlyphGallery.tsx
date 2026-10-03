@@ -11,7 +11,7 @@ export function GlyphGallery() {
         {TILE_IDS.map((id) => (
           <span className="legend-item" key={id}>
             <svg viewBox="-1.2 -1.2 2.4 2.4" width={28} height={28}>
-              <TileStroke tile={id} transform={TILES[id].display ? `rotate(${TILES[id].display})` : undefined} />
+              <TileStroke tile={id} rot={TILES[id].display} />
             </svg>
             {TILES[id].name}
           </span>
