@@ -22,11 +22,18 @@ interface Visit {
   cost: number;
 }
 
-/** Layout: page width cap, the left column's width and the gap, and the width where it appears. */
-const MAX_W = 980;
-const PANEL_W = 220;
-const GAP = 16;
-const SIDE_MIN = 760;
+/** Layout: the main column's width cap, the side card's width, and the width where the card sits beside it. */
+const COLUMN_W = 640;
+const SIDE_W = 260;
+const SIDE_MIN = 1000;
+/** Pastel tiles framing the wordmark (tilted a little, like tiles tossed on a table). */
+const LOGO_TILES = [
+  ['var(--pastel-1)', -4],
+  ['var(--pastel-2)', 3],
+  ['var(--pastel-3)', -2],
+  ['var(--pastel-4)', 4],
+  ['var(--pastel-1)', -3],
+] as const;
 
 const cellsFor = (word: string): Placement[][] => [...word].map((ch) => LETTERS[ch].parts.map((p) => ({ ...p })));
 
@@ -49,6 +56,7 @@ export function MazeApp() {
   const [spent, setSpent] = useState(0);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   const [reveal, setReveal] = useState(false);
+  const [help, setHelp] = useState(true);
   const width = useWidth();
 
   useEffect(() => {
@@ -116,10 +124,11 @@ export function MazeApp() {
 
   if (!data || !puzzle || !room) return <div className="maze loading">Loading…</div>;
 
-  // Two columns (step panel | play area) when there's room, otherwise one stacked column.
+  // The main column (score, board, step controls) with the path card beside it when there's room.
   const side = width >= SIDE_MIN;
-  const available = Math.min(width, MAX_W) - 32 - (side ? PANEL_W + GAP : 0) - 26;
-  const unit = Math.max(13, Math.min(34, available / 17.5));
+  const column = Math.min(width - 32, COLUMN_W);
+  // Board padding, gaps between letter tiles and their own padding come off before sizing the word.
+  const unit = Math.max(13, Math.min(32, (column - 36 - 30 - 48) / 16));
   const visited = new Set(trail.map((v) => v.word));
   const found = roomExits.filter((x) => visited.has(x.word)).length;
   const lettersWithTile = hoverTile ? new Set(Object.keys(LETTERS).filter((ch) => recipe(ch).has(hoverTile))) : null;
@@ -129,117 +138,145 @@ export function MazeApp() {
   // The step after a door opens, until the next stroke: confirm it (completion feedback).
   const justOpened = !won && !stepEdits && trail.length > 1;
 
-  // Four regions: where you're going (top), this step (left), the play area (centre), and the
-  // path so far with game controls (bottom).
+  const tiles = (row: number) => (
+    <div className="logo-tiles" aria-hidden>
+      {LOGO_TILES.map(([color, tilt], i) => (
+        <span key={i} style={{ background: color, transform: `rotate(${(row ? -tilt : tilt)}deg)` }} />
+      ))}
+    </div>
+  );
+
   return (
     <MotionConfig reducedMotion="user">
-      <div className={`maze${side ? ' side' : ''}`} style={side ? { gridTemplateColumns: `${PANEL_W}px 1fr` } : undefined}>
-        <header className="topbar">
-          <h1>Stroke Maze</h1>
-          <div className="goal">
-            <span className="label">Reach</span>
-            <GlyphWord word={puzzle.goal} size={22} />
+      <div className={`maze${side ? ' side' : ''}`} style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}>
+        <header className="masthead">
+          <div className="logo" role="img" aria-label="Stroke Maze">
+            {tiles(0)}
+            <div className="logo-word">
+              <GlyphWord word="STROKE" size={38} />
+              <GlyphWord word="MAZE" size={38} />
+            </div>
+            {tiles(1)}
           </div>
-          <div className="score">
-            <strong>{used}</strong> {used === 1 ? 'stroke' : 'strokes'} used
-            <span className="meta"> · best {puzzle.best}</span>
-          </div>
+          <p className="tagline">
+            Turn <strong>{puzzle.start}</strong> into <strong>{puzzle.goal}</strong>, a few strokes at a time.
+          </p>
         </header>
 
-        <section className="step-panel" aria-label="This step">
-          <span className="label">This step</span>
-          <div className="step-meter">
-            <div className="pips" aria-label={`${stepEdits} of ${STEP_LIMIT} strokes this step`}>
-              {Array.from({ length: STEP_LIMIT }, (_, i) => (
-                <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
+        <main className="column">
+          <section className="scorecard">
+            <button className="help-btn" aria-label="How to play" aria-expanded={help} onClick={() => setHelp((h) => !h)}>
+              ?
+            </button>
+            <div className="score-big">
+              <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
+            </div>
+            <div className="score-sub">
+              <span className="goal">
+                reach <GlyphWord word={puzzle.goal} size={16} />
+              </span>
+              <span>
+                best {puzzle.best} · {roomExits.length} {roomExits.length === 1 ? 'door' : 'doors'} here
+                {found ? ` (${found} explored)` : ''}
+              </span>
+            </div>
+            {!won && toGoal <= STEP_LIMIT && <div className="score-hint">The goal is one step away.</div>}
+          </section>
+
+          {help && (
+            <section className="help-card" aria-label="How to play">
+              <div className="help-head">
+                <span className="label">How to play</span>
+                <button className="close" aria-label="Close how to play" onClick={() => setHelp(false)}>
+                  ×
+                </button>
+              </div>
+              <ul className="how">
+                <li>Change the word into another real word, up to 3 strokes per step, to open a door.</li>
+                <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
+                <li>Starting a new letter with a chevron, arc or bowl? Hold it over its spot and circle the cursor around it to turn it.</li>
+              </ul>
+            </section>
+          )}
+
+          <section className="board">
+            <AnimatePresence>
+              {won && (
+                <motion.div className="win" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                  You reached {puzzle.goal} in {spent} strokes. Best possible: {puzzle.best}.
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <span className="label">You are in</span>
+            <WordEditor cells={cells} unit={unit} disabled={won || locked} room={room} onEdit={onEdit} onHoverTile={setHoverTile} />
+            <div className="letters" aria-label="Letters by stroke">
+              {Object.keys(LETTERS).map((ch) => (
+                <span
+                  key={ch}
+                  className={`ref-letter${lettersWithTile ? (lettersWithTile.has(ch) ? ' match' : ' dim') : ''}`}
+                >
+                  <Glyph letter={ch} size={13} />
+                </span>
               ))}
             </div>
-            <span className="step-count">
-              {stepEdits} of {STEP_LIMIT} strokes
-            </span>
-          </div>
-          <p className={`step-status${locked ? ' out' : justOpened ? ' opened' : ''}`}>
-            {locked
-              ? 'Out of strokes for this step. Undo to try another way.'
-              : stepEdits
-                ? 'Keep going: land on a real word to open a door.'
-                : justOpened
-                  ? `Door opened: ${room} (+${trail[trail.length - 1].cost}). Find the next one.`
-                  : 'Change the word into another real word to open a door.'}
-          </p>
-          <div className="step-buttons">
-            <button onClick={undo} disabled={!history.length}>
-              Undo
-            </button>
-            <button onClick={resetStep} disabled={!history.length}>
-              Reset step
-            </button>
-          </div>
-        </section>
+          </section>
 
-        <section className="how-panel" aria-label="How to play">
-          <span className="label">How to play</span>
-          <ul className="how">
-            <li>Drag strokes in from the tray.</li>
-            <li>Tap a stroke to remove it, or drag it to move it.</li>
-            <li>Starting a new letter with a chevron, arc or bowl? Hold it over its spot and circle the cursor around it to turn it.</li>
-          </ul>
-        </section>
-
-        <main className="stage">
-          <AnimatePresence>
-            {won && (
-              <motion.div className="win" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                You reached {puzzle.goal} in {spent} strokes. Best possible: {puzzle.best}.
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <div className="room-head">
-            <span className="label">You are in</span>
-            <span className="meta">
-              {roomExits.length} {roomExits.length === 1 ? 'door' : 'doors'}
-              {found ? ` · ${found} explored` : ''}
-              {!won && toGoal <= STEP_LIMIT ? ' · the goal is one step away' : ''}
-            </span>
-          </div>
-          <WordEditor cells={cells} unit={unit} disabled={won || locked} room={room} onEdit={onEdit} onHoverTile={setHoverTile} />
-          <div className="letters" aria-label="Letters by stroke">
-            {Object.keys(LETTERS).map((ch) => (
-              <span
-                key={ch}
-                className={`ref-letter${lettersWithTile ? (lettersWithTile.has(ch) ? ' match' : ' dim') : ''}`}
-              >
-                <Glyph letter={ch} size={13} />
+          <section className="controls" aria-label="This step">
+            <div className="pill-row">
+              <button className="pill" onClick={undo} disabled={!history.length}>
+                Undo
+              </button>
+              <button className="pill" onClick={resetStep} disabled={!history.length}>
+                Reset step
+              </button>
+            </div>
+            <p className={`step-status${locked ? ' out' : justOpened ? ' opened' : ''}`}>
+              {locked
+                ? 'Out of strokes for this step. Undo to try another way.'
+                : stepEdits
+                  ? 'Keep going: land on a real word to open a door.'
+                  : justOpened
+                    ? `Door opened: ${room} (+${trail[trail.length - 1].cost}). Find the next one.`
+                    : 'Change the word into another real word to open a door.'}
+            </p>
+            <div className="step-meter">
+              <span>This step:</span>
+              <span className="pips" aria-label={`${stepEdits} of ${STEP_LIMIT} strokes this step`}>
+                {Array.from({ length: STEP_LIMIT }, (_, i) => (
+                  <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
+                ))}
               </span>
-            ))}
-          </div>
+            </div>
+          </section>
         </main>
 
-        <footer className="journey">
-          <div className="trail">
-            <span className="label">Your path</span>
-            <ol>
-              {trail.map((v, i) => {
-                const isHere = i === trail.length - 1;
-                return (
-                  <motion.li
-                    key={i}
-                    className={isHere ? 'here' : ''}
-                    initial={{ opacity: 0, scale: 0.85 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-                  >
-                    {i > 0 && <span className="cost">+{v.cost}</span>}
-                    <GlyphWord word={v.word} size={14} />
-                    {isHere && <span className="meta">{won ? 'goal' : 'here'}</span>}
-                  </motion.li>
-                );
-              })}
-            </ol>
-          </div>
-          <div className="playtest">
-            <button onClick={restart}>Restart</button>
-            <button onClick={() => setReveal((r) => !r)}>{reveal ? 'Hide' : 'Show'} best route</button>
+        <aside className="side-card">
+          <span className="label">Your path</span>
+          <ol className="trail">
+            {trail.map((v, i) => {
+              const isHere = i === trail.length - 1;
+              return (
+                <motion.li
+                  key={i}
+                  className={isHere ? 'here' : ''}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+                >
+                  {i > 0 && <span className="cost">+{v.cost}</span>}
+                  <GlyphWord word={v.word} size={14} />
+                  {isHere && <span className="meta">{won ? 'goal' : 'here'}</span>}
+                </motion.li>
+              );
+            })}
+          </ol>
+          <div className="pill-row">
+            <button className="pill quiet" onClick={restart}>
+              Restart
+            </button>
+            <button className="pill quiet" onClick={() => setReveal((r) => !r)}>
+              {reveal ? 'Hide' : 'Show'} best route
+            </button>
           </div>
           {reveal && (
             <p className="answers">
@@ -248,7 +285,7 @@ export function MazeApp() {
               Doors from {room}: {roomExits.map((x) => `${x.word} (${x.cost})`).join(', ')}
             </p>
           )}
-        </footer>
+        </aside>
       </div>
     </MotionConfig>
   );

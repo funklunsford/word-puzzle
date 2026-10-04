@@ -167,3 +167,6 @@ Four regions, each answering one question:
 - **Centre — where do I play?** "You are in" + doors, the word, the tray right under it, and the letter reference as a strip under the tray (it lights up for hovered strokes).
 - **Bottom — where have I been?** The path so far, Restart and Show best route.
 Wide screens (≥ 760 px) use two columns (left panel 220 px); narrower screens stack top → this step → play area → how to play → path. The word grows to fill the play area (up to 34 px per unit).
+
+## Visual style (2026-10-03, after Hank Green's Smush and 4x3)
+Borrowed the style, not the branding: a "STROKE MAZE" wordmark in our own ink strokes between two rows of pastel tiles, a one-line rule underneath, a raised score card (big stroke count, goal, best, doors, and a **?** that toggles How to play, open on load), the word as raised letter tiles on a board card with a soft pastel glow, tray strokes as key-like tiles tinted in their stroke colour, Undo / Reset step as pill buttons with "This step ● ○ ○" centred under the board, and the path in a side card (right of the main column at ≥ 1000 px, below it otherwise). Cards sit on a solid "ledge" shadow; type is the system's rounded face (SF Rounded on Apple). This supersedes the left step panel from the earlier layout pass.

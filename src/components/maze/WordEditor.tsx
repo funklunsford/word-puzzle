@@ -493,6 +493,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                 if (el) trayEls.current.set(t, el);
               }}
               className={`tray-tile${taken ? ' taken' : ''}`}
+              style={{ ['--tile' as string]: `var(--t-${t})` }}
               title={TILES[t].rotates ? `${TILES[t].name}: in an empty letter, circle the cursor around its spot to turn it` : TILES[t].name}
               onPointerDown={(e) => start(e, t, TILES[t].display ?? 0, { kind: 'tray' }, trayHome(t))}
               onPointerEnter={() => onHoverTile(t)}
