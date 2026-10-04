@@ -1,4 +1,4 @@
-import { LETTERS, drawnWidth, type Placement, type TileId } from '../glyphs';
+import { LETTERS, drawnWidth, lengthAnchor, type Placement, type TileId } from '../glyphs';
 import { inkOutline, inkSeed } from '../ink';
 
 const PAD = 0.3;
@@ -20,16 +20,21 @@ interface TileStrokeProps {
   className?: string;
   /** Narrow the stroke horizontally (a formed W); see LetterGlyph.squeeze. */
   squeeze?: number;
-  /** Drawn length as a fraction of the stroke's own (G's short bar); see Placement.len. */
+  /** Drawn length as a fraction of the stroke's own (G's chin); see Placement.len. */
   len?: number;
 }
 
-/** SVG scale that shortens a stroke along its own axis, about its centre. */
-export const lengthScale = (rot = 0, len = 1) => (len === 1 ? '' : (rot % 180 === 0 ? `scale(${len} 1)` : `scale(1 ${len})`));
+/** SVG transform that shortens a drawn (already rotated) stroke along its axis, keeping its anchored end. */
+export function lengthTransform(tile: TileId, rot = 0, len = 1): string {
+  if (len === 1) return '';
+  const [ax, ay] = lengthAnchor(tile, rot);
+  const scale = rot % 180 === 0 ? `scale(${len} 1)` : `scale(1 ${len})`;
+  return `translate(${ax} ${ay}) ${scale} translate(${-ax} ${-ay})`;
+}
 
 /** One stroke, drawn in ink (see ink.ts). The only place strokes are rendered. */
 export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink', squeeze = 1, len = 1 }: TileStrokeProps) {
-  const transform = `${x || y ? `translate(${x} ${y}) ` : ''}${lengthScale(rot, len)}`.trim();
+  const transform = `${x || y ? `translate(${x} ${y}) ` : ''}${lengthTransform(tile, rot, len)}`.trim();
   return (
     <path
       className={className}

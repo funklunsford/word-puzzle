@@ -133,7 +133,8 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
     const flat = slotsFor([], 'H').filter((s) => !s.placement.rot);
     const upright = slotsFor([], 'H').filter((s) => s.placement.rot === 90);
     expect(new Set(flat.map((s) => s.placement.y))).toEqual(new Set([0, 1, 2]));
-    expect(upright.map((s) => [s.placement.y, s.toward])).toEqual([[1.5, ['Y']]]);
+    // G's chin and Y's stem share one spot, so an empty cell never offers two upright bars.
+    expect(upright.map((s) => [s.placement.y, s.toward])).toEqual([[1.5, ['G', 'Y']]]);
   });
 
   it('never needs a twist for the bar: each of its empty-cell spots fits one orientation', () => {
@@ -143,11 +144,12 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
 });
 
 describe('formedLengths', () => {
-  it("draws G's bar half length once G is formed, and everything full length before", () => {
+  it("draws G's chin ¾ length once G is formed, and everything full length before", () => {
     const g = glyph('G', 0.5);
-    expect(formedLengths(g)).toEqual([1, 0.5]);
-    expect(formedLengths([...g].reverse())).toEqual([0.5, 1]);
+    expect(formedLengths(g)).toEqual([1, 0.75]);
+    expect(formedLengths([...g].reverse())).toEqual([0.75, 1]);
     expect(formedLengths(g.slice(1))).toBeNull(); // a lone bar isn't a letter
+    expect(formedLengths(glyph('Y'))).toEqual([1, 1]); // same spot as G's chin, full length in Y
     expect(formedLengths(glyph('E'))).toEqual([1, 1, 1, 1]);
   });
 

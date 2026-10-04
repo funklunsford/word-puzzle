@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
-import { LETTERS, TILES, TILE_IDS, xExtent, type Placement, type TileId } from '../../glyphs';
+import { LETTERS, TILES, TILE_IDS, lengthAnchor, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed } from '../../ink';
 import { EMPTY_CELL_X, formedLengths, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
@@ -88,6 +88,12 @@ interface Props {
   room: string;
   onEdit: (next: Placement[][]) => void;
   onHoverTile: (tile: TileId | null) => void;
+}
+
+/** Transform origin (fractions of the stroke's box) at the end a shortened stroke keeps in place. */
+function lengthOrigin(tile: TileId, rot: number) {
+  const [ax, ay] = lengthAnchor(tile, rot);
+  return { originX: 0.5 + 0.5 * Math.sign(ax), originY: 0.5 + 0.5 * Math.sign(ay) };
 }
 
 /** A cell's strokes with the lengths they're drawn at (see formedLengths). */
@@ -478,8 +484,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                             : { ...SETTLE, opacity: { duration: 0.15 } }
                         }
                       >
-                        {/* Resizes along its own axis when its letter forms or breaks (G's bar shrinks into the mouth). */}
+                        {/* Resizes along its own axis when its letter forms or breaks (G's chin shrinks to the baseline). */}
                         <motion.g
+                          style={lengthOrigin(p.tile, p.rot ?? 0)}
                           initial={landing ? { scaleX: 1, scaleY: 1 } : false}
                           animate={{ scaleX: flat ? len : 1, scaleY: flat ? 1 : len }}
                           transition={SETTLE}
@@ -498,7 +505,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                         <path
                           className="hit"
                           d={TILES[p.tile].path}
-                          transform={`translate(${x} ${p.y})${squeeze !== 1 ? ` scale(${squeeze} 1)` : ''}${p.rot ? ` rotate(${p.rot})` : ''}${len !== 1 ? ` scale(${len} 1)` : ''}`}
+                          transform={`translate(${x} ${p.y})${squeeze !== 1 ? ` scale(${squeeze} 1)` : ''}${p.rot ? ` rotate(${p.rot})` : ''}${len !== 1 ? ` translate(${lengthAnchor(p.tile)[0]} 0) scale(${len} 1) translate(${-lengthAnchor(p.tile)[0]} 0)` : ''}`}
                           onPointerDown={(e) => pressPlaced(e, c, p, x)}
                           onPointerEnter={() => {
                             onHoverTile(p.tile);
@@ -557,6 +564,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
           style={{ left: -1.2 * unit, top: -1.2 * unit, x: gx, y: gy, scale: gs, rotate: gr }}
         >
           <motion.g
+            style={lengthOrigin(floating.tile, norm(quarter(floating.turn)))}
             initial={(floating.turn / 90) % 2 === 0 ? { scaleX: floating.len0 } : { scaleY: floating.len0 }}
             animate={{ scaleX: 1, scaleY: 1 }}
             transition={SETTLE}

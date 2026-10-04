@@ -45,17 +45,30 @@ const TILE_EXTENT: Record<TileId, [number, number]> = {
   P: [0.5, 0.5],
 };
 
+/**
+ * The end a shortened stroke (Placement.len) keeps in place, relative to its centre, at rotation
+ * `rot`: the far end of its own axis (local +x). An upright bar keeps its foot, so G's chin stays
+ * on the baseline.
+ */
+export function lengthAnchor(tile: TileId, rot = 0): [number, number] {
+  const hx = TILE_EXTENT[tile][0];
+  const t = (rot * Math.PI) / 180;
+  const r = (n: number) => Math.round(n * 1e6) / 1e6;
+  return [r(hx * Math.cos(t)), r(hx * Math.sin(t))];
+}
+
 /** Horizontal extent [min, max] of a set of placements. */
 export function xExtent(parts: Placement[]): [number, number] {
   let lo = Infinity;
   let hi = -Infinity;
   for (const p of parts) {
     const [hx, hy] = TILE_EXTENT[p.tile];
-    // `len` shortens a stroke along its own (local x) axis; only the bar uses it.
+    // A flat stroke's span runs from its anchored end back along its axis for `len` of its length.
     const flat = (p.rot ?? 0) % 180 === 0;
-    const half = flat ? hx * (p.len ?? 1) : hy;
-    lo = Math.min(lo, p.x - half);
-    hi = Math.max(hi, p.x + half);
+    const [ax] = lengthAnchor(p.tile, p.rot);
+    const [a, b] = flat ? [ax, ax - Math.sign(ax) * 2 * hx * (p.len ?? 1)] : [-hy, hy];
+    lo = Math.min(lo, p.x + Math.min(a, b));
+    hi = Math.max(hi, p.x + Math.max(a, b));
   }
   return [lo, hi];
 }
@@ -67,8 +80,9 @@ export interface Placement {
   /** Degrees clockwise. */
   rot?: number;
   /**
-   * Drawn length as a fraction of the stroke's own (default 1), once its letter is formed. Display
-   * only, like LetterGlyph.squeeze: it never affects slots, recognition or distances.
+   * Drawn length as a fraction of the stroke's own (default 1), once its letter is formed, keeping
+   * one end in place (see lengthAnchor). Display only, like LetterGlyph.squeeze: it never affects
+   * slots, recognition or distances.
    */
   len?: number;
 }
@@ -94,8 +108,9 @@ export const LETTERS: Record<string, LetterGlyph> = {
   D: { width: 1, parts: [p('LV', 0, 1), p('C', 0.5, 1, 180)] },
   E: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 0), p('H', 0.5, 1), p('H', 0.5, 2)] },
   F: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 0), p('H', 0.5, 1)] },
-  // The bar sits in the arc's mouth, drawn half length so it neither crosses the C nor sticks out.
-  G: { width: 1, parts: [p('C', 0.5, 1), p('H', 0.75, 1, 0, 0.5)] },
+  // The arc with an upright bar as its chin, drawn ¾ long from the baseline so there's air between
+  // it and the arc's top end. It sits where Y's stem does, so the two share a spot.
+  G: { width: 1, parts: [p('C', 0.5, 1), p('H', 1, 1.5, 90, 0.75)] },
   H: { width: 1, parts: [p('LV', 0, 1), p('LV', 1, 1), p('H', 0.5, 1)] },
   I: { width: 0, parts: [p('LV', 0, 1)] },
   // A mirrored L, and U is H with its bar dropped: both share the long bar with H, L, I and T,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LETTERS, TILE_IDS, drawnWidth, recipe } from './glyphs';
+import { LETTERS, TILE_IDS, drawnWidth, lengthAnchor, recipe, xExtent } from './glyphs';
 import { PANGRAM_BONUS, check, newGame, play, playableLetters, remainingWords, strokeCount, tilesFor, type Board } from './game';
 
 // A tiny hand-made board so tests don't depend on the word list.
@@ -28,6 +28,13 @@ describe('glyphs', () => {
     expect(Object.fromEntries(recipe('J'))).toEqual({ LV: 1, H: 1 });
     expect(Object.fromEntries(recipe('G'))).toEqual({ C: 1, H: 1 });
     expect(Object.fromEntries(recipe('Y'))).toEqual({ SC: 1, H: 1 });
+  });
+
+  it("draws G's chin shortened from the top, so its foot stays on the baseline", () => {
+    const chin = LETTERS.G.parts.find((p) => p.tile === 'H')!;
+    expect(chin.len).toBe(0.75);
+    expect(chin.y + lengthAnchor('H', chin.rot)[1]).toBe(2);
+    expect(xExtent(LETTERS.G.parts)).toEqual([0, 1]);
   });
 
   it('draws a formed W at 2.5 wide while V stays 2 wide', () => {

@@ -18,7 +18,7 @@ Every letter sits in a box 1 unit wide and 2 units tall.
 | Tile | Shape | Letters |
 |---|---|---|
 | `LV` | Long vertical | B D E F H I K L M N P R T |
-| `H`  | Bar (1 unit), flat or upright | A E F G H J L T U Z flat; Y upright |
+| `H`  | Bar (1 unit), flat or upright | A E F H J L T U Z flat; G and Y upright |
 | `LD` | Long `/` | X Z |
 | `LB` | Long `\` | N X |
 | `SB` | Short `\` (tail) | Q R |
@@ -183,8 +183,8 @@ Playtesting found the short bar rarely useful and G, J, U and Y hard to reach. T
 
 - **One bar.** The short bar and the crossbar were already the same length (1 unit), so they're now one stroke, `H`, which lies flat or stands upright. The tray has 9 strokes.
 - **Square U and J.** U = two long bars + a bar along the bottom (H with its bar dropped). J = a long bar + a bar along the bottom to its left (a mirrored L). They share the long bar with H, L, I and T: L → U and L → J are 1 stroke each.
-- **G without its spur.** G = arc + a bar inside the mouth, drawn **half length** (`Placement.len`).
-- **Drawn length.** `len` is display-only, like W's squeeze. It applies once the letter is formed (`formedLengths`): offered slots and half-built letters are always full length. In the editor, the bar shrinks into G's mouth with the settle spring as the G forms, and grows back when it's picked up. U's and J's bottom bars and Y's stem are naturally 1 unit.
+- **G as arc + chin.** G = arc + an upright bar at its lower right, drawn **¾ length** from the baseline (`Placement.len`), so there's air between the chin and the arc's top end. The chin sits on Y's stem spot, so an empty cell offers one upright bar spot (toward G and Y). *(Tried first: a half-length bar inside the mouth, which read like Є; then a full-length chin, which looked heavy. Picked from rendered variants.)*
+- **Drawn length.** `len` is display-only, like W's squeeze. It shortens a stroke toward its far end (`lengthAnchor`: the foot, for an upright bar), and applies once the letter is formed (`formedLengths`). Offered slots and half-built letters are always full length. In the editor, the chin shrinks down to the baseline with the settle spring as the G forms, and grows back when it's picked up. U's and J's bottom bars and Y's stem are naturally 1 unit.
 - **Snap unless there's a real choice.** In an empty cell, a rotatable stroke over a spot that fits it only one way snaps to that orientation, following the nearest spot on every move: the bar upright for Y, K's chevron on its side, a bowl at the bottom. Twisting is only for spots that fit a stroke several ways (chevron V/A, arc C/D, bowl P/S at the top). Once the cursor is circling such a spot, it stays locked there within 1.6 units. The tray tooltip mentions twisting only for strokes that can need it.
 
 Measured on the familiar-word graph (3 strokes per step):
@@ -192,7 +192,7 @@ Measured on the familiar-word graph (3 strokes per step):
 | | U | G | J | Y | words in the main maze | median doors |
 |---|---|---|---|---|---|---|
 | before | 0% of 282 | 47% | 66% | 42% | 72% | 4 |
-| after | 94% | 88% | 91% | 70% | 90% | 6 |
+| after | 94% | 87% | 91% | 70% | 90% | 6 |
 
 - WILD → TAME is unchanged (best 14, same route).
 - In 12 of 20 random puzzles, the best route passes through a G/J/U/Y word (9 before).
