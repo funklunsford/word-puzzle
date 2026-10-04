@@ -164,7 +164,7 @@ export function MazeApp() {
   return (
     <MotionConfig reducedMotion="user">
       <div className={`maze${side ? ' side' : ''}`} style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}>
-        <Masthead start={puzzle.start} goal={puzzle.goal} />
+        <Masthead />
 
         <main className="column">
           <section className="scorecard">

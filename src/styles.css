@@ -492,7 +492,7 @@ select,
   color: var(--muted);
 }
 
-/* Masthead: the stroke parts row, the wordmark built from it, and the one-line rule. */
+/* Masthead: the stroke parts row and the wordmark built from it. */
 .masthead {
   grid-area: mast;
   display: flex;
@@ -513,16 +513,6 @@ select,
   fill: color-mix(in srgb, var(--tile) 12%, var(--surface));
   stroke: color-mix(in srgb, var(--tile) 30%, var(--line));
   stroke-width: 0.05;
-}
-
-.tagline {
-  margin: 0;
-  font-size: 17px;
-  color: var(--muted);
-}
-
-.tagline strong {
-  color: var(--ink);
 }
 
 .column {

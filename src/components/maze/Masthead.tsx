@@ -58,7 +58,7 @@ const PAD = 0.5;
  * The header graphic: the ten strokes as a parts row, and the wordmark built from them. On load
  * every stroke leaves its part tile, turns and snaps into its letter, the way players build words.
  */
-export function Masthead({ start, goal }: { start: string; goal: string }) {
+export function Masthead() {
   return (
     <header className="masthead">
       <svg
@@ -95,9 +95,6 @@ export function Masthead({ start, goal }: { start: string; goal: string }) {
           </g>
         ))}
       </svg>
-      <p className="tagline">
-        Turn <strong>{start}</strong> into <strong>{goal}</strong>, one stroke at a time.
-      </p>
     </header>
   );
 }
