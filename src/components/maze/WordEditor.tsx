@@ -23,12 +23,12 @@ const LAND = { type: 'spring', bounce: 0.2, duration: 0.4 } as const;
 /** How much a stroke grows when it's picked up. */
 const LIFT = 1.08;
 
-// Twisting (units, in the cell's coordinates). Bring the cursor within ARM of the spot a rotatable
-// stroke is locked onto, then circle around the spot to turn it; straight moves don't turn it.
-// Moving further than RELEASE from the spot lets the stroke lock onto a different spot.
+// Twisting, only when starting a new letter in an empty cell (units, in the cell's coordinates).
+// Bring the cursor within ARM of the spot the stroke is locked onto, then circle the cursor around
+// the spot to turn it; straight moves don't turn it. Moving further than RELEASE from the spot lets
+// the stroke lock onto a different spot.
 const ARM = 0.45;
 const RELEASE = 1.6;
-const RING = 0.95;
 
 const norm = (deg: number) => ((deg % 360) + 360) % 360;
 /** Shortest signed angle from one direction to another, in degrees. */
@@ -183,12 +183,13 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       const p = new DOMPoint(x, y).matrixTransform(m.inverse());
       return { lx: p.x - offsets[cell], ly: p.y };
     };
-    // A locked stroke keeps its spot while the cursor circles nearby, even past the cell's edge
+    // A stroke on a spot keeps it while the cursor stays nearby, even past the cell's edge
     // (a V's partner spot for W sits right at the edge).
     let overCell: number | null = null;
-    if (d.aim) {
-      const q = toCell(d.aim.cell);
-      if (q && Math.hypot(q.lx - d.aim.x, q.ly - d.aim.y) <= RELEASE) overCell = d.aim.cell;
+    const onSpot = d.aim ?? (d.target && { cell: d.target.cell, x: d.target.slot.placement.x, y: d.target.slot.placement.y });
+    if (onSpot) {
+      const q = toCell(onSpot.cell);
+      if (q && Math.hypot(q.lx - onSpot.x, q.ly - onSpot.y) <= RELEASE) overCell = onSpot.cell;
     }
     if (overCell === null) {
       const c = svgs.current.findIndex((el) => inside(el));
@@ -207,7 +208,14 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
     // Fixed strokes simply go to the nearest spot.
     if (!TILES[d.tile].rotates) return { overCell, overWord, target: { cell: overCell, slot: nearest }, aim: null, turn: d.turn };
 
-    // Rotatable strokes lock onto a spot; circling the cursor around it turns them.
+    // Adding to a letter that's already there: the stroke snaps in the orientation its spot needs
+    // (there's only ever one per spot once a cell has strokes), e.g. a second chevron beside a V.
+    if (without(overCell, d.source).length) {
+      const turn = d.turn + wrap((nearest.placement.rot ?? 0) - d.turn);
+      return { overCell, overWord, target: { cell: overCell, slot: nearest }, aim: null, turn };
+    }
+
+    // Starting a new letter: rotatable strokes lock onto a spot; circling the cursor around it turns them.
     let aim = d.aim;
     const stray = !aim || aim.cell !== overCell || dist(aim) > RELEASE;
     if (stray && (!aim || aim.cell !== overCell || aim.x !== nearest.placement.x || aim.y !== nearest.placement.y)) {
@@ -363,6 +371,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       const moved = d.moved || Math.hypot(ev.clientX - d.startX, ev.clientY - d.startY) >= TAP_SLOP;
       const nd = { ...d, moved, ...(moved ? locate(d, ev.clientX, ev.clientY) : {}) };
       dragRef.current = nd;
+      // An automatic turn (snapping into an existing letter) is animated; twisting follows the cursor.
+      if (nd.turn !== d.turn && !nd.aim && !reduce) {
+        gr.set(gr.get() + d.turn - nd.turn);
+        animate(gr, 0, SETTLE);
+      }
       if (moved) steer(nd, ev.clientX, ev.clientY);
       return nd;
     };
@@ -426,7 +439,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                 height={CELL_H * unit}
               >
                 <motion.g className="cell-content" initial={false} animate={{ x: offsets[c] }} transition={SETTLE}>
-                  {aim && <circle className={`twist-ring${aim.armed ? ' armed' : ''}`} cx={aim.x} cy={aim.y} r={RING} />}
                   {shown.map((p) => {
                     const key = slotKey(p);
                     const x = squeezed(p.x);
@@ -476,7 +488,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? '↻ circle to turn' : noFit ? 'no fit' : (letter ?? '·')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? 'circle to turn' : noFit ? 'no fit' : (letter ?? '·')}
               </span>
             </div>
           );
@@ -494,7 +506,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                 if (el) trayEls.current.set(t, el);
               }}
               className={`tray-tile${taken ? ' taken' : ''}${home ? ' home' : ''}`}
-              title={TILES[t].rotates ? `${TILES[t].name}: circle the cursor around its spot to turn it` : TILES[t].name}
+              title={TILES[t].rotates ? `${TILES[t].name}: in an empty letter, circle the cursor around its spot to turn it` : TILES[t].name}
               onPointerDown={(e) => start(e, t, TILES[t].display ?? 0, { kind: 'tray' }, trayHome(t))}
               onPointerEnter={() => onHoverTile(t)}
               onPointerLeave={() => onHoverTile(null)}
@@ -502,11 +514,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
               <svg viewBox="-1.2 -1.2 2.4 2.4">
                 <TileStroke tile={t} rot={TILES[t].display} minHalfWidth={minHalfWidthAt(TRAY_PX_PER_UNIT)} />
               </svg>
-              {TILES[t].rotates && (
-                <span className="rotate-badge" aria-hidden>
-                  ↻
-                </span>
-              )}
             </button>
           );
         })}

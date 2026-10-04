@@ -175,10 +175,7 @@ export function MazeApp() {
                 <ul className="how">
                   <li>Drag strokes in from the tray.</li>
                   <li>Tap a stroke to remove it, or drag it to move it.</li>
-                  <li>
-                    To turn a chevron, arc or bowl, hold it right over its spot, then circle the cursor around the spot{' '}
-                    <span aria-hidden>↻</span>.
-                  </li>
+                  <li>Starting a new letter with a chevron, arc or bowl? Hold it over its spot and circle the cursor around it to turn it.</li>
                 </ul>
                 <div className="step-buttons">
                   <button onClick={undo} disabled={!history.length}>
