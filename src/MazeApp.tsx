@@ -22,8 +22,11 @@ interface Visit {
   cost: number;
 }
 
-/** Width of the step panel (dots, instructions, Undo) when it sits left of the word. */
-const PANEL_W = 168;
+/** Layout: page width cap, the left column's width and the gap, and the width where it appears. */
+const MAX_W = 980;
+const PANEL_W = 220;
+const GAP = 16;
+const SIDE_MIN = 760;
 
 const cellsFor = (word: string): Placement[][] => [...word].map((ch) => LETTERS[ch].parts.map((p) => ({ ...p })));
 
@@ -113,83 +116,77 @@ export function MazeApp() {
 
   if (!data || !puzzle || !room) return <div className="maze loading">Loading…</div>;
 
-  const wide = width >= 720;
-  // The step panel sits left of the word when there's room, otherwise above it.
-  const sidePanel = width >= 640;
-  const available = Math.min(width, 760) - 32 - (wide ? 72 : 0) - (sidePanel ? PANEL_W + 16 : 0);
-  const unit = Math.max(13, Math.min(28, available / 17.5));
+  // Two columns (step panel | play area) when there's room, otherwise one stacked column.
+  const side = width >= SIDE_MIN;
+  const available = Math.min(width, MAX_W) - 32 - (side ? PANEL_W + GAP : 0) - 26;
+  const unit = Math.max(13, Math.min(34, available / 17.5));
   const visited = new Set(trail.map((v) => v.word));
   const found = roomExits.filter((x) => visited.has(x.word)).length;
   const lettersWithTile = hoverTile ? new Set(Object.keys(LETTERS).filter((ch) => recipe(ch).has(hoverTile))) : null;
   const toGoal = wordDistance(room, puzzle.goal);
+  const used = spent + stepEdits;
 
   // The step after a door opens, until the next stroke: confirm it (completion feedback).
   const justOpened = !won && !stepEdits && trail.length > 1;
 
+  // Four regions: where you're going (top), this step (left), the play area (centre), and the
+  // path so far with game controls (bottom).
   return (
     <MotionConfig reducedMotion="user">
-      <div className={`maze${wide ? ' wide' : ''}`}>
-        <div className="maze-main">
-          <header className="top">
-            <h1>Stroke Maze</h1>
-          </header>
-
-          <section className="goal">
+      <div className={`maze${side ? ' side' : ''}`} style={side ? { gridTemplateColumns: `${PANEL_W}px 1fr` } : undefined}>
+        <header className="topbar">
+          <h1>Stroke Maze</h1>
+          <div className="goal">
             <span className="label">Reach</span>
             <GlyphWord word={puzzle.goal} size={22} />
-            <span className="meta">
-              {spent + stepEdits} {spent + stepEdits === 1 ? 'stroke' : 'strokes'} used · best {puzzle.best}
+          </div>
+          <div className="score">
+            <strong>{used}</strong> {used === 1 ? 'stroke' : 'strokes'} used
+            <span className="meta"> · best {puzzle.best}</span>
+          </div>
+        </header>
+
+        <section className="step-panel" aria-label="This step">
+          <span className="label">This step</span>
+          <div className="step-meter">
+            <div className="pips" aria-label={`${stepEdits} of ${STEP_LIMIT} strokes this step`}>
+              {Array.from({ length: STEP_LIMIT }, (_, i) => (
+                <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
+              ))}
+            </div>
+            <span className="step-count">
+              {stepEdits} of {STEP_LIMIT} strokes
             </span>
-          </section>
+          </div>
+          <p className={`step-status${locked ? ' out' : justOpened ? ' opened' : ''}`}>
+            {locked
+              ? 'Out of strokes for this step. Undo to try another way.'
+              : stepEdits
+                ? 'Keep going: land on a real word to open a door.'
+                : justOpened
+                  ? `Door opened: ${room} (+${trail[trail.length - 1].cost}). Find the next one.`
+                  : 'Change the word into another real word to open a door.'}
+          </p>
+          <div className="step-buttons">
+            <button onClick={undo} disabled={!history.length}>
+              Undo
+            </button>
+            <button onClick={resetStep} disabled={!history.length}>
+              Reset step
+            </button>
+          </div>
+        </section>
 
-          <section className="room">
-            <div className="room-head">
-              <span className="label">You are in</span>
-              <span className="meta">
-                {roomExits.length} {roomExits.length === 1 ? 'door' : 'doors'}
-                {found ? ` · ${found} explored` : ''}
-                {!won && toGoal <= STEP_LIMIT ? ' · the goal is one step away' : ''}
-              </span>
-            </div>
+        <section className="how-panel" aria-label="How to play">
+          <span className="label">How to play</span>
+          <ul className="how">
+            <li>Drag strokes in from the tray.</li>
+            <li>Tap a stroke to remove it, or drag it to move it.</li>
+            <li>Starting a new letter with a chevron, arc or bowl? Hold it over its spot and circle the cursor around it to turn it.</li>
+          </ul>
+        </section>
 
-            <div className={`room-body${sidePanel ? ' side' : ''}`}>
-              <aside className="step-panel" style={sidePanel ? { width: PANEL_W } : undefined}>
-                <span className="label">This step</span>
-                <div className="pips" aria-label={`${stepEdits} of ${STEP_LIMIT} strokes this step`}>
-                  {Array.from({ length: STEP_LIMIT }, (_, i) => (
-                    <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
-                  ))}
-                </div>
-                <span className="step-count">
-                  {stepEdits} of {STEP_LIMIT} strokes
-                </span>
-                <p className={`step-status${locked ? ' out' : justOpened ? ' opened' : ''}`}>
-                  {locked
-                    ? 'Out of strokes for this step. Undo to try another way.'
-                    : stepEdits
-                      ? 'Keep going: land on a real word to open a door.'
-                      : justOpened
-                        ? `Door opened: ${room} (+${trail[trail.length - 1].cost}). Find the next one.`
-                        : 'Change the word into another real word to open a door.'}
-                </p>
-                <ul className="how">
-                  <li>Drag strokes in from the tray.</li>
-                  <li>Tap a stroke to remove it, or drag it to move it.</li>
-                  <li>Starting a new letter with a chevron, arc or bowl? Hold it over its spot and circle the cursor around it to turn it.</li>
-                </ul>
-                <div className="step-buttons">
-                  <button onClick={undo} disabled={!history.length}>
-                    Undo
-                  </button>
-                  <button onClick={resetStep} disabled={!history.length}>
-                    Reset step
-                  </button>
-                </div>
-              </aside>
-              <WordEditor cells={cells} unit={unit} disabled={won || locked} room={room} onEdit={onEdit} onHoverTile={setHoverTile} />
-            </div>
-          </section>
-
+        <main className="stage">
           <AnimatePresence>
             {won && (
               <motion.div className="win" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -197,8 +194,29 @@ export function MazeApp() {
               </motion.div>
             )}
           </AnimatePresence>
+          <div className="room-head">
+            <span className="label">You are in</span>
+            <span className="meta">
+              {roomExits.length} {roomExits.length === 1 ? 'door' : 'doors'}
+              {found ? ` · ${found} explored` : ''}
+              {!won && toGoal <= STEP_LIMIT ? ' · the goal is one step away' : ''}
+            </span>
+          </div>
+          <WordEditor cells={cells} unit={unit} disabled={won || locked} room={room} onEdit={onEdit} onHoverTile={setHoverTile} />
+          <div className="letters" aria-label="Letters by stroke">
+            {Object.keys(LETTERS).map((ch) => (
+              <span
+                key={ch}
+                className={`ref-letter${lettersWithTile ? (lettersWithTile.has(ch) ? ' match' : ' dim') : ''}`}
+              >
+                <Glyph letter={ch} size={13} />
+              </span>
+            ))}
+          </div>
+        </main>
 
-          <section className="trail">
+        <footer className="journey">
+          <div className="trail">
             <span className="label">Your path</span>
             <ol>
               {trail.map((v, i) => {
@@ -218,31 +236,19 @@ export function MazeApp() {
                 );
               })}
             </ol>
-          </section>
-
-          <footer className="playtest">
+          </div>
+          <div className="playtest">
             <button onClick={restart}>Restart</button>
             <button onClick={() => setReveal((r) => !r)}>{reveal ? 'Hide' : 'Show'} best route</button>
-            {reveal && (
-              <p className="answers">
-                {puzzle.path.join(' → ')} ({puzzle.best} strokes)
-                <br />
-                Doors from {room}: {roomExits.map((x) => `${x.word} (${x.cost})`).join(', ')}
-              </p>
-            )}
-          </footer>
-        </div>
-
-        <aside className="letters" aria-label="Letters by stroke">
-          {Object.keys(LETTERS).map((ch) => (
-            <span
-              key={ch}
-              className={`ref-letter${lettersWithTile ? (lettersWithTile.has(ch) ? ' match' : ' dim') : ''}`}
-            >
-              <Glyph letter={ch} size={13} />
-            </span>
-          ))}
-        </aside>
+          </div>
+          {reveal && (
+            <p className="answers">
+              {puzzle.path.join(' → ')} ({puzzle.best} strokes)
+              <br />
+              Doors from {room}: {roomExits.map((x) => `${x.word} (${x.cost})`).join(', ')}
+            </p>
+          )}
+        </footer>
       </div>
     </MotionConfig>
   );

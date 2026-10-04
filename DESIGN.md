@@ -159,3 +159,11 @@ In Smush-style play the letters, not the strokes, did the work. The new core loo
 - **Twisting only in an empty cell.** Starting a new letter with a chevron, arc or bowl, you can turn it by circling the cursor around its spot (no ring is drawn; the cursor doesn't have to trace anything). Adding to a letter that's already there, the stroke snaps in the orientation its spot needs (a cell with strokes never offers two orientations at one spot), turning smoothly as it snaps; e.g. a second chevron beside a V lands upright to make W.
 - **Defaults:** chevrons are picked up as they sit in V, M and Y (`v`); the tray shows them that way. Arcs and bowls keep their tray orientations.
 - No ↻ badges on the tray. A stroke on a spot stays on it while the cursor is nearby, even past the cell's edge (W's second spot is at the edge).
+
+## Layout (2026-10-03)
+Four regions, each answering one question:
+- **Top bar — where am I going?** Title, the goal word, strokes used and the best.
+- **Left — what's happening this step?** Step dots, status, Undo / Reset; "How to play" below it.
+- **Centre — where do I play?** "You are in" + doors, the word, the tray right under it, and the letter reference as a strip under the tray (it lights up for hovered strokes).
+- **Bottom — where have I been?** The path so far, Restart and Show best route.
+Wide screens (≥ 760 px) use two columns (left panel 220 px); narrower screens stack top → this step → play area → how to play → path. The word grows to fill the play area (up to 34 px per unit).

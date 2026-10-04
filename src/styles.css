@@ -449,31 +449,31 @@ select,
 /* ---------- Maze ---------- */
 
 .maze {
-  max-width: 760px;
+  max-width: 980px;
   margin: 0 auto;
-  padding: 16px 16px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  padding: 16px 16px 32px;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas: 'top' 'step' 'stage' 'how' 'journey';
+  gap: 12px 16px;
+  align-items: start;
 }
 
-.maze.wide {
-  flex-direction: row;
-  align-items: flex-start;
+/* Wide screens: this step and how-to-play on the left, the play area beside them. */
+.maze.side {
+  grid-template-areas:
+    'top top'
+    'step stage'
+    'how stage'
+    'journey journey';
+  grid-template-rows: auto auto 1fr auto;
 }
 
 .maze.loading {
+  display: block;
   color: var(--muted);
   padding-top: 64px;
   text-align: center;
-}
-
-.maze-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .maze .label {
@@ -484,22 +484,59 @@ select,
   color: var(--muted);
 }
 
+/* Shared card look for the regions. */
+.topbar,
+.step-panel,
+.how-panel,
+.journey,
+.letters {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+/* Top: where you're going and how you're doing. */
+.topbar {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 8px 14px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
 .goal {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
-  background: var(--surface);
+  gap: 10px;
+  padding: 2px 12px;
   border: 1.5px solid var(--gold);
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
-.goal .meta {
+.score {
   margin-left: auto;
+  font-size: 14px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.room {
+.score strong {
+  font-size: 18px;
+}
+
+/* Centre: the play area. */
+.stage {
+  grid-area: stage;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -680,32 +717,31 @@ select,
   filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ink) 30%, transparent));
 }
 
-.room-body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.room-body.side {
-  flex-direction: row;
-  align-items: flex-start;
-}
-
-.room-body .editor {
-  flex: 1;
-  min-width: 0;
-}
-
 /* Step panel: strokes used this step, what to do, and Undo / Reset. */
+/* Left: this step (strokes used, what's happening, Undo / Reset). */
 .step-panel {
-  flex: none;
+  grid-area: step;
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.step-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Left, below: how to play (reference). */
+.how-panel {
+  grid-area: how;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
   font-size: 13px;
   color: var(--muted);
 }
@@ -798,6 +834,41 @@ select,
   font-weight: 700;
 }
 
+/* Bottom: the path so far, and game controls. */
+.journey {
+  grid-area: journey;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 10px 14px;
+}
+
+.journey .trail {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.journey .trail ol {
+  margin: 0;
+}
+
+.journey .playtest {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.journey .answers {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .trail ol {
   list-style: none;
   margin: 8px 0 0;
@@ -828,28 +899,19 @@ select,
   font-variant-numeric: tabular-nums;
 }
 
+/* Letter reference, right under the tray it lights up for. */
 .letters {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
   justify-content: center;
-}
-
-.maze.wide .letters {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  position: sticky;
-  top: 16px;
-  padding: 6px 4px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  gap: 2px;
+  padding: 6px;
 }
 
 .ref-letter {
   display: flex;
   justify-content: center;
-  padding: 1px 6px;
+  padding: 1px 3px;
   border-radius: 6px;
   transition: opacity 0.15s, background 0.15s;
 }
