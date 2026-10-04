@@ -190,8 +190,8 @@ export function MazeApp() {
               <div className="score-sub">
                 <span>best {puzzle.best}</span>
                 <span>
-                  {roomExits.length} {roomExits.length === 1 ? 'door' : 'doors'} here
-                  {found ? ` (${found} explored)` : ''}
+                  {roomExits.length} {roomExits.length === 1 ? 'word' : 'words'} within reach
+                  {found ? ` (${found} visited)` : ''}
                 </span>
               </div>
             </div>
@@ -206,7 +206,7 @@ export function MazeApp() {
                 </button>
               </div>
               <ul className="how">
-                <li>Change the word into another real word, up to 3 strokes per step, to open a door.</li>
+                <li>Change the word into another real word, using up to 3 strokes per step.</li>
                 <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
                 <li>A chevron, arc or bowl that fits a spot either way round? Hold it over the spot and circle the cursor around it to turn it.</li>
                 <li>Going back to a word you've already visited is free.</li>
@@ -249,12 +249,12 @@ export function MazeApp() {
               {locked
                 ? 'Out of strokes for this step. Undo to try another way.'
                 : stepEdits
-                  ? 'Keep going: land on a real word to open a door.'
+                  ? 'Keep going: land on a real word.'
                   : justOpened
                     ? lastDoor!.cost
-                      ? `Door opened: ${room} (+${lastDoor!.cost}). Find the next one.`
+                      ? `New word: ${room} (+${lastDoor!.cost}). Find the next one.`
                       : `Back in ${room}: free, you've been here before.`
-                    : 'Change the word into another real word to open a door.'}
+                    : 'Change the word into another real word.'}
             </p>
             <div className="step-meter">
               <span>This step:</span>
@@ -318,7 +318,7 @@ export function MazeApp() {
             <p className="answers">
               {puzzle.path.join(' → ')} ({puzzle.best} strokes)
               <br />
-              Doors from {room}: {roomExits.map((x) => `${x.word} (${x.cost})`).join(', ')}
+              Words within reach of {room}: {roomExits.map((x) => `${x.word} (${x.cost})`).join(', ')}
             </p>
           )}
         </aside>

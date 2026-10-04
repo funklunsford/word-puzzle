@@ -11,8 +11,9 @@ npm test             # game-logic tests
 Regenerating the words and the maze:
 
 ```bash
-curl -o scowl-35.txt "http://app.aspell.net/create?max_size=35&spelling=US&max_variant=0&diacritic=strip&download=wordlist&encoding=utf-8&format=inline"
-npx vite-node scripts/familiar.ts scowl-35.txt   # → data/familiar-4.txt
+curl -o scowl-40.txt "http://app.aspell.net/create?max_size=40&spelling=US&max_variant=0&diacritic=strip&download=wordlist&encoding=utf-8&format=inline"
+curl -o scowl-50.txt "http://app.aspell.net/create?max_size=50&spelling=US&max_variant=0&diacritic=strip&download=wordlist&encoding=utf-8&format=inline"
+npx vite-node scripts/familiar.ts scowl-40.txt scowl-50.txt   # → data/familiar-4.txt (size 40 + data/familiar-extra.txt)
 npx vite-node scripts/mazes.ts                   # → public/mazes.json
 ```
 
