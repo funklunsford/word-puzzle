@@ -1,17 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
+import { buildGraph, randomPuzzle, type Graph, type Puzzle } from './maze';
 import { Masthead } from './components/maze/Masthead';
 import { WordEditor } from './components/maze/WordEditor';
 import { Glyph, GlyphWord } from './components/Glyph';
-
-interface Puzzle {
-  start: string;
-  goal: string;
-  best: number;
-  path: string[];
-}
 
 interface MazeData {
   words: string[];
@@ -77,7 +71,24 @@ export function MazeApp() {
       .then(setData);
   }, []);
 
-  const puzzle = data?.puzzle;
+  // Dev only: a random start and goal in place of the fixed puzzle (see randomPuzzle).
+  const [custom, setCustom] = useState<Puzzle | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const graph = useRef<Graph | null>(null);
+  const newPuzzle = () => {
+    if (!data || generating) return;
+    setGenerating(true);
+    // Building the graph takes ~0.5 s the first time; let the button show it's working first.
+    setTimeout(() => {
+      graph.current ??= buildGraph(data.words);
+      let next = randomPuzzle(data.words, graph.current);
+      while (next.start === puzzle?.start && next.goal === puzzle?.goal) next = randomPuzzle(data.words, graph.current);
+      setCustom(next);
+      setGenerating(false);
+    }, 30);
+  };
+
+  const puzzle = custom ?? data?.puzzle;
   const dict = useMemo(() => new Set(data?.words ?? []), [data]);
 
   const restart = useCallback(() => {
@@ -160,19 +171,23 @@ export function MazeApp() {
             <button className="help-btn" aria-label="How to play" aria-expanded={help} onClick={() => setHelp((h) => !h)}>
               ?
             </button>
-            <div className="score-big">
-              <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
+            <div className={`goal-panel${won ? ' reached' : ''}`}>
+              <span className="label">{won ? 'Reached' : 'Goal'}</span>
+              <GlyphWord word={puzzle.goal} size={unit * 1.3} />
+              {!won && toGoal <= STEP_LIMIT && <div className="score-hint">One step away</div>}
             </div>
-            <div className="score-sub">
-              <span className="goal">
-                reach <GlyphWord word={puzzle.goal} size={16} />
-              </span>
-              <span>
-                best {puzzle.best} · {roomExits.length} {roomExits.length === 1 ? 'door' : 'doors'} here
-                {found ? ` (${found} explored)` : ''}
-              </span>
+            <div className="score-panel">
+              <div className="score-big">
+                <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
+              </div>
+              <div className="score-sub">
+                <span>best {puzzle.best}</span>
+                <span>
+                  {roomExits.length} {roomExits.length === 1 ? 'door' : 'doors'} here
+                  {found ? ` (${found} explored)` : ''}
+                </span>
+              </div>
             </div>
-            {!won && toGoal <= STEP_LIMIT && <div className="score-hint">The goal is one step away.</div>}
           </section>
 
           {help && (
@@ -261,6 +276,12 @@ export function MazeApp() {
                 </motion.li>
               );
             })}
+            {!won && (
+              <li className="goal-chip" aria-label={`Goal: ${puzzle.goal}`}>
+                <span className="cost">goal</span>
+                <GlyphWord word={puzzle.goal} size={14} />
+              </li>
+            )}
           </ol>
           <div className="pill-row">
             <button className="pill quiet" onClick={restart}>
@@ -270,6 +291,19 @@ export function MazeApp() {
               {reveal ? 'Hide' : 'Show'} best route
             </button>
           </div>
+          {import.meta.env.DEV && (
+            <div className="dev-tools">
+              <span className="label">Dev</span>
+              <button className="pill quiet" onClick={newPuzzle} disabled={generating}>
+                {generating ? 'Generating…' : 'New start & goal'}
+              </button>
+              {custom && (
+                <button className="pill quiet" onClick={() => setCustom(null)}>
+                  Back to {data.puzzle.start} → {data.puzzle.goal}
+                </button>
+              )}
+            </div>
+          )}
           {reveal && (
             <p className="answers">
               {puzzle.path.join(' → ')} ({puzzle.best} strokes)

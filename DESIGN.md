@@ -173,4 +173,8 @@ Borrowed the style, not the branding: a header graphic, a one-line rule undernea
 
 **Header graphic** (`Masthead.tsx`): the ten stroke types sit in a row of tinted part tiles (the same tints as the tray), and the "STROKES" wordmark below is built from them. On load, each stroke leaves its part tile, turns and snaps into its letter one after another, the way players build words. After that the header stays still. With reduced motion, the strokes fade in already in place.
 
+**Goal:** the score card leads with the goal word in ink on a gold-ringed tile (green once reached), with the stroke count, best and doors beside it. The path card ends with the goal as a dashed gold chip, so the route reads start → … → goal.
+
+**Dev tools** (only on the Vite dev server): the side card has **New start & goal**, which picks a random puzzle shaped like WILD → TAME (`randomPuzzle` in `src/maze.ts`). The start has at least 3 doors, and the goal is 4–7 rooms and 10–20 strokes away. **Back to WILD → TAME** returns to the fixed puzzle. A random puzzle lasts until reload. `scripts/mazes.ts` uses the same graph code.
+
 **Name:** the game is called **Strokes** (renamed from Stroke Maze, 2026-10-03). **How to play** opens on a player's first visit only. A `localStorage` flag remembers it was seen, and the **?** button reopens it any time.

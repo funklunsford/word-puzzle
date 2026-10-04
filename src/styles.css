@@ -546,12 +546,49 @@ select,
 .scorecard {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 16px 56px 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 12px 20px;
+  padding: 14px 56px 16px;
   text-align: center;
   box-shadow: 0 6px 0 var(--ledge);
+}
+
+/* The goal, drawn in ink on a gold-ringed tile: the thing you're working towards. */
+.goal-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 18px 6px;
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--gold) 9%, var(--surface));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--gold) 45%, var(--ledge));
+}
+
+.goal-panel .label {
+  color: color-mix(in srgb, var(--gold) 70%, var(--ink));
+}
+
+.goal-panel.reached {
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--ok) 45%, var(--ledge));
+}
+
+.goal-panel.reached .label {
+  color: var(--ok);
+}
+
+.score-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .score-big {
@@ -576,15 +613,6 @@ select,
   gap: 4px 14px;
   font-size: 15px;
   color: var(--muted);
-}
-
-.score-sub .goal {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  border: 1.5px solid var(--gold);
-  border-radius: 999px;
 }
 
 .score-hint {
@@ -934,9 +962,28 @@ select,
   border-color: var(--ink);
 }
 
+.trail li.goal-chip {
+  border: 1.5px dashed var(--gold);
+  background: color-mix(in srgb, var(--gold) 9%, var(--surface));
+}
+
 .trail .cost {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* Dev-only tools (vite dev server): a random start and goal for playtesting. */
+.dev-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+.dev-tools .label {
+  width: 100%;
 }
 
 .side-card .answers {
