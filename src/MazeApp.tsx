@@ -3,6 +3,7 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
 import { buildGraph, randomPuzzle, type Graph, type Puzzle } from './maze';
+import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
 import { WordEditor } from './components/maze/WordEditor';
 import { Glyph, GlyphWord } from './components/Glyph';
@@ -63,6 +64,9 @@ export function MazeApp() {
   const [lastDoor, setLastDoor] = useState<Visit | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   const [reveal, setReveal] = useState(false);
+  const [defs, setDefs] = useState<Definitions | null>(null);
+  /** A word in Your path whose definition is shown under it (tap a word to look it up). */
+  const [peek, setPeek] = useState<string | null>(null);
   // How to play opens on a player's very first visit only.
   const [help, setHelp] = useState(() => !seenHelp());
   useEffect(() => markHelpSeen(), []);
@@ -72,6 +76,11 @@ export function MazeApp() {
     fetch(`${import.meta.env.BASE_URL}mazes.json`)
       .then((r) => r.json())
       .then(setData);
+    // Definitions are a nicety: the game plays without them if they don't load.
+    fetch(`${import.meta.env.BASE_URL}definitions.json`)
+      .then((r) => r.json())
+      .then(setDefs)
+      .catch(() => {});
   }, []);
 
   // Dev only: a random start and goal in place of the fixed puzzle (see randomPuzzle).
@@ -103,6 +112,7 @@ export function MazeApp() {
     setSpent(0);
     setLastDoor(null);
     setReveal(false);
+    setPeek(null);
   }, [puzzle]);
   useEffect(restart, [restart]);
 
@@ -222,7 +232,24 @@ export function MazeApp() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <span className="label">You are in</span>
+            <div className="board-head">
+              <span className="label">You are in</span>
+              {/* The word's meaning sits right above it, and changes as each new word is made. */}
+              <AnimatePresence mode="wait" initial={false}>
+                {defs?.[room] && (
+                  <motion.p
+                    key={room}
+                    className="definition"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Definition word={room} def={defs[room]} />
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
             <WordEditor cells={cells} unit={unit} disabled={won || locked} room={room} onEdit={onEdit} onHoverTile={setHoverTile} />
             <div className="letters" aria-label="Letters by stroke">
               {Object.keys(LETTERS).map((ch) => (
@@ -280,9 +307,16 @@ export function MazeApp() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
                 >
-                  {i > 0 && <span className="cost">+{v.cost}</span>}
-                  <GlyphWord word={v.word} size={14} />
-                  {isHere && <span className="meta">{won ? 'goal' : 'here'}</span>}
+                  <button
+                    className="trail-word"
+                    aria-pressed={peek === v.word}
+                    aria-label={`${v.word}: show its definition`}
+                    onClick={() => setPeek((p) => (p === v.word ? null : v.word))}
+                  >
+                    {i > 0 && <span className="cost">+{v.cost}</span>}
+                    <GlyphWord word={v.word} size={14} />
+                    {isHere && <span className="meta">{won ? 'goal' : 'here'}</span>}
+                  </button>
                 </motion.li>
               );
             })}
@@ -293,6 +327,11 @@ export function MazeApp() {
               </li>
             )}
           </ol>
+          {peek && defs?.[peek] && (
+            <p className="definition peek">
+              <Definition word={peek} def={defs[peek]} />
+            </p>
+          )}
           <div className="pill-row">
             <button className="pill quiet" onClick={restart}>
               Restart

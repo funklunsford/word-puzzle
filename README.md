@@ -17,4 +17,11 @@ npx vite-node scripts/familiar.ts scowl-40.txt scowl-50.txt   # → data/familia
 npx vite-node scripts/mazes.ts                   # → public/mazes.json
 ```
 
-Word list derived from [SCOWL](https://wordlist.aspell.net) by Kevin Atkinson (notice in DESIGN.md and in `data/familiar-4.txt`) and ENABLE.
+Definitions (`public/definitions.json`) are built from WordNet 3.0 plus hand-written ones in `data/definitions-extra.tsv`:
+
+```bash
+curl -LO https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/wordnet.zip && unzip wordnet.zip
+npx vite-node scripts/definitions.ts wordnet   # → public/definitions.json
+```
+
+Word list derived from [SCOWL](https://wordlist.aspell.net) by Kevin Atkinson (notice in DESIGN.md and in `data/familiar-4.txt`) and ENABLE. Definitions from [WordNet](https://wordnet.princeton.edu) 3.0, Copyright 2006 by Princeton University (licence in `data/WORDNET-LICENSE.txt`).
