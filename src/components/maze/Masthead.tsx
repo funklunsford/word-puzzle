@@ -3,7 +3,7 @@ import { LETTERS, TILES, TILE_IDS, drawnWidth } from '../../glyphs';
 import { inkSeed } from '../../ink';
 import { TileStroke } from '../Glyph';
 
-const WORDMARK = 'STROKE MAZE';
+const WORDMARK = 'STROKES';
 const GAP = 0.7;
 const SPACE = 1.6;
 /** Parts row: one tile per stroke type, above the wordmark. */
@@ -26,19 +26,22 @@ interface Placed {
 /** Lay out the wordmark and the parts row, and work out where each stroke flies in from. */
 function layout() {
   let x = 0;
-  const strokes: Omit<Placed, 'from'>[] = [];
+  const raw: Omit<Placed, 'from'>[] = [];
   for (const [li, ch] of [...WORDMARK].entries()) {
     if (ch === ' ') {
       x += SPACE - GAP;
       continue;
     }
     for (const [pi, p] of LETTERS[ch].parts.entries()) {
-      strokes.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
+      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
     }
     x += drawnWidth(ch) + GAP;
   }
-  const width = x - GAP;
+  const wordWidth = x - GAP;
   const rowWidth = TILE_IDS.length * PART + (TILE_IDS.length - 1) * PART_GAP;
+  // Centre the wordmark and the parts row in whichever is wider.
+  const width = Math.max(wordWidth, rowWidth);
+  const strokes = raw.map((s) => ({ ...s, x: s.x + (width - wordWidth) / 2 }));
   const rowStart = (width - rowWidth) / 2 + PART / 2;
   const parts = TILE_IDS.map((tile, i) => ({ tile, x: rowStart + i * (PART + PART_GAP), y: PART_Y }));
   const placed: Placed[] = strokes.map((s) => {
@@ -62,7 +65,7 @@ export function Masthead({ start, goal }: { start: string; goal: string }) {
         className="masthead-art"
         viewBox={`${-PAD} ${PART_Y - PART / 2 - PAD} ${width + 2 * PAD} ${2.4 - (PART_Y - PART / 2) + 2 * PAD}`}
         role="img"
-        aria-label="Stroke Maze"
+        aria-label="Strokes"
       >
         {parts.map((p) => (
           <g key={p.tile} transform={`translate(${p.x} ${p.y})`}>

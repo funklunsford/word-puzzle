@@ -28,6 +28,23 @@ const COLUMN_W = 640;
 const SIDE_W = 260;
 const SIDE_MIN = 1000;
 
+const HELP_KEY = 'strokes:seen-help';
+/** Storage can be missing or blocked (private windows); then help just opens every time. */
+const seenHelp = () => {
+  try {
+    return localStorage.getItem(HELP_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+const markHelpSeen = () => {
+  try {
+    localStorage.setItem(HELP_KEY, '1');
+  } catch {
+    // ignore
+  }
+};
+
 const cellsFor = (word: string): Placement[][] => [...word].map((ch) => LETTERS[ch].parts.map((p) => ({ ...p })));
 
 function useWidth() {
@@ -49,7 +66,9 @@ export function MazeApp() {
   const [spent, setSpent] = useState(0);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   const [reveal, setReveal] = useState(false);
-  const [help, setHelp] = useState(true);
+  // How to play opens on a player's very first visit only.
+  const [help, setHelp] = useState(() => !seenHelp());
+  useEffect(() => markHelpSeen(), []);
   const width = useWidth();
 
   useEffect(() => {
