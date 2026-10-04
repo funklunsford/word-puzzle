@@ -423,10 +423,28 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
   const held = drag?.moved ? drag : null;
   // The pressed stroke leaves its cell for the floating layer from the moment it's pressed.
   const carried = drag?.source.kind === 'cell' ? drag.source : null;
+  /**
+   * How a cell's strokes are drawn (see Look): what's left in it once the held stroke is lifted
+   * out, previewed with the held stroke on the spot it's over. So U's stems draw back to meet the
+   * bowl as it glides in, rather than jutting out below it until it's dropped.
+   */
+  const preview = (c: number) => {
+    const kept = cells[c].filter((_, i) => !(carried?.cell === c && carried.index === i));
+    const onSpot = held?.target?.cell === c ? held.target.slot.placement : null;
+    const looks = lookPoints(onSpot ? [...kept, onSpot] : kept);
+    return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null };
+  };
   const floating = drag
-    ? { tile: drag.tile, turn: drag.turn, red: !!held?.aim && !held.target, lifted: true, look0: drag.look0 }
+    ? {
+        tile: drag.tile,
+        turn: drag.turn,
+        red: !!held?.aim && !held.target,
+        lifted: true,
+        look0: drag.look0,
+        look: held?.target ? preview(held.target.cell).heldLook : null,
+      }
     : flight
-      ? { tile: flight.tile, turn: TILES[flight.tile].display ?? 0, red: false, lifted: false, look0: null }
+      ? { tile: flight.tile, turn: TILES[flight.tile].display ?? 0, red: false, lifted: false, look0: null, look: null }
       : null;
 
   return (
@@ -437,10 +455,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
           const squeeze = (letter && LETTERS[letter].squeeze) || 1;
           const [lo, hi] = content.length ? xExtent(content) : [0, 0];
           const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * squeeze;
-          // A formed letter may draw its strokes with curves they don't have (U's cup); see Look.
-          // Looks follow what's left in the cell, so lifting U's bar straightens its stems.
-          const kept = content.filter((_, i) => !(carried?.cell === c && carried.index === i));
-          const looks = lookPoints(kept);
+          const { kept, looks } = preview(c);
           const shown = kept.map((p, i) => ({ p, look: looks[i] }));
           const target = held?.target?.cell === c ? held.target : null;
           const aim = held?.aim?.cell === c ? held.aim : null;
@@ -487,7 +502,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                           squeeze={squeeze}
                           fill={red ? 'var(--spicy)' : undefined}
                           look={look}
-                          from={landing ? 'own' : undefined}
+                          from={landing ? (look ?? 'own') : undefined}
                         />
                         {/* The hit area follows what's drawn, so tapping U's cup takes the bar, not a stem. */}
                         <path
@@ -561,6 +576,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
             minHalfWidth={minHalf}
             fill={floating.red ? 'var(--spicy)' : undefined}
             from={floating.look0 ?? undefined}
+            look={floating.look}
           />
         </motion.svg>
       )}
@@ -570,13 +586,22 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
 
 /**
  * A stroke at any angle: inked at the nearest quarter turn, then turned the rest of the way. One
- * lifted out of a formed letter starts in that letter's look (`from`) and eases back to itself.
+ * lifted out of a formed letter starts in that letter's look (`from`) and eases back to itself;
+ * one held on a spot that completes a letter takes the look it will have there (`look`).
  */
-function Turned({ tile, turn, minHalfWidth, fill, from }: { tile: TileId; turn: number; minHalfWidth: number; fill?: string; from?: Pt[] }) {
+function Turned({ tile, turn, minHalfWidth, fill, from, look }: { tile: TileId; turn: number; minHalfWidth: number; fill?: string; from?: Pt[]; look?: Pt[] | null }) {
   const q = quarter(turn);
   return (
     <g transform={turn !== q ? `rotate(${turn - q})` : undefined}>
-      <MorphStroke tile={tile} rot={norm(q)} seed={inkSeed({ tile, x: 0, y: 0, rot: norm(q) })} minHalfWidth={minHalfWidth} fill={fill} from={from} />
+      <MorphStroke
+        tile={tile}
+        rot={norm(q)}
+        seed={inkSeed({ tile, x: 0, y: 0, rot: norm(q) })}
+        minHalfWidth={minHalfWidth}
+        fill={fill}
+        from={from}
+        look={look}
+      />
     </g>
   );
 }
