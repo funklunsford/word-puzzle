@@ -46,6 +46,26 @@ export function recognize(content: Placement[]): string | null {
   return null;
 }
 
+/**
+ * Drawn lengths for a cell's strokes (see Placement.len): the formed letter's own, matched stroke
+ * by stroke, or null while the strokes don't form a letter (everything is drawn full length).
+ */
+export function formedLengths(content: Placement[]): number[] | null {
+  const ch = recognize(content);
+  if (!ch) return null;
+  const parts = LETTERS[ch].parts;
+  for (const dx of alignments(content, parts)) {
+    const placed = parts.map((p) => shift(p, dx));
+    if (minus(content, placed).length) continue;
+    const free = [...placed];
+    return content.map((q) => {
+      const i = free.findIndex((p) => slotKey(p) === slotKey(q));
+      return free.splice(i, 1)[0].len ?? 1;
+    });
+  }
+  return null;
+}
+
 export interface Slot {
   placement: Placement;
   /** Letters this drop keeps the cell on track to become. */
@@ -78,11 +98,12 @@ export function slotsFor(content: Placement[], tile: TileId): Slot[] {
       if (dx > bestDx) [bestDx, missing] = [dx, rest];
     }
     if (missing) {
-      for (const m of missing) {
+      for (const { len: _len, ...m } of missing) {
         if (m.tile !== tile) continue;
+        // Offered at full length: a drawn length only applies once the letter is formed.
         const p = content.length ? m : { ...m, x: EMPTY_CELL_X };
         const k = slotKey(p);
-        const s = slots.get(k) ?? { placement: p, toward: [] };
+        const s: Slot = slots.get(k) ?? { placement: p, toward: [] };
         if (!s.toward.includes(ch)) s.toward.push(ch);
         slots.set(k, s);
       }

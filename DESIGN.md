@@ -11,32 +11,31 @@ Decisions so far:
 - **Design rule:** no tile may appear only alongside another tile. Under per-word charges, such a tile is redundant because it can never be used up on its own.
 - **Tile identity (version B):** straight bars keep their orientation. Chevrons and arcs are rotatable shapes.
 
-## 1. Tile inventory (10 types)
+## 1. Tile inventory (9 types; the short bar merged into the bar on 2026-10-04)
 **Rule: every stroke type is used by at least two letters** (enforced in `src/game.test.ts`).
 Every letter sits in a box 1 unit wide and 2 units tall.
 
 | Tile | Shape | Letters |
 |---|---|---|
 | `LV` | Long vertical | B D E F H I K L M N P R T |
-| `SV` | Short vertical | G J U Y |
-| `H`  | Horizontal | A E F G H L T Z |
+| `H`  | Bar (1 unit), flat or upright | A E F G H J L T U Z flat; Y upright |
 | `LD` | Long `/` | X Z |
 | `LB` | Long `\` | N X |
 | `SB` | Short `\` (tail) | Q R |
 | `BV` | Big chevron, rotates | A (`^`), V, W |
 | `SC` | Small chevron, rotates | K (`<`), M and Y (`v`) |
 | `C`  | Big arc (half circle, full height), rotates | C D G O Q |
-| `P`  | Bowl (half circle with straight ends), rotates | B P R S J U |
+| `P`  | Bowl (half circle with straight ends), rotates | B P R S |
 
 ## 2. Letter recipes (uppercase)
 ```
 A BV H      H LV LV H     O C C       V BV
 B LV P P    I LV          P LV P      W BV BV
-C C         J SV P        Q C C SB    X LD LB
-D LV C      K LV SC       R LV P SB   Y SC SV
+C C         J LV H        Q C C SB    X LD LB
+D LV C      K LV SC       R LV P SB   Y SC H
 E LV H H H  L LV H        S P P       Z H H LD
 F LV H H    M LV LV SC    T LV H
-G C H SV    N LV LV LB    U SV SV P
+G C H       N LV LV LB    U LV LV H
 ```
 Letter renderings (position and rotation of each tile instance) are stored with the recipe. Recipes are data and can be tuned.
 
@@ -169,12 +168,34 @@ Four regions, each answering one question:
 Wide screens (≥ 760 px) use two columns (left panel 220 px); narrower screens stack top → this step → play area → how to play → path. The word grows to fill the play area (up to 34 px per unit).
 
 ## Visual style (2026-10-03, after Hank Green's Smush and 4x3)
-Borrowed the style, not the branding: a header graphic, a raised score card (big stroke count, goal, best, doors, and a **?** that toggles How to play, open on load), the word as raised letter tiles on a board card with a soft pastel glow, tray strokes as key-like tiles tinted in their stroke colour, Undo / Reset step as pill buttons with "This step ● ○ ○" centred under the board, and the path in a side card (right of the main column at ≥ 1000 px, below it otherwise). Cards sit on a solid "ledge" shadow; type is the system's rounded face (SF Rounded on Apple). This supersedes the left step panel from the earlier layout pass.
+Borrowed the style, not the branding: a header graphic, a raised score card (big stroke count, goal, best, doors, and a **?** that toggles How to play), the word as raised letter tiles on a board card with a soft pastel glow, tray strokes as key-like tiles tinted in their stroke colour, Undo / Reset step as pill buttons with "This step ● ○ ○" centred under the board, and the path in a side card (right of the main column at ≥ 1000 px, below it otherwise). Cards sit on a solid "ledge" shadow; type is the system's rounded face (SF Rounded on Apple). This supersedes the left step panel from the earlier layout pass.
 
-**Header graphic** (`Masthead.tsx`): the ten stroke types sit in a row of tinted part tiles (the same tints as the tray), and the "STROKES" wordmark below is built from them. On load, each stroke leaves its part tile, turns and snaps into its letter one after another, the way players build words. After that the header stays still. With reduced motion, the strokes fade in already in place.
+**Header graphic** (`Masthead.tsx`): the stroke types sit in a row of tinted part tiles (the same tints as the tray), and the "STROKES" wordmark below is built from them. On load, each stroke leaves its part tile, turns and snaps into its letter one after another, the way players build words. After that the header stays still. With reduced motion, the strokes fade in already in place.
 
 **Goal:** the score card leads with the goal word in ink on a gold-ringed tile (green once reached), with the stroke count, best and doors beside it. The path card ends with the goal as a dashed gold chip, so the route reads start → … → goal.
 
 **Dev tools** (only on the Vite dev server): the side card has **New start & goal**, which picks a random puzzle shaped like WILD → TAME (`randomPuzzle` in `src/maze.ts`). The start has at least 3 doors, and the goal is 4–7 rooms and 10–20 strokes away. **Back to WILD → TAME** returns to the fixed puzzle. A random puzzle lasts until reload. `scripts/mazes.ts` uses the same graph code.
 
 **Name:** the game is called **Strokes** (renamed from Stroke Maze, 2026-10-03). **How to play** opens on a player's first visit only. A `localStorage` flag remembers it was seen, and the **?** button reopens it any time.
+
+## Reachability: one bar, square U and J (2026-10-04)
+Playtesting found the short bar rarely useful and G, J, U and Y hard to reach. The cause was the glyphs. The short bar appeared only in those four letters, and U and J were built from a hook (the bowl turned 90°) that no other letter used. **None of the 282 words with U were reachable from the main maze.**
+
+- **One bar.** The short bar and the crossbar were already the same length (1 unit), so they're now one stroke, `H`, which lies flat or stands upright. The tray has 9 strokes.
+- **Square U and J.** U = two long bars + a bar along the bottom (H with its bar dropped). J = a long bar + a bar along the bottom to its left (a mirrored L). They share the long bar with H, L, I and T: L → U and L → J are 1 stroke each.
+- **G without its spur.** G = arc + a bar inside the mouth, drawn **half length** (`Placement.len`).
+- **Drawn length.** `len` is display-only, like W's squeeze. It applies once the letter is formed (`formedLengths`): offered slots and half-built letters are always full length. In the editor, the bar shrinks into G's mouth with the settle spring as the G forms, and grows back when it's picked up. U's and J's bottom bars and Y's stem are naturally 1 unit.
+- **Snap unless there's a real choice.** In an empty cell, a rotatable stroke over a spot that fits it only one way snaps to that orientation, following the nearest spot on every move: the bar upright for Y, K's chevron on its side, a bowl at the bottom. Twisting is only for spots that fit a stroke several ways (chevron V/A, arc C/D, bowl P/S at the top). Once the cursor is circling such a spot, it stays locked there within 1.6 units. The tray tooltip mentions twisting only for strokes that can need it.
+
+Measured on the familiar-word graph (3 strokes per step):
+
+| | U | G | J | Y | words in the main maze | median doors |
+|---|---|---|---|---|---|---|
+| before | 0% of 282 | 47% | 66% | 42% | 72% | 4 |
+| after | 94% | 88% | 91% | 70% | 90% | 6 |
+
+- WILD → TAME is unchanged (best 14, same route).
+- In 12 of 20 random puzzles, the best route passes through a G/J/U/Y word (9 before).
+- X (26%) and Z (48%) are still weakly connected but rare (19 and 29 words).
+- `src/maze.test.ts` guards G/J/U/Y at ≥ 60% and the main maze at ≥ 85%.
+- The `/#smush` prototype's boards were regenerated for the 9 strokes.

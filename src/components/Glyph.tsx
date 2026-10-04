@@ -20,15 +20,21 @@ interface TileStrokeProps {
   className?: string;
   /** Narrow the stroke horizontally (a formed W); see LetterGlyph.squeeze. */
   squeeze?: number;
+  /** Drawn length as a fraction of the stroke's own (G's short bar); see Placement.len. */
+  len?: number;
 }
 
+/** SVG scale that shortens a stroke along its own axis, about its centre. */
+export const lengthScale = (rot = 0, len = 1) => (len === 1 ? '' : (rot % 180 === 0 ? `scale(${len} 1)` : `scale(1 ${len})`));
+
 /** One stroke, drawn in ink (see ink.ts). The only place strokes are rendered. */
-export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink', squeeze = 1 }: TileStrokeProps) {
+export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink', squeeze = 1, len = 1 }: TileStrokeProps) {
+  const transform = `${x || y ? `translate(${x} ${y}) ` : ''}${lengthScale(rot, len)}`.trim();
   return (
     <path
       className={className}
       d={inkOutline(tile, rot, seed ?? inkSeed({ tile, x, y, rot }), minHalfWidth, squeeze)}
-      transform={x || y ? `translate(${x} ${y})` : undefined}
+      transform={transform || undefined}
       fill={fill ?? `var(--t-${tile})`}
     />
   );
@@ -48,6 +54,7 @@ export function PlacedStrokes({ parts, minHalfWidth, squeeze = 1 }: { parts: Pla
           seed={inkSeed(part)}
           minHalfWidth={minHalfWidth}
           squeeze={squeeze}
+          len={part.len}
         />
       ))}
     </>

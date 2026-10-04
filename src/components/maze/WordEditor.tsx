@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import { LETTERS, TILES, TILE_IDS, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed } from '../../ink';
-import { EMPTY_CELL_X, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
+import { EMPTY_CELL_X, formedLengths, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
 
 const CELL_W = 4;
@@ -66,6 +66,8 @@ interface Drag {
   target: { cell: number; slot: Slot } | null;
   /** The cell under the pointer: the only one that previews (and accepts) a drop. */
   overCell: number | null;
+  /** Drawn length where it was picked up (G's short bar), so it grows back to full as it lifts. */
+  len0: number;
 }
 
 /** A released stroke's starting pose relative to its slot (cell units), so it springs in from there. */
@@ -88,16 +90,33 @@ interface Props {
   onHoverTile: (tile: TileId | null) => void;
 }
 
+/** A cell's strokes with the lengths they're drawn at (see formedLengths). */
+function drawn(content: Placement[]): Placement[] {
+  const lens = formedLengths(content);
+  return content.map((p, i) => ({ ...p, len: lens?.[i] ?? 1 }));
+}
+
 /** Offset that centers a cell's strokes horizontally. */
 function centerOffset(content: Placement[]): number {
   if (!content.length) return -EMPTY_CELL_X;
-  const [lo, hi] = xExtent(content);
+  const [lo, hi] = xExtent(drawn(content));
   return -(lo + hi) / 2;
 }
 
 /**
+ * Strokes that ever need a twist: some spot in an empty cell fits them more than one way (a
+ * chevron as V or A). Everything else turns to fit on its own.
+ */
+const TWISTS = new Set(
+  TILE_IDS.filter((t) => {
+    const spots = slotsFor([], t).map((s) => `${s.placement.x},${s.placement.y}`);
+    return new Set(spots).size < spots.length;
+  }),
+);
+
+/**
  * The current word as editable strokes, plus the tray of strokes to drag in. Drag a stroke in
- * from the tray, drag a placed stroke to move it, tap a placed stroke to remove it, and twist chevrons, arcs and bowls by circling the cursor around their spot.
+ * from the tray, drag a placed stroke to move it, tap a placed stroke to remove it, and twist chevrons, arcs and bowls by circling the cursor around a spot that fits them more than one way.
  *
  * The held stroke lives in a floating layer for its whole life: it lifts from where it sits,
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
@@ -211,7 +230,18 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       return { overCell, target: { cell: overCell, slot: nearest }, aim: null, turn };
     }
 
-    // Starting a new letter: rotatable strokes lock onto a spot; circling the cursor around it turns them.
+    // Starting a new letter. A spot that fits the stroke only one way takes it that way, as when
+    // adding to a letter (the bar upright for Y, K's chevron on its side), following the nearest
+    // spot on every move. Only a spot that fits it several ways needs a twist, and once the cursor
+    // is circling one, it stays locked there (within RELEASE) so the twist isn't interrupted.
+    const twisting = !!d.aim && d.aim.cell === overCell && d.aim.armed && dist(d.aim) <= RELEASE;
+    const ways = slots.filter((s) => s.placement.x === nearest.placement.x && s.placement.y === nearest.placement.y);
+    if (!twisting && ways.length === 1) {
+      const turn = d.turn + wrap((nearest.placement.rot ?? 0) - d.turn);
+      return { overCell, target: { cell: overCell, slot: nearest }, aim: null, turn };
+    }
+
+    // Rotatable strokes lock onto a spot; circling the cursor around it turns them.
     let aim = d.aim;
     const stray = !aim || aim.cell !== overCell || dist(aim) > RELEASE;
     if (stray && (!aim || aim.cell !== overCell || aim.x !== nearest.placement.x || aim.y !== nearest.placement.y)) {
@@ -316,7 +346,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
 
   // Listeners are attached synchronously on pointer-down (not in an effect) so a quick flick
   // can't release before they exist.
-  const start = (e: React.PointerEvent, tile: TileId, rot: number, source: Source, home: { x: number; y: number; scale: number } | null) => {
+  const start = (e: React.PointerEvent, tile: TileId, rot: number, source: Source, home: { x: number; y: number; scale: number } | null, len0 = 1) => {
     if (disabled || dragRef.current || !home) return;
     e.preventDefault();
     // Lift the stroke from exactly where it sits, keeping the point that was grabbed.
@@ -350,6 +380,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       aim: null,
       target: null,
       overCell: null,
+      len0,
     };
     dragRef.current = d0;
     setDrag(d0);
@@ -389,16 +420,16 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
   const pressPlaced = (e: React.PointerEvent, cell: number, p: Placement, x: number) => {
     const index = cells[cell].findIndex((q) => slotKey(q) === slotKey(p));
     const at = screenOf(cell, x, p.y);
-    if (index >= 0) start(e, p.tile, p.rot ?? 0, { kind: 'cell', cell, index }, at && { ...at, scale: 1 });
+    if (index >= 0) start(e, p.tile, p.rot ?? 0, { kind: 'cell', cell, index }, at && { ...at, scale: 1 }, drawn(cells[cell])[index].len);
   };
 
   const held = drag?.moved ? drag : null;
   // The pressed stroke leaves its cell for the floating layer from the moment it's pressed.
   const carried = drag?.source.kind === 'cell' ? drag.source : null;
   const floating = drag
-    ? { tile: drag.tile, turn: drag.turn, red: !!held?.aim && !held.target, lifted: true }
+    ? { tile: drag.tile, turn: drag.turn, red: !!held?.aim && !held.target, lifted: true, len0: drag.len0 }
     : flight
-      ? { tile: flight.tile, turn: TILES[flight.tile].display ?? 0, red: false, lifted: false }
+      ? { tile: flight.tile, turn: TILES[flight.tile].display ?? 0, red: false, lifted: false, len0: 1 }
       : null;
 
   return (
@@ -407,9 +438,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
         {cells.map((content, c) => {
           const letter = recognize(content);
           const squeeze = (letter && LETTERS[letter].squeeze) || 1;
-          const [lo, hi] = content.length ? xExtent(content) : [0, 0];
+          // A formed letter may draw a stroke shorter than its own (G's bar); see Placement.len.
+          const lens = drawn(content).map((p) => p.len ?? 1);
+          const [lo, hi] = content.length ? xExtent(drawn(content)) : [0, 0];
           const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * squeeze;
-          const shown = content.filter((_, i) => !(carried?.cell === c && carried.index === i));
+          const shown = content.map((p, i) => ({ p, len: lens[i] })).filter((_, i) => !(carried?.cell === c && carried.index === i));
           const target = held?.target?.cell === c ? held.target : null;
           const aim = held?.aim?.cell === c ? held.aim : null;
           // Nothing fits here, or the held stroke's current orientation doesn't: the letter goes red.
@@ -427,8 +460,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                 height={CELL_H * unit}
               >
                 <motion.g className="cell-content" initial={false} animate={{ x: offsets[c] }} transition={SETTLE}>
-                  {shown.map((p) => {
+                  {shown.map(({ p, len }) => {
                     const key = slotKey(p);
+                    const flat = (p.rot ?? 0) % 180 === 0;
                     const x = squeezed(p.x);
                     const hovered = !drag && !disabled && hover?.cell === c && hover.key === key;
                     const landing = landings.current.get(`${c}|${key}`);
@@ -444,20 +478,27 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                             : { ...SETTLE, opacity: { duration: 0.15 } }
                         }
                       >
-                        <TileStroke
-                          tile={p.tile}
-                          rot={p.rot}
-                          x={x}
-                          y={p.y}
-                          seed={inkSeed(p)}
-                          minHalfWidth={minHalf}
-                          squeeze={squeeze}
-                          fill={red ? 'var(--spicy)' : undefined}
-                        />
+                        {/* Resizes along its own axis when its letter forms or breaks (G's bar shrinks into the mouth). */}
+                        <motion.g
+                          initial={landing ? { scaleX: 1, scaleY: 1 } : false}
+                          animate={{ scaleX: flat ? len : 1, scaleY: flat ? 1 : len }}
+                          transition={SETTLE}
+                        >
+                          <TileStroke
+                            tile={p.tile}
+                            rot={p.rot}
+                            x={x}
+                            y={p.y}
+                            seed={inkSeed(p)}
+                            minHalfWidth={minHalf}
+                            squeeze={squeeze}
+                            fill={red ? 'var(--spicy)' : undefined}
+                          />
+                        </motion.g>
                         <path
                           className="hit"
                           d={TILES[p.tile].path}
-                          transform={`translate(${x} ${p.y})${squeeze !== 1 ? ` scale(${squeeze} 1)` : ''}${p.rot ? ` rotate(${p.rot})` : ''}`}
+                          transform={`translate(${x} ${p.y})${squeeze !== 1 ? ` scale(${squeeze} 1)` : ''}${p.rot ? ` rotate(${p.rot})` : ''}${len !== 1 ? ` scale(${len} 1)` : ''}`}
                           onPointerDown={(e) => pressPlaced(e, c, p, x)}
                           onPointerEnter={() => {
                             onHoverTile(p.tile);
@@ -494,7 +535,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
               }}
               className={`tray-tile${taken ? ' taken' : ''}`}
               style={{ ['--tile' as string]: `var(--t-${t})` }}
-              title={TILES[t].rotates ? `${TILES[t].name}: in an empty letter, circle the cursor around its spot to turn it` : TILES[t].name}
+              title={TWISTS.has(t) ? `${TILES[t].name}: in an empty letter, circle the cursor around its spot to turn it` : TILES[t].name}
               onPointerDown={(e) => start(e, t, TILES[t].display ?? 0, { kind: 'tray' }, trayHome(t))}
               onPointerEnter={() => onHoverTile(t)}
               onPointerLeave={() => onHoverTile(null)}
@@ -515,7 +556,13 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
           height={2.4 * unit}
           style={{ left: -1.2 * unit, top: -1.2 * unit, x: gx, y: gy, scale: gs, rotate: gr }}
         >
-          <Turned tile={floating.tile} turn={floating.turn} minHalfWidth={minHalf} fill={floating.red ? 'var(--spicy)' : undefined} />
+          <motion.g
+            initial={(floating.turn / 90) % 2 === 0 ? { scaleX: floating.len0 } : { scaleY: floating.len0 }}
+            animate={{ scaleX: 1, scaleY: 1 }}
+            transition={SETTLE}
+          >
+            <Turned tile={floating.tile} turn={floating.turn} minHalfWidth={minHalf} fill={floating.red ? 'var(--spicy)' : undefined} />
+          </motion.g>
         </motion.svg>
       )}
     </div>

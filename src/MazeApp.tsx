@@ -201,7 +201,7 @@ export function MazeApp() {
               <ul className="how">
                 <li>Change the word into another real word, up to 3 strokes per step, to open a door.</li>
                 <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
-                <li>Starting a new letter with a chevron, arc or bowl? Hold it over its spot and circle the cursor around it to turn it.</li>
+                <li>Starting a letter with a chevron, arc or bowl that fits either way round? Hold it over its spot and circle the cursor around it to turn it.</li>
               </ul>
             </section>
           )}

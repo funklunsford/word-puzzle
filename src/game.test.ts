@@ -5,7 +5,7 @@ import { PANGRAM_BONUS, check, newGame, play, playableLetters, remainingWords, s
 // A tiny hand-made board so tests don't depend on the word list.
 const board: Board = {
   id: 'test',
-  tiles: ['LV', 'H', 'P', 'SB', 'SV'],
+  tiles: ['LV', 'H', 'P', 'SB'],
   center: 'LV',
   spicy: 'H',
   pangrams: ['BLURT'],
@@ -21,6 +21,13 @@ describe('glyphs', () => {
   it('derives recipes from placements', () => {
     expect(Object.fromEntries(recipe('E'))).toEqual({ LV: 1, H: 3 });
     expect(Object.fromEntries(recipe('O'))).toEqual({ C: 2 });
+  });
+
+  it('builds G, J, U and Y from strokes everyday letters use (the bar and the long bar)', () => {
+    expect(Object.fromEntries(recipe('U'))).toEqual({ LV: 2, H: 1 });
+    expect(Object.fromEntries(recipe('J'))).toEqual({ LV: 1, H: 1 });
+    expect(Object.fromEntries(recipe('G'))).toEqual({ C: 1, H: 1 });
+    expect(Object.fromEntries(recipe('Y'))).toEqual({ SC: 1, H: 1 });
   });
 
   it('draws a formed W at 2.5 wide while V stays 2 wide', () => {

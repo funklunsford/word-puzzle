@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LETTERS, TILE_IDS, recipe, type Placement } from './glyphs';
-import { EMPTY_CELL_X, letterDiff, recognize, slotKey, slotsFor, wordDistance } from './strokes';
+import { EMPTY_CELL_X, formedLengths, letterDiff, recognize, slotKey, slotsFor, wordDistance } from './strokes';
 
 const glyph = (ch: string, dx = 0) => LETTERS[ch].parts.map((p) => ({ ...p, x: p.x + dx }));
 
@@ -82,7 +82,8 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
     const stem = [{ tile: 'LV' as const, x: 0, y: 1, rot: 0 }];
     const bars = slotsFor(stem, 'H');
     expect(bars.filter((s) => s.placement.y === 1).map((s) => s.placement.x)).toEqual([0.5]);
-    expect(bars.every((s) => s.placement.x >= 0)).toBe(true); // T's bar is centered on the stem
+    // The only bar left of the stem is J's foot (a different letter, not a second spot for one).
+    expect(bars.filter((s) => s.placement.x < 0).map((s) => s.toward)).toEqual([['J']]);
     // A second stem (H, N, M) also only goes to the right.
     expect(slotsFor(stem, 'LV').every((s) => s.placement.x > 0)).toBe(true);
   });
@@ -128,8 +129,32 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
     const bars = slotsFor([], 'LV');
     expect(bars).toHaveLength(1);
     expect(bars[0].placement.x).toBe(EMPTY_CELL_X);
-    // Crossbars differ only by height: top, middle, bottom.
-    expect(new Set(slotsFor([], 'H').map((s) => s.placement.y))).toEqual(new Set([0, 1, 2]));
+    // The bar lies flat at the top, middle or bottom, or stands upright low down (Y's stem).
+    const flat = slotsFor([], 'H').filter((s) => !s.placement.rot);
+    const upright = slotsFor([], 'H').filter((s) => s.placement.rot === 90);
+    expect(new Set(flat.map((s) => s.placement.y))).toEqual(new Set([0, 1, 2]));
+    expect(upright.map((s) => [s.placement.y, s.toward])).toEqual([[1.5, ['Y']]]);
+  });
+
+  it('never needs a twist for the bar: each of its empty-cell spots fits one orientation', () => {
+    const spots = slotsFor([], 'H').map((s) => `${s.placement.x},${s.placement.y}`);
+    expect(new Set(spots).size).toBe(spots.length);
+  });
+});
+
+describe('formedLengths', () => {
+  it("draws G's bar half length once G is formed, and everything full length before", () => {
+    const g = glyph('G', 0.5);
+    expect(formedLengths(g)).toEqual([1, 0.5]);
+    expect(formedLengths([...g].reverse())).toEqual([0.5, 1]);
+    expect(formedLengths(g.slice(1))).toBeNull(); // a lone bar isn't a letter
+    expect(formedLengths(glyph('E'))).toEqual([1, 1, 1, 1]);
+  });
+
+  it('never offers a shortened stroke: slots are always full length', () => {
+    for (const tile of TILE_IDS) {
+      for (const content of [[], glyph('C')]) for (const s of slotsFor(content, tile)) expect(s.placement.len).toBeUndefined();
+    }
   });
 });
 

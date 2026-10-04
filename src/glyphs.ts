@@ -5,7 +5,7 @@
 // placement is just a translate + rotate. Recipes are derived from placements, so
 // this file is the single source of truth for both rendering and game rules.
 
-export type TileId = 'LV' | 'SV' | 'H' | 'LD' | 'LB' | 'SB' | 'BV' | 'SC' | 'C' | 'P';
+export type TileId = 'LV' | 'H' | 'LD' | 'LB' | 'SB' | 'BV' | 'SC' | 'C' | 'P';
 
 export interface TileShape {
   id: TileId;
@@ -19,8 +19,8 @@ export interface TileShape {
 
 export const TILES: Record<TileId, TileShape> = {
   LV: { id: 'LV', name: 'Long bar', path: 'M0 -1 L0 1', rotates: false },
-  SV: { id: 'SV', name: 'Short bar', path: 'M0 -0.5 L0 0.5', rotates: false },
-  H: { id: 'H', name: 'Crossbar', path: 'M-0.5 0 L0.5 0', rotates: false },
+  // One 1-unit bar: flat as a crossbar (E, F, H…), upright as Y's stem.
+  H: { id: 'H', name: 'Bar', path: 'M-0.5 0 L0.5 0', rotates: true, display: 0 },
   LD: { id: 'LD', name: 'Rising slash', path: 'M-0.5 1 L0.5 -1', rotates: false },
   LB: { id: 'LB', name: 'Falling slash', path: 'M-0.5 -1 L0.5 1', rotates: false },
   SB: { id: 'SB', name: 'Tail', path: 'M-0.25 -0.5 L0.25 0.5', rotates: false },
@@ -35,7 +35,6 @@ export const TILE_IDS = Object.keys(TILES) as TileId[];
 /** Half-width and half-height of each tile at rotation 0, in units. */
 const TILE_EXTENT: Record<TileId, [number, number]> = {
   LV: [0, 1],
-  SV: [0, 0.5],
   H: [0.5, 0],
   LD: [0.5, 1],
   LB: [0.5, 1],
@@ -52,7 +51,9 @@ export function xExtent(parts: Placement[]): [number, number] {
   let hi = -Infinity;
   for (const p of parts) {
     const [hx, hy] = TILE_EXTENT[p.tile];
-    const half = (p.rot ?? 0) % 180 === 0 ? hx : hy;
+    // `len` shortens a stroke along its own (local x) axis; only the bar uses it.
+    const flat = (p.rot ?? 0) % 180 === 0;
+    const half = flat ? hx * (p.len ?? 1) : hy;
     lo = Math.min(lo, p.x - half);
     hi = Math.max(hi, p.x + half);
   }
@@ -65,6 +66,11 @@ export interface Placement {
   y: number;
   /** Degrees clockwise. */
   rot?: number;
+  /**
+   * Drawn length as a fraction of the stroke's own (default 1), once its letter is formed. Display
+   * only, like LetterGlyph.squeeze: it never affects slots, recognition or distances.
+   */
+  len?: number;
 }
 
 export interface LetterGlyph {
@@ -77,7 +83,8 @@ export interface LetterGlyph {
   squeeze?: number;
 }
 
-const p = (tile: TileId, x: number, y: number, rot = 0): Placement => ({ tile, x, y, rot });
+const p = (tile: TileId, x: number, y: number, rot = 0, len?: number): Placement =>
+  len === undefined ? { tile, x, y, rot } : { tile, x, y, rot, len };
 
 export const LETTERS: Record<string, LetterGlyph> = {
   // The chevron is 1 wide at mid-height, so A's crossbar sits at the same height as E/F/H's.
@@ -87,10 +94,13 @@ export const LETTERS: Record<string, LetterGlyph> = {
   D: { width: 1, parts: [p('LV', 0, 1), p('C', 0.5, 1, 180)] },
   E: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 0), p('H', 0.5, 1), p('H', 0.5, 2)] },
   F: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 0), p('H', 0.5, 1)] },
-  G: { width: 1.5, parts: [p('C', 0.5, 1), p('H', 1, 1), p('SV', 1, 1.5)] },
+  // The bar sits in the arc's mouth, drawn half length so it neither crosses the C nor sticks out.
+  G: { width: 1, parts: [p('C', 0.5, 1), p('H', 0.75, 1, 0, 0.5)] },
   H: { width: 1, parts: [p('LV', 0, 1), p('LV', 1, 1), p('H', 0.5, 1)] },
   I: { width: 0, parts: [p('LV', 0, 1)] },
-  J: { width: 1, parts: [p('SV', 1, 0.5), p('P', 0.5, 1.5, 90)] },
+  // A mirrored L, and U is H with its bar dropped: both share the long bar with H, L, I and T,
+  // so words with J and U are a stroke or two from everyday words.
+  J: { width: 1, parts: [p('LV', 1, 1), p('H', 0.5, 2)] },
   K: { width: 1, parts: [p('LV', 0, 1), p('SC', 0.5, 1, 90)] },
   L: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 2)] },
   M: { width: 2, parts: [p('LV', 0, 1), p('LV', 2, 1), p('SC', 1, 0.5)] },
@@ -103,12 +113,12 @@ export const LETTERS: Record<string, LetterGlyph> = {
   // into a short spine: no full-width bar across the middle, and only a slight lean.
   S: { width: 1.25, parts: [p('P', 0.5, 0.5, 180), p('P', 0.75, 1.5)] },
   T: { width: 1, parts: [p('H', 0.5, 0), p('LV', 0.5, 1)] },
-  U: { width: 1, parts: [p('SV', 0, 0.5), p('SV', 1, 0.5), p('P', 0.5, 1.5, 90)] },
+  U: { width: 1, parts: [p('LV', 0, 1), p('LV', 1, 1), p('H', 0.5, 2)] },
   V: { width: 2, parts: [p('BV', 1, 1)] },
   // Two full chevrons are 4 wide; once formed, W is drawn 2.5 wide (V's chevrons are untouched).
   W: { width: 4, squeeze: 0.625, parts: [p('BV', 1, 1), p('BV', 3, 1)] },
   X: { width: 1, parts: [p('LD', 0.5, 1), p('LB', 0.5, 1)] },
-  Y: { width: 2, parts: [p('SC', 1, 0.5), p('SV', 1, 1.5)] },
+  Y: { width: 2, parts: [p('SC', 1, 0.5), p('H', 1, 1.5, 90)] },
   Z: { width: 1, parts: [p('H', 0.5, 0), p('H', 0.5, 2), p('LD', 0.5, 1)] },
 };
 

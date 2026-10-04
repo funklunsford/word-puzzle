@@ -16,7 +16,37 @@ function mulberry32(seed: number) {
   };
 }
 
+/** Words connected to the biggest group of rooms (the main maze). */
+function mainMaze() {
+  const comp = new Array<number>(words.length).fill(-1);
+  const sizes: number[] = [];
+  for (let i = 0; i < words.length; i++) {
+    if (comp[i] >= 0) continue;
+    const stack = [i];
+    comp[i] = sizes.length;
+    let n = 0;
+    while (stack.length) {
+      const u = stack.pop()!;
+      n++;
+      for (const { to } of adj[u]) if (comp[to] < 0) (comp[to] = sizes.length, stack.push(to));
+    }
+    sizes.push(n);
+  }
+  const main = sizes.indexOf(Math.max(...sizes));
+  return words.filter((_, i) => comp[i] === main);
+}
+
 describe('maze graph', () => {
+  it('keeps words with G, J, U and Y reachable (they used to be cut off)', () => {
+    const main = new Set(mainMaze());
+    expect(main.size / words.length).toBeGreaterThanOrEqual(0.85);
+    for (const ch of 'GJUY') {
+      const withIt = words.filter((w) => w.includes(ch));
+      const share = withIt.filter((w) => main.has(w)).length / withIt.length;
+      expect(share, `${ch}: ${Math.round(share * 100)}% of its words are in the main maze`).toBeGreaterThanOrEqual(0.6);
+    }
+  });
+
   it('solves the fixed puzzle the same way the script did', () => {
     expect(solve(words, adj, puzzle.start, puzzle.goal)).toEqual(puzzle);
   });
