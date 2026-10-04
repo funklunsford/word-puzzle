@@ -492,7 +492,7 @@ select,
   color: var(--muted);
 }
 
-/* Masthead: the wordmark between two rows of pastel tiles, and the one-line rule. */
+/* Masthead: the stroke parts row, the wordmark built from it, and the one-line rule. */
 .masthead {
   grid-area: mast;
   display: flex;
@@ -502,30 +502,17 @@ select,
   text-align: center;
 }
 
-.logo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
+.masthead-art {
+  width: min(520px, 100%);
+  height: auto;
+  overflow: visible;
 }
 
-.logo-tiles {
-  display: flex;
-  gap: 8px;
-}
-
-.logo-tiles span {
-  width: 44px;
-  height: 22px;
-  border-radius: 7px;
-  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.08);
-}
-
-.logo-word {
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
-  justify-content: center;
+/* The parts row: each stroke type on a tile tinted in its colour, like the tray. */
+.part-tile {
+  fill: color-mix(in srgb, var(--tile) 12%, var(--surface));
+  stroke: color-mix(in srgb, var(--tile) 30%, var(--line));
+  stroke-width: 0.05;
 }
 
 .tagline {

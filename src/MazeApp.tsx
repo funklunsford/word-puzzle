@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
+import { Masthead } from './components/maze/Masthead';
 import { WordEditor } from './components/maze/WordEditor';
 import { Glyph, GlyphWord } from './components/Glyph';
 
@@ -26,14 +27,6 @@ interface Visit {
 const COLUMN_W = 640;
 const SIDE_W = 260;
 const SIDE_MIN = 1000;
-/** Pastel tiles framing the wordmark (tilted a little, like tiles tossed on a table). */
-const LOGO_TILES = [
-  ['var(--pastel-1)', -4],
-  ['var(--pastel-2)', 3],
-  ['var(--pastel-3)', -2],
-  ['var(--pastel-4)', 4],
-  ['var(--pastel-1)', -3],
-] as const;
 
 const cellsFor = (word: string): Placement[][] => [...word].map((ch) => LETTERS[ch].parts.map((p) => ({ ...p })));
 
@@ -138,30 +131,10 @@ export function MazeApp() {
   // The step after a door opens, until the next stroke: confirm it (completion feedback).
   const justOpened = !won && !stepEdits && trail.length > 1;
 
-  const tiles = (row: number) => (
-    <div className="logo-tiles" aria-hidden>
-      {LOGO_TILES.map(([color, tilt], i) => (
-        <span key={i} style={{ background: color, transform: `rotate(${(row ? -tilt : tilt)}deg)` }} />
-      ))}
-    </div>
-  );
-
   return (
     <MotionConfig reducedMotion="user">
       <div className={`maze${side ? ' side' : ''}`} style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}>
-        <header className="masthead">
-          <div className="logo" role="img" aria-label="Stroke Maze">
-            {tiles(0)}
-            <div className="logo-word">
-              <GlyphWord word="STROKE" size={38} />
-              <GlyphWord word="MAZE" size={38} />
-            </div>
-            {tiles(1)}
-          </div>
-          <p className="tagline">
-            Turn <strong>{puzzle.start}</strong> into <strong>{puzzle.goal}</strong>, a few strokes at a time.
-          </p>
-        </header>
+        <Masthead start={puzzle.start} goal={puzzle.goal} />
 
         <main className="column">
           <section className="scorecard">
