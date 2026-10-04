@@ -66,7 +66,6 @@ interface Drag {
   target: { cell: number; slot: Slot } | null;
   /** The cell under the pointer: the only one that previews (and accepts) a drop. */
   overCell: number | null;
-  overWord: boolean;
 }
 
 /** A released stroke's starting pose relative to its slot (cell units), so it springs in from there. */
@@ -98,8 +97,7 @@ function centerOffset(content: Placement[]): number {
 
 /**
  * The current word as editable strokes, plus the tray of strokes to drag in. Drag a stroke in
- * from the tray, drag a placed stroke to move it (or off the word to remove it), tap a placed
- * stroke to remove it, and twist chevrons, arcs and bowls by circling the cursor around their spot.
+ * from the tray, drag a placed stroke to move it, tap a placed stroke to remove it, and twist chevrons, arcs and bowls by circling the cursor around their spot.
  *
  * The held stroke lives in a floating layer for its whole life: it lifts from where it sits,
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
@@ -114,7 +112,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
   const dragRef = useRef<Drag | null>(null);
   const svgs = useRef<(SVGSVGElement | null)[]>([]);
   const trayEls = useRef(new Map<TileId, HTMLElement>());
-  const wordRef = useRef<HTMLDivElement>(null);
   const landings = useRef(new Map<string, Landing>());
   const reduce = useReducedMotion();
 
@@ -172,7 +169,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
   };
 
   /** Where the held stroke is over the word: the cell, the spot it's locked onto, its twist, and the drop. */
-  const locate = (d: Drag, x: number, y: number): Pick<Drag, 'target' | 'aim' | 'turn' | 'overCell' | 'overWord'> => {
+  const locate = (d: Drag, x: number, y: number): Pick<Drag, 'target' | 'aim' | 'turn' | 'overCell'> => {
     const inside = (el: Element | null | undefined) => {
       const r = el?.getBoundingClientRect();
       return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
@@ -195,10 +192,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       const c = svgs.current.findIndex((el) => inside(el));
       overCell = c >= 0 ? c : null;
     }
-    const overWord = inside(wordRef.current);
     const local = overCell !== null ? toCell(overCell) : null;
     if (overCell === null || !local || !d.slots[overCell].length) {
-      return { overCell, overWord, target: null, aim: null, turn: d.turn };
+      return { overCell, target: null, aim: null, turn: d.turn };
     }
     const { lx, ly } = local;
     const slots = d.slots[overCell];
@@ -206,13 +202,13 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
     const nearest = slots.reduce((a, b) => (dist(b.placement) < dist(a.placement) ? b : a));
 
     // Fixed strokes simply go to the nearest spot.
-    if (!TILES[d.tile].rotates) return { overCell, overWord, target: { cell: overCell, slot: nearest }, aim: null, turn: d.turn };
+    if (!TILES[d.tile].rotates) return { overCell, target: { cell: overCell, slot: nearest }, aim: null, turn: d.turn };
 
     // Adding to a letter that's already there: the stroke snaps in the orientation its spot needs
     // (there's only ever one per spot once a cell has strokes), e.g. a second chevron beside a V.
     if (without(overCell, d.source).length) {
       const turn = d.turn + wrap((nearest.placement.rot ?? 0) - d.turn);
-      return { overCell, overWord, target: { cell: overCell, slot: nearest }, aim: null, turn };
+      return { overCell, target: { cell: overCell, slot: nearest }, aim: null, turn };
     }
 
     // Starting a new letter: rotatable strokes lock onto a spot; circling the cursor around it turns them.
@@ -231,7 +227,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
     }
     const q = norm(quarter(turn));
     const slot = slots.find((s) => s.placement.x === aim!.x && s.placement.y === aim!.y && norm(s.placement.rot ?? 0) === q);
-    return { overCell, overWord, target: slot ? { cell: overCell, slot } : null, aim, turn };
+    return { overCell, target: slot ? { cell: overCell, slot } : null, aim, turn };
   };
 
   /** Move the floating stroke: glide onto the spot it's locked to, else follow the cursor at the grip. */
@@ -313,12 +309,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       onEdit(next);
       return;
     }
-    if (from && !d.overWord) {
-      // Dragged off the word: removed, back to the tray.
-      remove();
-      flyHome(d);
-      return;
-    }
     // Nowhere to go: a placed stroke springs back to its slot, a tray stroke back to the tray.
     if (from && original) land(from.cell, original, d.turn);
     else flyHome(d);
@@ -360,7 +350,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       aim: null,
       target: null,
       overCell: null,
-      overWord: true,
     };
     dragRef.current = d0;
     setDrag(d0);
@@ -406,7 +395,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
   const held = drag?.moved ? drag : null;
   // The pressed stroke leaves its cell for the floating layer from the moment it's pressed.
   const carried = drag?.source.kind === 'cell' ? drag.source : null;
-  const removing = !!held && held.source.kind === 'cell' && !held.target && !held.aim && !held.overWord;
   const floating = drag
     ? { tile: drag.tile, turn: drag.turn, red: !!held?.aim && !held.target, lifted: true }
     : flight
@@ -415,7 +403,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
 
   return (
     <div className={`editor${disabled ? ' disabled' : ''}`}>
-      <div className={`word-cells${glow ? ' opened' : ''}`} ref={wordRef}>
+      <div className={`word-cells${glow ? ' opened' : ''}`}>
         {cells.map((content, c) => {
           const letter = recognize(content);
           const squeeze = (letter && LETTERS[letter].squeeze) || 1;
@@ -495,17 +483,16 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
         })}
       </div>
 
-      <div className={`tray${removing ? ' removing' : ''}`}>
+      <div className="tray">
         {TILE_IDS.map((t) => {
           const taken = (drag?.source.kind === 'tray' && drag.tile === t) || flight?.tile === t;
-          const home = removing && held?.tile === t;
           return (
             <button
               key={t}
               ref={(el) => {
                 if (el) trayEls.current.set(t, el);
               }}
-              className={`tray-tile${taken ? ' taken' : ''}${home ? ' home' : ''}`}
+              className={`tray-tile${taken ? ' taken' : ''}`}
               title={TILES[t].rotates ? `${TILES[t].name}: in an empty letter, circle the cursor around its spot to turn it` : TILES[t].name}
               onPointerDown={(e) => start(e, t, TILES[t].display ?? 0, { kind: 'tray' }, trayHome(t))}
               onPointerEnter={() => onHoverTile(t)}
@@ -517,7 +504,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
             </button>
           );
         })}
-        {removing && <span className="tray-hint">Drop to remove</span>}
       </div>
 
       {floating && (

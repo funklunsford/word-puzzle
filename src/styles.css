@@ -642,26 +642,6 @@ select,
   transition: background 0.15s, border-color 0.15s;
 }
 
-/* Carrying a placed stroke away from the word: the tray is where it goes back to. */
-.tray.removing {
-  background: color-mix(in srgb, var(--spicy) 10%, transparent);
-  border-color: var(--spicy);
-}
-
-.tray-hint {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translate(-50%, 55%);
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--spicy);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  pointer-events: none;
-}
-
 .tray-tile {
   position: relative;
   flex: 1 1 40px;
@@ -685,11 +665,6 @@ select,
 
 .tray-tile.taken svg {
   opacity: 0.2;
-}
-
-/* The tile a carried stroke would return to. */
-.tray-tile.home {
-  border-color: var(--spicy);
 }
 
 .tray-tile svg {
