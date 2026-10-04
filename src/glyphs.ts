@@ -71,15 +71,13 @@ export interface Placement {
 
 /**
  * How a stroke is drawn once its letter is formed. Display only, like LetterGlyph.squeeze: it
- * never affects slots, recognition or distances. A formed U still counts two long bars and a bar,
- * which is what keeps it a stroke from H and L; it's just drawn with the curves it should have.
+ * never affects slots, recognition or distances. U is built from two long bars and a bowl (so a
+ * bowl dropped onto "||" makes it), and drawn with its stems stopping where the bowl begins.
  */
 export interface Look {
   /** Draw only this fraction of a straight stroke, measured from its `keep` end. */
-  len?: number;
-  keep?: 'start' | 'end';
-  /** Draw it as this shape instead (in the letter's coordinates), in its own colour: U's bar bends into a cup. */
-  as?: { tile: TileId; x: number; y: number; rot?: number };
+  len: number;
+  keep: 'start' | 'end';
 }
 
 export interface LetterGlyph {
@@ -94,9 +92,8 @@ export interface LetterGlyph {
 
 const p = (tile: TileId, x: number, y: number, rot = 0, look?: Look): Placement =>
   look ? { tile, x, y, rot, look } : { tile, x, y, rot };
-/** Formed looks: the top half of a stem, the lower ¾ of a chin, and a bar bent into the cup below it. */
+/** Formed look of a stem that stops halfway, where a bowl takes over (J, U). */
 const TOP_HALF: Look = { len: 0.5, keep: 'start' };
-const CUP = (x: number): Look => ({ as: { tile: 'P', x, y: 1.5, rot: 90 } });
 
 export const LETTERS: Record<string, LetterGlyph> = {
   // The chevron is 1 wide at mid-height, so A's crossbar sits at the same height as E/F/H's.
@@ -111,10 +108,10 @@ export const LETTERS: Record<string, LetterGlyph> = {
   G: { width: 1, parts: [p('C', 0.5, 1), p('H', 1, 1.5, 90, { len: 0.75, keep: 'end' })] },
   H: { width: 1, parts: [p('LV', 0, 1), p('LV', 1, 1), p('H', 0.5, 1)] },
   I: { width: 0, parts: [p('LV', 0, 1)] },
-  // Built as a mirrored L, and U as H with its bar dropped: both share the long bar with H, L, I
-  // and T, so words with J and U are a stroke or two from everyday words. Once formed they're
-  // drawn with their curves: the stems stop halfway and the bar bends into the cup below.
-  J: { width: 1, parts: [p('LV', 1, 1, 0, TOP_HALF), p('H', 0.5, 2, 0, CUP(0.5))] },
+  // A long bar with the bowl curled under it. The long bar (shared with H, I, L, N, T…) is what
+  // keeps J and U near everyday letters: I → J and "||" → U are one bowl each. Once formed, the
+  // stems are drawn stopping halfway, where the bowl's tails take over.
+  J: { width: 1, parts: [p('LV', 1, 1, 0, TOP_HALF), p('P', 0.5, 1.5, 90)] },
   K: { width: 1, parts: [p('LV', 0, 1), p('SC', 0.5, 1, 90)] },
   L: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 2)] },
   M: { width: 2, parts: [p('LV', 0, 1), p('LV', 2, 1), p('SC', 1, 0.5)] },
@@ -127,7 +124,7 @@ export const LETTERS: Record<string, LetterGlyph> = {
   // into a short spine: no full-width bar across the middle, and only a slight lean.
   S: { width: 1.25, parts: [p('P', 0.5, 0.5, 180), p('P', 0.75, 1.5)] },
   T: { width: 1, parts: [p('H', 0.5, 0), p('LV', 0.5, 1)] },
-  U: { width: 1, parts: [p('LV', 0, 1, 0, TOP_HALF), p('LV', 1, 1, 0, TOP_HALF), p('H', 0.5, 2, 0, CUP(0.5))] },
+  U: { width: 1, parts: [p('LV', 0, 1, 0, TOP_HALF), p('LV', 1, 1, 0, TOP_HALF), p('P', 0.5, 1.5, 90)] },
   V: { width: 2, parts: [p('BV', 1, 1)] },
   // Two full chevrons are 4 wide; once formed, W is drawn 2.5 wide (V's chevrons are untouched).
   W: { width: 4, squeeze: 0.625, parts: [p('BV', 1, 1), p('BV', 3, 1)] },

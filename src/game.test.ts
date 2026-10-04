@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LETTERS, TILE_IDS, drawnWidth, recipe, xExtent, type Placement } from './glyphs';
-import { lookCenterline } from './ink';
+import { lookCenterline, strokeCenterline } from './ink';
 import { PANGRAM_BONUS, check, newGame, play, playableLetters, remainingWords, strokeCount, tilesFor, type Board } from './game';
 
 // A tiny hand-made board so tests don't depend on the word list.
@@ -24,9 +24,9 @@ describe('glyphs', () => {
     expect(Object.fromEntries(recipe('O'))).toEqual({ C: 2 });
   });
 
-  it('builds G, J, U and Y from strokes everyday letters use (the bar and the long bar)', () => {
-    expect(Object.fromEntries(recipe('U'))).toEqual({ LV: 2, H: 1 });
-    expect(Object.fromEntries(recipe('J'))).toEqual({ LV: 1, H: 1 });
+  it('builds G, J, U and Y from strokes everyday letters use (the long bar, the bar, the bowl)', () => {
+    expect(Object.fromEntries(recipe('U'))).toEqual({ LV: 2, P: 1 });
+    expect(Object.fromEntries(recipe('J'))).toEqual({ LV: 1, P: 1 });
     expect(Object.fromEntries(recipe('G'))).toEqual({ C: 1, H: 1 });
     expect(Object.fromEntries(recipe('Y'))).toEqual({ SC: 1, H: 1 });
   });
@@ -34,7 +34,7 @@ describe('glyphs', () => {
   describe('formed looks (display only)', () => {
     /** Where a part is drawn once its letter is formed: its look's centreline in letter coordinates. */
     const drawnAt = (p: Placement) =>
-      lookCenterline(p, p.look!).map(([x, y]) => [Math.round((x + p.x) * 1000) / 1000, Math.round((y + p.y) * 1000) / 1000]);
+      (p.look ? lookCenterline(p, p.look) : strokeCenterline(p.tile, p.rot)).map(([x, y]) => [Math.round((x + p.x) * 1000) / 1000, Math.round((y + p.y) * 1000) / 1000]);
     const ends = (pts: number[][]) => [pts[0], pts[pts.length - 1]];
 
     it("draws G's chin shortened from the top, so its foot stays on the baseline", () => {
@@ -43,21 +43,16 @@ describe('glyphs', () => {
       expect(xExtent(LETTERS.G.parts)).toEqual([0, 1]);
     });
 
-    it("draws U and J with curves: stems stop halfway and the bar bends into a cup that meets them", () => {
+    it('draws U and J with the bowl curled under stems that stop where its tails begin', () => {
       for (const ch of ['U', 'J']) {
         const stems = LETTERS[ch].parts.filter((p) => p.tile === 'LV');
-        const cup = drawnAt(LETTERS[ch].parts.find((p) => p.tile === 'H')!);
-        // The cup's tails rise to y = 1 at x = 0 and x = 1; its bottom touches the baseline.
-        expect(ends(cup).map(([x, y]) => [x, y]).sort()).toEqual([[0, 1], [1, 1]]);
-        expect(Math.max(...cup.map(([, y]) => y))).toBeCloseTo(2, 2);
+        const bowl = drawnAt(LETTERS[ch].parts.find((p) => p.tile === 'P')!);
+        // The bowl's tails rise to y = 1 at x = 0 and x = 1; its bottom touches the baseline.
+        expect(ends(bowl).sort()).toEqual([[0, 1], [1, 1]]);
+        expect(Math.max(...bowl.map(([, y]) => y))).toBeCloseTo(2, 2);
         // Each stem runs from the cap line down to exactly where a tail starts.
         for (const stem of stems) expect(ends(drawnAt(stem))).toEqual([[stem.x, 0], [stem.x, 1]]);
       }
-    });
-
-    it('keeps the cup in the bar\'s colour: the counted stroke is still the bar', () => {
-      expect(LETTERS.U.parts.map((p) => p.tile)).toEqual(['LV', 'LV', 'H']);
-      expect(LETTERS.J.parts.map((p) => p.tile)).toEqual(['LV', 'H']);
     });
   });
 

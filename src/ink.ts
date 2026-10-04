@@ -81,19 +81,13 @@ const lerp = (a: Pt, b: Pt, k: number): Pt => [a[0] + (b[0] - a[0]) * k, a[1] + 
 const gap = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
 /**
- * The centreline a stroke is drawn along once its letter is formed (see Look), relative to the
- * stroke's own position, and running the same way as the stroke so a morph never crosses over.
+ * The centreline a straight stroke is drawn along once its letter is formed (see Look), relative
+ * to the stroke's own position: the part of it kept from one end.
  */
 export function lookCenterline(p: Placement, look: Look): Pt[] {
   const own = strokeCenterline(p.tile, p.rot ?? 0);
   const [s, e] = [own[0], own[own.length - 1]];
-  if (look.as) {
-    const a = look.as;
-    const pts = strokeCenterline(a.tile, a.rot ?? 0).map(([x, y]): Pt => [x + a.x - p.x, y + a.y - p.y]);
-    const flip = gap(s, pts[0]) + gap(e, pts[pts.length - 1]) > gap(s, pts[pts.length - 1]) + gap(e, pts[0]);
-    return flip ? pts.reverse() : pts;
-  }
-  const k = look.len ?? 1;
+  const k = look.len;
   const [a, b] = look.keep === 'end' ? [lerp(e, s, k), e] : [s, lerp(s, e, k)];
   const n = Math.max(1, Math.ceil(gap(a, b) / STEP));
   return Array.from({ length: n + 1 }, (_, i) => lerp(a, b, i / n));
@@ -163,7 +157,7 @@ function resample(pts: Pt[], n: number): Pt[] {
   return out;
 }
 
-/** A stroke part-way (`t` from 0 to 1) between two centrelines, inked: a bar bending into a cup. */
+/** A stroke part-way (`t` from 0 to 1) between two centrelines, inked: U's stems drawing back to halfway. */
 export function inkMorph(from: Pt[], to: Pt[], t: number, seed = 0, minHalfWidth = 0): string {
   const n = Math.max(from.length, to.length, 24);
   const a = resample(from, n);

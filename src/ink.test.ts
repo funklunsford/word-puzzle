@@ -67,16 +67,16 @@ describe('inkSeed', () => {
 });
 
 describe('inkMorph', () => {
-  it('eases a bar into the cup it bends into, without crossing over', () => {
-    const bar = strokeCenterline('H', 0);
-    const cup = lookCenterline({ tile: 'H', x: 0.5, y: 2, rot: 0 }, { as: { tile: 'P', x: 0.5, y: 1.5, rot: 90 } });
-    // The cup runs the same way as the bar (left to right), so a morph never swaps its ends.
-    expect(cup[0][0]).toBeLessThan(cup[cup.length - 1][0]);
-    const lowest = (d: string) => Math.min(...points(d).map((p) => p[1]));
-    const mid = inkMorph(bar, cup, 0.5);
+  it("eases a stem between full height and the half it's drawn at in a formed U", () => {
+    const stem = { tile: 'LV' as const, x: 0, y: 1, rot: 0 };
+    const full = strokeCenterline('LV', 0);
+    const half = lookCenterline(stem, { len: 0.5, keep: 'start' });
+    expect([half[0], half[half.length - 1]]).toEqual([[0, -1], [0, 0]]); // keeps its top, stops halfway
+    const bottom = (d: string) => Math.max(...points(d).map((p) => p[1]));
+    const mid = inkMorph(full, half, 0.5);
     expect(mid.startsWith('M') && mid.endsWith('Z')).toBe(true);
-    // Halfway, the ends have risen part of the way to the cup's tails (y = -1 relative to the bar).
-    expect(lowest(mid)).toBeLessThan(lowest(inkMorph(bar, cup, 0)) - 0.3);
-    expect(lowest(mid)).toBeGreaterThan(lowest(inkMorph(bar, cup, 1)) + 0.3);
+    expect(bottom(mid)).toBeCloseTo(0.5, 1);
+    expect(bottom(inkMorph(full, half, 0))).toBeCloseTo(1, 1);
+    expect(bottom(inkMorph(full, half, 1))).toBeCloseTo(0, 1);
   });
 });

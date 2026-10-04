@@ -18,24 +18,24 @@ Every letter sits in a box 1 unit wide and 2 units tall.
 | Tile | Shape | Letters |
 |---|---|---|
 | `LV` | Long vertical | B D E F H I K L M N P R T |
-| `H`  | Bar (1 unit), flat or upright | A E F H J L T U Z flat; G and Y upright |
+| `H`  | Bar (1 unit), flat or upright | A E F H L T Z flat; G and Y upright |
 | `LD` | Long `/` | X Z |
 | `LB` | Long `\` | N X |
 | `SB` | Short `\` (tail) | Q R |
 | `BV` | Big chevron, rotates | A (`^`), V, W |
 | `SC` | Small chevron, rotates | K (`<`), M and Y (`v`) |
 | `C`  | Big arc (half circle, full height), rotates | C D G O Q |
-| `P`  | Bowl (half circle with straight ends), rotates | B P R S |
+| `P`  | Bowl (half circle with straight ends), rotates | B P R S; J U (turned) |
 
 ## 2. Letter recipes (uppercase)
 ```
 A BV H      H LV LV H     O C C       V BV
 B LV P P    I LV          P LV P      W BV BV
-C C         J LV H        Q C C SB    X LD LB
+C C         J LV P        Q C C SB    X LD LB
 D LV C      K LV SC       R LV P SB   Y SC H
 E LV H H H  L LV H        S P P       Z H H LD
 F LV H H    M LV LV SC    T LV H
-G C H       N LV LV LB    U LV LV H
+G C H       N LV LV LB    U LV LV P
 ```
 Letter renderings (position and rotation of each tile instance) are stored with the recipe. Recipes are data and can be tuned.
 
@@ -178,28 +178,36 @@ Borrowed the style, not the branding: a header graphic, a raised score card (big
 
 **Name:** the game is called **Strokes** (renamed from Stroke Maze, 2026-10-03). **How to play** opens on a player's first visit only. A `localStorage` flag remembers it was seen, and the **?** button reopens it any time.
 
-## Reachability: one bar, square U and J (2026-10-04)
+## Reachability: one bar, U and J on long bars (2026-10-04)
 Playtesting found the short bar rarely useful and G, J, U and Y hard to reach. The cause was the glyphs. The short bar appeared only in those four letters, and U and J were built from a hook (the bowl turned 90°) that no other letter used. **None of the 282 words with U were reachable from the main maze.**
 
 - **One bar.** The short bar and the crossbar were already the same length (1 unit), so they're now one stroke, `H`, which lies flat or stands upright. The tray has 9 strokes.
-- **U and J built square, drawn curved.** U is built from two long bars + a bar along the bottom (H with its bar dropped), J from a long bar + a bar along the bottom to its left (a mirrored L). They share the long bar with H, L, I and T: L → U and L → J are 1 stroke each. Once formed, they're drawn with the curves the old glyphs had: the stems stop halfway and the bar bends into the cup below (the bowl's shape, in the bar's colour). *(Drawn square at first; playtesting found them unpleasant without their curves.)*
+- **U and J on long bars, with the bowl.** U = two long bars + the bowl turned under them; J = a long bar + the bowl curled under its left side. The long bar is what connects them to everyday letters: a bowl dropped onto "||" snaps into a U (H, N → U are 2 strokes; J → U is 1), and I → J is one bowl. Once formed, the stems are drawn stopping halfway, where the bowl's tails take over, so they look like the original curved U and J.
+  - *History:* first built square with the bar along the bottom (H, L → U in 1), then drawn curved by bending that bar into a cup. Playtesting preferred building them with the bowl that's actually drawn, which also makes U discoverable. It costs a little reachability (U 93% → 90%).
 - **G as arc + chin.** G = arc + an upright bar at its lower right, drawn **¾ length** from the baseline (a look), so there's air between the chin and the arc's top end. The chin sits on Y's stem spot, so an empty cell offers one upright bar spot (toward G and Y). *(Tried first: a half-length bar inside the mouth, which read like Є; then a full-length chin, which looked heavy. Picked from rendered variants.)*
-- **Formed looks** (`Placement.look`) are display-only, like W's squeeze. A look either keeps part of a straight stroke from one end (U's and J's stems, G's chin) or draws the stroke as another shape (U's and J's bar as the cup).
+- **Formed looks** (`Placement.look`) are display-only, like W's squeeze. A look keeps part of a straight stroke from one end (U's and J's stems, G's chin).
   - **When they apply:** only once the letter is formed (`formedLooks`). Offered slots and half-built letters always show plain strokes, and recognition, slots and distances never see looks.
-  - **In the editor:** strokes ease between their own centreline and the look's (`inkMorph`, settle spring; instant with reduced motion). As a U forms, its stems draw back and its bar bends into the cup. Lifting the bar straightens it, and the stems grow back, since what's left isn't a U.
-  - **Hit areas** follow the drawn shape, so tapping the cup takes the bar and tapping a stem's upper half takes that stem.
-  - **Known wrinkle:** the cup looks like the Bowl stroke, but U and J are built with the bar. The bar's colour on the cup, and the letter strip lighting U/J only for the bar, are the hints.
-- **Snap unless there's a real choice.** In an empty cell, a rotatable stroke over a spot that fits it only one way snaps to that orientation, following the nearest spot on every move: the bar upright for Y, K's chevron on its side, a bowl at the bottom. Twisting is only for spots that fit a stroke several ways (chevron V/A, arc C/D, bowl P/S at the top). Once the cursor is circling such a spot, it stays locked there within 1.6 units. The tray tooltip mentions twisting only for strokes that can need it.
+  - **In the editor:** strokes ease between their own centreline and the look's (`inkMorph`, settle spring; instant with reduced motion). As a U forms, its stems draw back to meet the bowl. Lifting the bowl lets them grow back, since what's left isn't a U.
+  - **Hit areas** follow the drawn shape, so tapping the bowl takes the bowl and tapping a stem's upper half takes that stem.
+- **Snap unless there's a real choice.** A rotatable stroke over a spot that fits it only one way snaps to that orientation, following the nearest spot on every move. Examples: the bar upright for Y, K's chevron on its side, the bowl under "||" for U, the bowl curled left of a stem for J.
+  - Twisting is only for spots that fit a stroke several ways: in an empty cell, chevron V/A, arc C/D and bowl P/S at the top, and the bowl at the bottom (B/S flat, J/U turned). Under a stem's right side, the bowl can be B's (flat) or U's (turned). That is the one case in a non-empty cell, so twisting is no longer limited to empty cells.
+  - Once the cursor is circling such a spot, it stays locked there within 1.6 units.
+  - The tray tooltip mentions twisting only for strokes that can need it.
 
 Measured on the familiar-word graph (3 strokes per step):
 
 | | U | G | J | Y | words in the main maze | median doors |
 |---|---|---|---|---|---|---|
 | before | 0% of 282 | 47% | 66% | 42% | 72% | 4 |
-| after | 94% | 87% | 91% | 70% | 90% | 6 |
+| after | 90% | 86% | 91% | 69% | 89% | 5 |
 
 - WILD → TAME is unchanged (best 14, same route).
-- In 12 of 20 random puzzles, the best route passes through a G/J/U/Y word (9 before).
+- In 8 of 20 random puzzles, the best route passes through a G/J/U/Y word.
 - X (26%) and Z (48%) are still weakly connected but rare (19 and 29 words).
 - `src/maze.test.ts` guards G/J/U/Y at ≥ 60% and the main maze at ≥ 85%.
 - The `/#smush` prototype's boards were regenerated for the 9 strokes.
+
+## Visited words are free (2026-10-04)
+- **The path lists each word once.** Walking back into a word you've already visited doesn't add it again. The path card just moves "here" to it.
+- **No charge for going back.** A step that lands on a visited word costs 0 strokes, and the status says "Back in WORD: free, you've been here before." How to play says so too.
+- **Why it stays fair:** every new word is first reached by a charged step from somewhere already visited, so the charged steps always contain a real route from the start to the goal. The score can never beat `best`, and backing out of a dead end costs only what the dead end cost.

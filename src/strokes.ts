@@ -47,9 +47,8 @@ export function recognize(content: Placement[]): string | null {
 }
 
 /**
- * How a cell's strokes are drawn (see Look): the formed letter's looks, matched stroke by stroke
- * and moved into the cell's frame, or null while the strokes don't form a letter (every stroke is
- * drawn as itself).
+ * How a cell's strokes are drawn (see Look): the formed letter's looks, matched stroke by stroke,
+ * or null while the strokes don't form a letter (every stroke is drawn as itself).
  */
 export function formedLooks(content: Placement[]): (Look | undefined)[] | null {
   const ch = recognize(content);
@@ -60,8 +59,7 @@ export function formedLooks(content: Placement[]): (Look | undefined)[] | null {
     if (minus(content, placed).length) continue;
     const free = [...placed];
     return content.map((q) => {
-      const { look } = free.splice(free.findIndex((p) => slotKey(p) === slotKey(q)), 1)[0];
-      return look?.as ? { ...look, as: { ...look.as, x: r2(look.as.x + dx) } } : look;
+      return free.splice(free.findIndex((p) => slotKey(p) === slotKey(q)), 1)[0].look;
     });
   }
   return null;

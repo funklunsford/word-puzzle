@@ -82,8 +82,7 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
     const stem = [{ tile: 'LV' as const, x: 0, y: 1, rot: 0 }];
     const bars = slotsFor(stem, 'H');
     expect(bars.filter((s) => s.placement.y === 1).map((s) => s.placement.x)).toEqual([0.5]);
-    // The only bar left of the stem is J's foot (a different letter, not a second spot for one).
-    expect(bars.filter((s) => s.placement.x < 0).map((s) => s.toward)).toEqual([['J']]);
+    expect(bars.every((s) => s.placement.x >= 0)).toBe(true); // T's bar is centered on the stem
     // A second stem (H, N, M) also only goes to the right.
     expect(slotsFor(stem, 'LV').every((s) => s.placement.x > 0)).toBe(true);
   });
@@ -154,15 +153,31 @@ describe('formedLooks', () => {
     expect(formedLooks(glyph('E'))).toEqual([undefined, undefined, undefined, undefined]);
   });
 
-  it("moves U's cup along with the letter, wherever its strokes sit", () => {
-    const looks = formedLooks(glyph('U', 0.5))!;
-    expect(looks[2]?.as).toEqual({ tile: 'P', x: 1, y: 1.5, rot: 90 });
+  it("draws U's stems to halfway once U is formed, wherever its strokes sit", () => {
+    const half = { len: 0.5, keep: 'start' };
+    expect(formedLooks(glyph('U', 0.5))).toEqual([half, half, undefined]);
+    expect(formedLooks(glyph('U').slice(0, 2))).toBeNull(); // "||" isn't a letter yet
   });
 
   it('never offers a stroke with a look: slots are always plain strokes', () => {
     for (const tile of TILE_IDS) {
       for (const content of [[], glyph('C'), glyph('L'), glyph('J')]) for (const s of slotsFor(content, tile)) expect(s.placement.look).toBeUndefined();
     }
+  });
+});
+
+describe('the bowl makes U and J', () => {
+  it('snaps a bowl onto two long bars to make U, the only way it fits there', () => {
+    const slots = slotsFor(glyph('U').filter((p) => p.tile === 'LV'), 'P');
+    expect(slots.map((s) => [s.placement, s.toward])).toEqual([[{ tile: 'P', x: 0.5, y: 1.5, rot: 90 }, ['U']]]);
+  });
+
+  it("curls a bowl under a lone stem for J (on its left) or offers it as B's or U's bowl (on its right)", () => {
+    const stem = [{ tile: 'LV' as const, x: 0, y: 1, rot: 0 }];
+    const low = slotsFor(stem, 'P').filter((s) => s.placement.y === 1.5);
+    expect(low.filter((s) => s.placement.x < 0).map((s) => [s.placement.rot, s.toward])).toEqual([[90, ['J']]]);
+    // Under the stem's right side the same spot fits two ways, so the player twists to choose.
+    expect(low.filter((s) => s.placement.x > 0).map((s) => [s.placement.rot, s.toward.join('')]).sort()).toEqual([[0, 'B'], [90, 'U']]);
   });
 });
 

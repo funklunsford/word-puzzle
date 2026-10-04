@@ -105,14 +105,16 @@ function centerOffset(content: Placement[]): number {
 }
 
 /**
- * Strokes that ever need a twist: some spot in an empty cell fits them more than one way (a
- * chevron as V or A). Everything else turns to fit on its own.
+ * Strokes that ever need a twist: some spot fits them more than one way (a chevron as V or A in an
+ * empty cell, a bowl under a stem as B's or U's). Everything else turns to fit on its own.
  */
 const TWISTS = new Set(
-  TILE_IDS.filter((t) => {
-    const spots = slotsFor([], t).map((s) => `${s.placement.x},${s.placement.y}`);
-    return new Set(spots).size < spots.length;
-  }),
+  TILE_IDS.filter((t) =>
+    [[], ...Object.values(LETTERS).flatMap((g) => g.parts.map((_, i) => g.parts.filter((__, k) => k !== i)))].some((content) => {
+      const spots = slotsFor(content, t).map((s) => `${s.placement.x},${s.placement.y}`);
+      return new Set(spots).size < spots.length;
+    }),
+  ),
 );
 
 /**
@@ -224,17 +226,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
     // Fixed strokes simply go to the nearest spot.
     if (!TILES[d.tile].rotates) return { overCell, target: { cell: overCell, slot: nearest }, aim: null, turn: d.turn };
 
-    // Adding to a letter that's already there: the stroke snaps in the orientation its spot needs
-    // (there's only ever one per spot once a cell has strokes), e.g. a second chevron beside a V.
-    if (without(overCell, d.source).length) {
-      const turn = d.turn + wrap((nearest.placement.rot ?? 0) - d.turn);
-      return { overCell, target: { cell: overCell, slot: nearest }, aim: null, turn };
-    }
-
-    // Starting a new letter. A spot that fits the stroke only one way takes it that way, as when
-    // adding to a letter (the bar upright for Y, K's chevron on its side), following the nearest
-    // spot on every move. Only a spot that fits it several ways needs a twist, and once the cursor
-    // is circling one, it stays locked there (within RELEASE) so the twist isn't interrupted.
+    // A spot that fits the stroke only one way takes it that way, following the nearest spot on
+    // every move: a second chevron beside a V, the bar upright for Y, K's chevron on its side, a
+    // bowl under "||" for U. Only a spot that fits it several ways needs a twist (a chevron as V or
+    // A in an empty cell; a bowl under a stem as B's or U's), and once the cursor is circling one,
+    // it stays locked there (within RELEASE) so the twist isn't interrupted.
     const twisting = !!d.aim && d.aim.cell === overCell && d.aim.armed && dist(d.aim) <= RELEASE;
     const ways = slots.filter((s) => s.placement.x === nearest.placement.x && s.placement.y === nearest.placement.y);
     if (!twisting && ways.length === 1) {
@@ -538,7 +534,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
               }}
               className={`tray-tile${taken ? ' taken' : ''}`}
               style={{ ['--tile' as string]: `var(--t-${t})` }}
-              title={TWISTS.has(t) ? `${TILES[t].name}: in an empty letter, circle the cursor around its spot to turn it` : TILES[t].name}
+              title={TWISTS.has(t) ? `${TILES[t].name}: where it fits a spot either way round, circle the cursor around the spot to turn it` : TILES[t].name}
               onPointerDown={(e) => start(e, t, TILES[t].display ?? 0, { kind: 'tray' }, trayHome(t))}
               onPointerEnter={() => onHoverTile(t)}
               onPointerLeave={() => onHoverTile(null)}

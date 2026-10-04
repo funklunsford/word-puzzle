@@ -56,8 +56,11 @@ export function MazeApp() {
   const [room, setRoom] = useState('');
   const [cells, setCells] = useState<Placement[][]>([]);
   const [history, setHistory] = useState<Placement[][][]>([]);
+  /** Every word visited, once each, in the order first reached (with what reaching it cost). */
   const [trail, setTrail] = useState<Visit[]>([]);
   const [spent, setSpent] = useState(0);
+  /** The door just walked through (cost 0 when it led back to a word already visited). */
+  const [lastDoor, setLastDoor] = useState<Visit | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   const [reveal, setReveal] = useState(false);
   // How to play opens on a player's very first visit only.
@@ -98,6 +101,7 @@ export function MazeApp() {
     setHistory([]);
     setTrail([{ word: puzzle.start, cost: 0 }]);
     setSpent(0);
+    setLastDoor(null);
     setReveal(false);
   }, [puzzle]);
   useEffect(restart, [restart]);
@@ -120,18 +124,21 @@ export function MazeApp() {
         return;
       }
       if (word && dict.has(word)) {
-        const cost = stepEdits + 1;
+        // Going back to a word already visited is free, and it isn't listed again.
+        const back = trail.some((v) => v.word === word);
+        const cost = back ? 0 : stepEdits + 1;
         setSpent((s) => s + cost);
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
-        setTrail((t) => [...t, { word, cost }]);
+        if (!back) setTrail((t) => [...t, { word, cost }]);
+        setLastDoor({ word, cost });
         return;
       }
       setHistory((h) => [...h, cells]);
       setCells(next);
     },
-    [won, locked, room, dict, stepEdits, cells],
+    [won, locked, room, dict, stepEdits, cells, trail],
   );
 
   const undo = () => {
@@ -159,7 +166,7 @@ export function MazeApp() {
   const used = spent + stepEdits;
 
   // The step after a door opens, until the next stroke: confirm it (completion feedback).
-  const justOpened = !won && !stepEdits && trail.length > 1;
+  const justOpened = !won && !stepEdits && !!lastDoor;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -201,7 +208,8 @@ export function MazeApp() {
               <ul className="how">
                 <li>Change the word into another real word, up to 3 strokes per step, to open a door.</li>
                 <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
-                <li>Starting a letter with a chevron, arc or bowl that fits either way round? Hold it over its spot and circle the cursor around it to turn it.</li>
+                <li>A chevron, arc or bowl that fits a spot either way round? Hold it over the spot and circle the cursor around it to turn it.</li>
+                <li>Going back to a word you've already visited is free.</li>
               </ul>
             </section>
           )}
@@ -243,7 +251,9 @@ export function MazeApp() {
                 : stepEdits
                   ? 'Keep going: land on a real word to open a door.'
                   : justOpened
-                    ? `Door opened: ${room} (+${trail[trail.length - 1].cost}). Find the next one.`
+                    ? lastDoor!.cost
+                      ? `Door opened: ${room} (+${lastDoor!.cost}). Find the next one.`
+                      : `Back in ${room}: free, you've been here before.`
                     : 'Change the word into another real word to open a door.'}
             </p>
             <div className="step-meter">
@@ -261,7 +271,7 @@ export function MazeApp() {
           <span className="label">Your path</span>
           <ol className="trail">
             {trail.map((v, i) => {
-              const isHere = i === trail.length - 1;
+              const isHere = v.word === room;
               return (
                 <motion.li
                   key={i}
