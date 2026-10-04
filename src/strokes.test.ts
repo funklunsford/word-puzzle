@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LETTERS, TILE_IDS, recipe, type Placement } from './glyphs';
-import { EMPTY_CELL_X, formedLengths, letterDiff, recognize, slotKey, slotsFor, wordDistance } from './strokes';
+import { EMPTY_CELL_X, formedLooks, letterDiff, recognize, slotKey, slotsFor, wordDistance } from './strokes';
 
 const glyph = (ch: string, dx = 0) => LETTERS[ch].parts.map((p) => ({ ...p, x: p.x + dx }));
 
@@ -143,19 +143,25 @@ describe('slotsFor is strict: only additions that stay part of a real letter', (
   });
 });
 
-describe('formedLengths', () => {
-  it("draws G's chin ¾ length once G is formed, and everything full length before", () => {
+describe('formedLooks', () => {
+  it("gives G's chin its ¾-length look once G is formed, and nothing before", () => {
     const g = glyph('G', 0.5);
-    expect(formedLengths(g)).toEqual([1, 0.75]);
-    expect(formedLengths([...g].reverse())).toEqual([0.75, 1]);
-    expect(formedLengths(g.slice(1))).toBeNull(); // a lone bar isn't a letter
-    expect(formedLengths(glyph('Y'))).toEqual([1, 1]); // same spot as G's chin, full length in Y
-    expect(formedLengths(glyph('E'))).toEqual([1, 1, 1, 1]);
+    const chin = { len: 0.75, keep: 'end' };
+    expect(formedLooks(g)).toEqual([undefined, chin]);
+    expect(formedLooks([...g].reverse())).toEqual([chin, undefined]);
+    expect(formedLooks(g.slice(1))).toBeNull(); // a lone bar isn't a letter
+    expect(formedLooks(glyph('Y'))).toEqual([undefined, undefined]); // same spot as G's chin, plain in Y
+    expect(formedLooks(glyph('E'))).toEqual([undefined, undefined, undefined, undefined]);
   });
 
-  it('never offers a shortened stroke: slots are always full length', () => {
+  it("moves U's cup along with the letter, wherever its strokes sit", () => {
+    const looks = formedLooks(glyph('U', 0.5))!;
+    expect(looks[2]?.as).toEqual({ tile: 'P', x: 1, y: 1.5, rot: 90 });
+  });
+
+  it('never offers a stroke with a look: slots are always plain strokes', () => {
     for (const tile of TILE_IDS) {
-      for (const content of [[], glyph('C')]) for (const s of slotsFor(content, tile)) expect(s.placement.len).toBeUndefined();
+      for (const content of [[], glyph('C'), glyph('L'), glyph('J')]) for (const s of slotsFor(content, tile)) expect(s.placement.look).toBeUndefined();
     }
   });
 });

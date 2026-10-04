@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { LETTERS, TILE_IDS, drawnWidth, lengthAnchor, recipe, xExtent } from './glyphs';
+import { LETTERS, TILE_IDS, drawnWidth, recipe, xExtent, type Placement } from './glyphs';
+import { lookCenterline } from './ink';
 import { PANGRAM_BONUS, check, newGame, play, playableLetters, remainingWords, strokeCount, tilesFor, type Board } from './game';
 
 // A tiny hand-made board so tests don't depend on the word list.
@@ -30,11 +31,34 @@ describe('glyphs', () => {
     expect(Object.fromEntries(recipe('Y'))).toEqual({ SC: 1, H: 1 });
   });
 
-  it("draws G's chin shortened from the top, so its foot stays on the baseline", () => {
-    const chin = LETTERS.G.parts.find((p) => p.tile === 'H')!;
-    expect(chin.len).toBe(0.75);
-    expect(chin.y + lengthAnchor('H', chin.rot)[1]).toBe(2);
-    expect(xExtent(LETTERS.G.parts)).toEqual([0, 1]);
+  describe('formed looks (display only)', () => {
+    /** Where a part is drawn once its letter is formed: its look's centreline in letter coordinates. */
+    const drawnAt = (p: Placement) =>
+      lookCenterline(p, p.look!).map(([x, y]) => [Math.round((x + p.x) * 1000) / 1000, Math.round((y + p.y) * 1000) / 1000]);
+    const ends = (pts: number[][]) => [pts[0], pts[pts.length - 1]];
+
+    it("draws G's chin shortened from the top, so its foot stays on the baseline", () => {
+      const chin = LETTERS.G.parts.find((p) => p.tile === 'H')!;
+      expect(ends(drawnAt(chin))).toEqual([[1, 1.25], [1, 2]]);
+      expect(xExtent(LETTERS.G.parts)).toEqual([0, 1]);
+    });
+
+    it("draws U and J with curves: stems stop halfway and the bar bends into a cup that meets them", () => {
+      for (const ch of ['U', 'J']) {
+        const stems = LETTERS[ch].parts.filter((p) => p.tile === 'LV');
+        const cup = drawnAt(LETTERS[ch].parts.find((p) => p.tile === 'H')!);
+        // The cup's tails rise to y = 1 at x = 0 and x = 1; its bottom touches the baseline.
+        expect(ends(cup).map(([x, y]) => [x, y]).sort()).toEqual([[0, 1], [1, 1]]);
+        expect(Math.max(...cup.map(([, y]) => y))).toBeCloseTo(2, 2);
+        // Each stem runs from the cap line down to exactly where a tail starts.
+        for (const stem of stems) expect(ends(drawnAt(stem))).toEqual([[stem.x, 0], [stem.x, 1]]);
+      }
+    });
+
+    it('keeps the cup in the bar\'s colour: the counted stroke is still the bar', () => {
+      expect(LETTERS.U.parts.map((p) => p.tile)).toEqual(['LV', 'LV', 'H']);
+      expect(LETTERS.J.parts.map((p) => p.tile)).toEqual(['LV', 'H']);
+    });
   });
 
   it('draws a formed W at 2.5 wide while V stays 2 wide', () => {

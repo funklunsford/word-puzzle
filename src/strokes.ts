@@ -4,7 +4,7 @@
 // Shapes are compared up to a horizontal shift, so a lone long bar is the same shape whether it
 // sits at x = 0 (as in I) or x = 0.5 (as in T).
 
-import { LETTERS, type Placement, type TileId } from './glyphs';
+import { LETTERS, type Look, type Placement, type TileId } from './glyphs';
 
 const norm = (r = 0) => ((r % 360) + 360) % 360;
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -47,10 +47,11 @@ export function recognize(content: Placement[]): string | null {
 }
 
 /**
- * Drawn lengths for a cell's strokes (see Placement.len): the formed letter's own, matched stroke
- * by stroke, or null while the strokes don't form a letter (everything is drawn full length).
+ * How a cell's strokes are drawn (see Look): the formed letter's looks, matched stroke by stroke
+ * and moved into the cell's frame, or null while the strokes don't form a letter (every stroke is
+ * drawn as itself).
  */
-export function formedLengths(content: Placement[]): number[] | null {
+export function formedLooks(content: Placement[]): (Look | undefined)[] | null {
   const ch = recognize(content);
   if (!ch) return null;
   const parts = LETTERS[ch].parts;
@@ -59,8 +60,8 @@ export function formedLengths(content: Placement[]): number[] | null {
     if (minus(content, placed).length) continue;
     const free = [...placed];
     return content.map((q) => {
-      const i = free.findIndex((p) => slotKey(p) === slotKey(q));
-      return free.splice(i, 1)[0].len ?? 1;
+      const { look } = free.splice(free.findIndex((p) => slotKey(p) === slotKey(q)), 1)[0];
+      return look?.as ? { ...look, as: { ...look.as, x: r2(look.as.x + dx) } } : look;
     });
   }
   return null;
@@ -98,9 +99,9 @@ export function slotsFor(content: Placement[], tile: TileId): Slot[] {
       if (dx > bestDx) [bestDx, missing] = [dx, rest];
     }
     if (missing) {
-      for (const { len: _len, ...m } of missing) {
+      for (const { look: _look, ...m } of missing) {
         if (m.tile !== tile) continue;
-        // Offered at full length: a drawn length only applies once the letter is formed.
+        // Offered as the plain stroke: a look only applies once the letter is formed.
         const p = content.length ? m : { ...m, x: EMPTY_CELL_X };
         const k = slotKey(p);
         const s: Slot = slots.get(k) ?? { placement: p, toward: [] };

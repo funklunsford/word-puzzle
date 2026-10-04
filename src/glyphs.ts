@@ -45,30 +45,16 @@ const TILE_EXTENT: Record<TileId, [number, number]> = {
   P: [0.5, 0.5],
 };
 
-/**
- * The end a shortened stroke (Placement.len) keeps in place, relative to its centre, at rotation
- * `rot`: the far end of its own axis (local +x). An upright bar keeps its foot, so G's chin stays
- * on the baseline.
- */
-export function lengthAnchor(tile: TileId, rot = 0): [number, number] {
-  const hx = TILE_EXTENT[tile][0];
-  const t = (rot * Math.PI) / 180;
-  const r = (n: number) => Math.round(n * 1e6) / 1e6;
-  return [r(hx * Math.cos(t)), r(hx * Math.sin(t))];
-}
-
 /** Horizontal extent [min, max] of a set of placements. */
 export function xExtent(parts: Placement[]): [number, number] {
   let lo = Infinity;
   let hi = -Infinity;
   for (const p of parts) {
+    // A formed letter's looks never reach beyond its strokes' own extent, so they're ignored here.
     const [hx, hy] = TILE_EXTENT[p.tile];
-    // A flat stroke's span runs from its anchored end back along its axis for `len` of its length.
-    const flat = (p.rot ?? 0) % 180 === 0;
-    const [ax] = lengthAnchor(p.tile, p.rot);
-    const [a, b] = flat ? [ax, ax - Math.sign(ax) * 2 * hx * (p.len ?? 1)] : [-hy, hy];
-    lo = Math.min(lo, p.x + Math.min(a, b));
-    hi = Math.max(hi, p.x + Math.max(a, b));
+    const half = (p.rot ?? 0) % 180 === 0 ? hx : hy;
+    lo = Math.min(lo, p.x - half);
+    hi = Math.max(hi, p.x + half);
   }
   return [lo, hi];
 }
@@ -79,12 +65,21 @@ export interface Placement {
   y: number;
   /** Degrees clockwise. */
   rot?: number;
-  /**
-   * Drawn length as a fraction of the stroke's own (default 1), once its letter is formed, keeping
-   * one end in place (see lengthAnchor). Display only, like LetterGlyph.squeeze: it never affects
-   * slots, recognition or distances.
-   */
+  /** How this stroke is drawn once its letter is formed (see Look). */
+  look?: Look;
+}
+
+/**
+ * How a stroke is drawn once its letter is formed. Display only, like LetterGlyph.squeeze: it
+ * never affects slots, recognition or distances. A formed U still counts two long bars and a bar,
+ * which is what keeps it a stroke from H and L; it's just drawn with the curves it should have.
+ */
+export interface Look {
+  /** Draw only this fraction of a straight stroke, measured from its `keep` end. */
   len?: number;
+  keep?: 'start' | 'end';
+  /** Draw it as this shape instead (in the letter's coordinates), in its own colour: U's bar bends into a cup. */
+  as?: { tile: TileId; x: number; y: number; rot?: number };
 }
 
 export interface LetterGlyph {
@@ -97,8 +92,11 @@ export interface LetterGlyph {
   squeeze?: number;
 }
 
-const p = (tile: TileId, x: number, y: number, rot = 0, len?: number): Placement =>
-  len === undefined ? { tile, x, y, rot } : { tile, x, y, rot, len };
+const p = (tile: TileId, x: number, y: number, rot = 0, look?: Look): Placement =>
+  look ? { tile, x, y, rot, look } : { tile, x, y, rot };
+/** Formed looks: the top half of a stem, the lower ¾ of a chin, and a bar bent into the cup below it. */
+const TOP_HALF: Look = { len: 0.5, keep: 'start' };
+const CUP = (x: number): Look => ({ as: { tile: 'P', x, y: 1.5, rot: 90 } });
 
 export const LETTERS: Record<string, LetterGlyph> = {
   // The chevron is 1 wide at mid-height, so A's crossbar sits at the same height as E/F/H's.
@@ -110,12 +108,13 @@ export const LETTERS: Record<string, LetterGlyph> = {
   F: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 0), p('H', 0.5, 1)] },
   // The arc with an upright bar as its chin, drawn ¾ long from the baseline so there's air between
   // it and the arc's top end. It sits where Y's stem does, so the two share a spot.
-  G: { width: 1, parts: [p('C', 0.5, 1), p('H', 1, 1.5, 90, 0.75)] },
+  G: { width: 1, parts: [p('C', 0.5, 1), p('H', 1, 1.5, 90, { len: 0.75, keep: 'end' })] },
   H: { width: 1, parts: [p('LV', 0, 1), p('LV', 1, 1), p('H', 0.5, 1)] },
   I: { width: 0, parts: [p('LV', 0, 1)] },
-  // A mirrored L, and U is H with its bar dropped: both share the long bar with H, L, I and T,
-  // so words with J and U are a stroke or two from everyday words.
-  J: { width: 1, parts: [p('LV', 1, 1), p('H', 0.5, 2)] },
+  // Built as a mirrored L, and U as H with its bar dropped: both share the long bar with H, L, I
+  // and T, so words with J and U are a stroke or two from everyday words. Once formed they're
+  // drawn with their curves: the stems stop halfway and the bar bends into the cup below.
+  J: { width: 1, parts: [p('LV', 1, 1, 0, TOP_HALF), p('H', 0.5, 2, 0, CUP(0.5))] },
   K: { width: 1, parts: [p('LV', 0, 1), p('SC', 0.5, 1, 90)] },
   L: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 2)] },
   M: { width: 2, parts: [p('LV', 0, 1), p('LV', 2, 1), p('SC', 1, 0.5)] },
@@ -128,7 +127,7 @@ export const LETTERS: Record<string, LetterGlyph> = {
   // into a short spine: no full-width bar across the middle, and only a slight lean.
   S: { width: 1.25, parts: [p('P', 0.5, 0.5, 180), p('P', 0.75, 1.5)] },
   T: { width: 1, parts: [p('H', 0.5, 0), p('LV', 0.5, 1)] },
-  U: { width: 1, parts: [p('LV', 0, 1), p('LV', 1, 1), p('H', 0.5, 2)] },
+  U: { width: 1, parts: [p('LV', 0, 1, 0, TOP_HALF), p('LV', 1, 1, 0, TOP_HALF), p('H', 0.5, 2, 0, CUP(0.5))] },
   V: { width: 2, parts: [p('BV', 1, 1)] },
   // Two full chevrons are 4 wide; once formed, W is drawn 2.5 wide (V's chevrons are untouched).
   W: { width: 4, squeeze: 0.625, parts: [p('BV', 1, 1), p('BV', 3, 1)] },

@@ -1,4 +1,4 @@
-import { LETTERS, drawnWidth, lengthAnchor, type Placement, type TileId } from '../glyphs';
+import { LETTERS, drawnWidth, type Look, type Placement, type TileId } from '../glyphs';
 import { inkOutline, inkSeed } from '../ink';
 
 const PAD = 0.3;
@@ -20,26 +20,17 @@ interface TileStrokeProps {
   className?: string;
   /** Narrow the stroke horizontally (a formed W); see LetterGlyph.squeeze. */
   squeeze?: number;
-  /** Drawn length as a fraction of the stroke's own (G's chin); see Placement.len. */
-  len?: number;
-}
-
-/** SVG transform that shortens a drawn (already rotated) stroke along its axis, keeping its anchored end. */
-export function lengthTransform(tile: TileId, rot = 0, len = 1): string {
-  if (len === 1) return '';
-  const [ax, ay] = lengthAnchor(tile, rot);
-  const scale = rot % 180 === 0 ? `scale(${len} 1)` : `scale(1 ${len})`;
-  return `translate(${ax} ${ay}) ${scale} translate(${-ax} ${-ay})`;
+  /** Draw it as its formed letter shows it (U's cup, G's chin); see Look. */
+  look?: Look;
 }
 
 /** One stroke, drawn in ink (see ink.ts). The only place strokes are rendered. */
-export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink', squeeze = 1, len = 1 }: TileStrokeProps) {
-  const transform = `${x || y ? `translate(${x} ${y}) ` : ''}${lengthTransform(tile, rot, len)}`.trim();
+export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink', squeeze = 1, look }: TileStrokeProps) {
   return (
     <path
       className={className}
-      d={inkOutline(tile, rot, seed ?? inkSeed({ tile, x, y, rot }), minHalfWidth, squeeze)}
-      transform={transform || undefined}
+      d={inkOutline(tile, rot, seed ?? inkSeed({ tile, x, y, rot }), minHalfWidth, squeeze, look, [x, y])}
+      transform={x || y ? `translate(${x} ${y})` : undefined}
       fill={fill ?? `var(--t-${tile})`}
     />
   );
@@ -59,7 +50,7 @@ export function PlacedStrokes({ parts, minHalfWidth, squeeze = 1 }: { parts: Pla
           seed={inkSeed(part)}
           minHalfWidth={minHalfWidth}
           squeeze={squeeze}
-          len={part.len}
+          look={part.look}
         />
       ))}
     </>
