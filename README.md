@@ -6,6 +6,7 @@ A word maze where every letter is built from pen strokes. Each word is a room: d
 npm install
 npm run dev          # maze at http://localhost:5173, glyph gallery at /#gallery, old Smush prototype at /#smush
 npm test             # game-logic tests
+npm run deploy       # publish the built site (only) to https://funklunsford.github.io/strokes/
 ```
 
 Regenerating the words and the maze:
