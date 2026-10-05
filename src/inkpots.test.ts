@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
+import everydayText from '../data/everyday-4.txt?raw';
 import { payStep, placePots, potRoute, potValues, scoreWalk } from './inkpots';
 import { buildGraph, randomPuzzle, seededRandom } from './maze';
 import { STEP_LIMIT, wordDistance } from './strokes';
+import { parseWordList } from './wordlist';
 
 const { words, puzzle, inkPots } = mazeJson as {
   words: string[];
@@ -59,6 +61,32 @@ describe('ink pot solver', () => {
       expect(r.best).toBeLessThanOrEqual(p.best);
       expect(r.best).toBeGreaterThanOrEqual(p.best - pots.length);
       expectPlayable(r.walk, p.start, p.goal);
+    }
+  });
+});
+
+describe('puzzle pool (one is picked on each load)', () => {
+  const { puzzles } = mazeJson as unknown as {
+    puzzles: { puzzle: { start: string; goal: string; best: number; path: string[] }; inkPots: { pots: string[]; best: number; walk: string[] } }[];
+  };
+  const everyday = new Set(parseWordList(everydayText));
+
+  it('holds hundreds of distinct puzzles that start and end on everyday words', () => {
+    expect(puzzles.length).toBeGreaterThanOrEqual(300);
+    expect(new Set(puzzles.map((p) => `${p.puzzle.start}-${p.puzzle.goal}`)).size).toBe(puzzles.length);
+    for (const { puzzle } of puzzles) {
+      expect(everyday.has(puzzle.start), puzzle.start).toBe(true);
+      expect(everyday.has(puzzle.goal), puzzle.goal).toBe(true);
+    }
+  });
+
+  it("gives every puzzle a real best route, and pots that score what they claim", () => {
+    for (const { puzzle: p, inkPots: ink } of puzzles) {
+      expectPlayable(p.path, p.start, p.goal);
+      expect(p.path.slice(1).reduce((t, w, i) => t + wordDistance(p.path[i], w), 0), `${p.start} → ${p.goal}`).toBe(p.best);
+      expectPlayable(ink.walk, p.start, p.goal);
+      expect(scoreWalk(ink.walk, ink.pots)).toBe(ink.best);
+      expect(ink.best).toBeLessThanOrEqual(p.best);
     }
   });
 });

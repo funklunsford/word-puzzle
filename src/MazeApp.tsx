@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
-import { buildGraph, randomPuzzle, type Graph, type Puzzle } from './maze';
-import { payStep, placePots, potRoute, type InkPots } from './inkpots';
+import type { Puzzle } from './maze';
+import { payStep, type InkPots } from './inkpots';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { InkDrop } from './components/maze/InkDrop';
 import { InkPot } from './components/maze/InkPot';
@@ -16,10 +16,22 @@ import { Glyph, GlyphWord } from './components/Glyph';
 /** A puzzle's ink pots: where they are, the best score with them, and a route that gets it. */
 type PotPlan = Omit<InkPots, 'bound'>;
 
-interface MazeData {
-  words: string[];
+/** A puzzle, with its ink pots (used when that modifier is on). */
+interface Pick {
   puzzle: Puzzle;
   inkPots: PotPlan;
+}
+
+interface MazeData extends Pick {
+  words: string[];
+  /** The pool a puzzle is picked from on each load (see scripts/mazes.ts). */
+  puzzles: Pick[];
+}
+
+/** A random puzzle from the pool, other than the one being played. */
+function pickPuzzle(data: MazeData, current?: Puzzle): Pick {
+  const options = data.puzzles.filter((p) => p.puzzle.start !== current?.start || p.puzzle.goal !== current?.goal);
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 interface Visit {
@@ -96,9 +108,13 @@ export function MazeApp() {
   const width = useWidth();
 
   useEffect(() => {
+    // Every load plays a fresh puzzle, picked before the first render.
     fetch(`${import.meta.env.BASE_URL}mazes.json`)
       .then((r) => r.json())
-      .then(setData);
+      .then((d: MazeData) => {
+        setData(d);
+        setCurrent(pickPuzzle(d));
+      });
     // Definitions are a nicety: the game plays without them if they don't load.
     fetch(`${import.meta.env.BASE_URL}definitions.json`)
       .then((r) => r.json())
@@ -106,29 +122,11 @@ export function MazeApp() {
       .catch(() => {});
   }, []);
 
-  // Dev only: a random start and goal in place of the fixed puzzle (see randomPuzzle), with pots.
-  const [custom, setCustom] = useState<{ puzzle: Puzzle; pots: PotPlan } | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const graph = useRef<Graph | null>(null);
-  const newPuzzle = () => {
-    if (!data || generating) return;
-    setGenerating(true);
-    // Building the graph takes ~0.5 s the first time; let the button show it's working first.
-    setTimeout(() => {
-      graph.current ??= buildGraph(data.words);
-      const g = graph.current;
-      let next = randomPuzzle(data.words, g);
-      while (next.start === puzzle?.start && next.goal === puzzle?.goal) next = randomPuzzle(data.words, g);
-      const pots = placePots(data.words, g, next.start, next.goal, next.best, next.path);
-      const { bound: _bound, ...plan } = potRoute(data.words, g, next.start, next.goal, pots);
-      setCustom({ puzzle: next, pots: plan });
-      setGenerating(false);
-    }, 30);
-  };
-
-  const puzzle = custom?.puzzle ?? data?.puzzle;
+  /** The puzzle being played: a random one from the pool (dev can switch to another, or to WILD → TAME). */
+  const [current, setCurrent] = useState<Pick | null>(null);
+  const puzzle = current?.puzzle;
   /** The puzzle's ink pots, when that modifier is on. */
-  const potPlan = flags.inkPots ? ((custom ? custom.pots : data?.inkPots) ?? null) : null;
+  const potPlan = flags.inkPots ? (current?.inkPots ?? null) : null;
   const best = potPlan?.best ?? puzzle?.best ?? 0;
   const dict = useMemo(() => new Set(data?.words ?? []), [data]);
 
@@ -464,14 +462,14 @@ export function MazeApp() {
           {import.meta.env.DEV && (
             <div className="dev-tools">
               <span className="label">Dev</span>
-              <button className="pill quiet" onClick={newPuzzle} disabled={generating}>
-                {generating ? 'Generating…' : 'New start & goal'}
+              <button className="pill quiet" onClick={() => setCurrent(pickPuzzle(data, puzzle))}>
+                New start & goal
               </button>
-              {custom && (
-                <button className="pill quiet" onClick={() => setCustom(null)}>
-                  Back to {data.puzzle.start} → {data.puzzle.goal}
+              {puzzle.start !== data.puzzle.start || puzzle.goal !== data.puzzle.goal ? (
+                <button className="pill quiet" onClick={() => setCurrent({ puzzle: data.puzzle, inkPots: data.inkPots })}>
+                  Play {data.puzzle.start} → {data.puzzle.goal}
                 </button>
-              )}
+              ) : null}
               {(Object.keys(FLAGS) as Flag[]).map((f) => (
                 <label key={f} className="flag">
                   <input type="checkbox" checked={flags[f]} onChange={() => toggleFlag(f)} /> {FLAGS[f].label}

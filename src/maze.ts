@@ -70,16 +70,17 @@ export function solve(words: string[], adj: Graph, start: string, goal: string):
 
 /**
  * A random puzzle shaped like WILD → TAME: a start with a few doors, and a goal 4–7 rooms and
- * 10–20 strokes away, so there's a real route to find but it isn't a slog.
+ * 10–20 strokes away, so there's a real route to find but it isn't a slog. `endpoint` limits which
+ * words a puzzle may start and end on (the words in between are any in the maze).
  */
-export function randomPuzzle(words: string[], adj: Graph, random = Math.random): Puzzle {
-  const starts = words.map((_, i) => i).filter((i) => adj[i].length >= 3);
+export function randomPuzzle(words: string[], adj: Graph, random = Math.random, endpoint: (word: string) => boolean = () => true): Puzzle {
+  const starts = words.map((_, i) => i).filter((i) => adj[i].length >= 3 && endpoint(words[i]));
   for (;;) {
     const s = starts[Math.floor(random() * starts.length)];
     const { dist, hops } = dijkstra(adj, s);
     const goals = words
       .map((_, i) => i)
-      .filter((i) => hops[i] >= 4 && hops[i] <= 7 && dist[i] >= 10 && dist[i] <= 20 && adj[i].length >= 2);
+      .filter((i) => hops[i] >= 4 && hops[i] <= 7 && dist[i] >= 10 && dist[i] <= 20 && adj[i].length >= 2 && endpoint(words[i]));
     if (!goals.length) continue;
     const g = goals[Math.floor(random() * goals.length)];
     return solve(words, adj, words[s], words[g])!;
