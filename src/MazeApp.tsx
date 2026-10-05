@@ -261,6 +261,7 @@ export function MazeApp() {
                 <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
                 <li>A chevron, arc or bowl that fits a spot either way round? Hold it over the spot and circle the cursor around it to turn it.</li>
                 <li>Going back to a word you've already visited is free.</li>
+                {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke that pays for a later step.</li>}
               </ul>
             </section>
           )}

@@ -56,6 +56,8 @@ describe('definitions', () => {
       expect(pos, w).toMatch(/^(n|v|adj|adv|pron|prep|conj|interj)\.$/);
       expect(text.length, w).toBeGreaterThan(3);
       expect(text, w).not.toMatch(/offensive term|obscene|vulgar|slur|derogatory|disparaging/i);
+      // Nor any word the maze itself keeps out.
+      for (const bad of BLOCKLIST) expect(text.toUpperCase(), w).not.toMatch(new RegExp(`\\b${bad}\\b`));
     }
   });
 
