@@ -174,7 +174,7 @@ Borrowed the style, not the branding: a header graphic, a raised score card (big
 
 **Goal:** the score card leads with the goal word in ink on a gold-ringed tile (green once reached), with the stroke count, best and doors beside it. The path card ends with the goal as a dashed gold chip, so the route reads start → … → goal.
 
-**Dev tools** (only on the Vite dev server): the side card has **New start & goal**, which picks another puzzle from the pool (`randomPuzzle` in `src/maze.ts` made them). The start has at least 3 doors, and the goal is 7–9 strokes away at best (about 8), over at least 3 words (`PUZZLE_SHAPE`). Until 2026-10-05 it was 10–20 strokes over 4–7 words, which playtesters found too hard to start with. **Back to WILD → TAME** returns to the fixed puzzle. A random puzzle lasts until reload. `scripts/mazes.ts` uses the same graph code.
+**Dev tools** (only on the Vite dev server): the side card has **New start & goal**, which picks another puzzle from the pool (`randomPuzzle` in `src/maze.ts` made them). The start has at least 3 doors, and the goal is 8–10 strokes away at best (9 on average), over at least 3 words (`PUZZLE_SHAPE`). It was 10–20 strokes over 4–7 words until 2026-10-05, which playtesters found too hard to start with, then 7–9 for a day, which with obvious puzzles was too easy (see "Tricky puzzles, fewer hub letters"). **Back to WILD → TAME** returns to the fixed puzzle. A random puzzle lasts until reload. `scripts/mazes.ts` uses the same graph code.
 
 **Name:** the game is called **Strokes** (renamed from Stroke Maze, 2026-10-03). **How to play** opens on a player's first visit only. A `localStorage` flag remembers it was seen, and the **?** button reopens it any time.
 
@@ -301,3 +301,22 @@ Playtesting on a phone found the layout awkward, strokes too small to place, and
 - the misfit hint.
 
 No horizontal scroll at 360–430 px. Not yet tried on a real phone.
+
+## Tricky puzzles, fewer hub letters (2026-10-05, branch `core-loop`)
+- **What playtesters noticed:** transitions leaned on the one-stroke letters, C, I and V. Measured on the live pool:
+  - **Vowels are locked.** A, E, O and U are 4–6 strokes apart, so no vowel can become another in a step (none of the 565 word pairs like BALL/BELL is one step apart). Every vowel change goes through I.
+  - **I is the hub of the stem letters.** It's one stroke from D J K L P T, so L, T, P and D carry 44% of all letter changes. A, E, O and S (35% of letters) get 8%. A H M N S X Y Z have no letter one stroke away.
+  - **Most mazes needed them.** In 75% of mazes every shortest route turned a letter into or out of C, I or V, mostly because the start or goal had one in a spot that changes. 28% needed a *stepping stone*: a word on the way with a C, I or V that neither the start nor the goal has there (BALL → BILL → BELL).
+- **Options weighed** (simulated on the word graph): a vowel swap (any vowel for 2 strokes), an eraser, re-ink tokens, a 4-stroke step and a two-letter discount. The rules mostly unlock vowels but barely change how many mazes need the hubs, and the vowel swap risked making the game easier and less about shapes. Which puzzles are picked mattered far more, so the pool is rebalanced instead and the rules are unchanged.
+- **The new pool** (`POOL_MIX` and `PUZZLE_SHAPE` in `src/maze.ts`, filled by quota in `scripts/mazes.ts`, 420 puzzles):
+  - **Par 8–10, evenly** (9 on average, up from 8).
+  - **No obvious puzzles** (`isObvious`): the straightforward approach (always take the move leaving the fewest letters different from the goal, then the fewest strokes from it, then the cheapest, trying every equally good move) never makes par. On the old pool it made par 73% of the time.
+  - **What each needs from C, I and V** (`classifyNeed`), tagged per puzzle as `need`: 30% need none, 50% change one the start or goal has (the most varied kind), 20% need a stepping stone. "None" mazes can't change a vowel, so they aren't pushed higher. A puzzle's stored route avoids the hubs as far as its kind allows.
+- **The difficulty jump** (old pool → new): par 8.0 → 9.0 over 3.1 → 3.5 steps; the straightforward player goes from 1.3 strokes over par on average (at par 73%) to 4.8 over (never at par), and gets lost 3% → 7% of the time. Variety holds: 80% of routes change a vowel, the top ten swaps take 40% of changes (38% before), 541 different start and goal words (571). To soften it, lower `POOL_MIX.tricky` (the share of tricky puzzles) and regenerate.
+- **Tests** recompute every puzzle's kind and trickiness, check its route, the 9 average and the mix. WILD → TAME and its ink pots are unchanged. A sparse corner can leave a puzzle with fewer than three pots (26 of 420, 65 of 400 before); the pot test now checks what placement guarantees.
+
+## Swipe to turn, and strokes stay in the row (2026-10-05, branch `core-loop`)
+- **The problem:** every other rotation happens by itself (a stroke dropped where it fits one way turns to fit), but a chevron in an empty cell fits as V or Λ, so making a Λ for A meant circling the cursor around the spot. The arc also sat on its side in the tray (∩), a way it never goes in, so it showed red over an empty cell until twisted. (A tray flyout of the other ways round was tried first and dropped.)
+- **Swipe to turn (mouse):** circling is gone. On a spot that fits a stroke more than one way, it settles the way it's held (or the nearest way that fits), and once the cursor is on the spot (within 0.6 units) a swipe of half a unit snaps it to whichever way round points most along the swipe: the chevron's point, or the back of an arc or bowl, follows the cursor. Up turns V into Λ, down back to V; right reverses a C; down gives a bowl under a stem U's cup, right B's bowl. The approach from the tray doesn't count, so a V brought up from below stays a V. Every turn is an animated snap; the stroke never shows a way that doesn't fit, so the cell no longer goes red there.
+- **Strokes stay in the row:** once a held stroke reaches the letters' row it stays within the row's height, so a swipe up doesn't carry it off; it goes back down only when the pointer is over the tray, to put it back.
+- **The tray** shows every stroke a way it goes into letters (the arc as C), as phones already did. Phones keep double-tap to turn.

@@ -1,6 +1,7 @@
 // The maze graph: rooms are words, a door joins two words at most STEP_LIMIT stroke edits apart.
 // Shared by scripts/mazes.ts (the fixed puzzle) and the app's dev button (random puzzles).
 
+import { LETTERS } from './glyphs';
 import { STEP_LIMIT, wordDistance } from './strokes';
 
 export interface Puzzle {
@@ -30,8 +31,8 @@ export function buildGraph(words: string[]): Graph {
   return adj;
 }
 
-/** Cheapest strokes (and rooms) from `src` to every word. */
-export function dijkstra(adj: Graph, src: number) {
+/** Cheapest strokes (and rooms) from `src` to every word, using only the doors `ok` allows (all by default). */
+export function dijkstra(adj: Graph, src: number, ok?: (from: number, to: number) => boolean) {
   const dist = new Array(adj.length).fill(Infinity);
   const hops = new Array(adj.length).fill(0);
   const prev = new Array(adj.length).fill(-1);
@@ -45,7 +46,7 @@ export function dijkstra(adj: Graph, src: number) {
     frontier.delete(u);
     done.add(u);
     for (const { to, cost } of adj[u]) {
-      if (done.has(to)) continue;
+      if (done.has(to) || (ok && !ok(u, to))) continue;
       if (dist[u] + cost < dist[to]) {
         dist[to] = dist[u] + cost;
         hops[to] = hops[u] + 1;
@@ -69,10 +70,10 @@ export function solve(words: string[], adj: Graph, start: string, goal: string):
 }
 
 /**
- * How far a random puzzle's goal is: about 8 strokes at best, over at least 3 words, so there's a
- * real route to find (never a single swap) and it's quick to solve.
+ * How far a random puzzle's goal is: 8–10 strokes at best (9 on average, picked evenly), over at
+ * least 3 words, so there's a real route to find (never a single swap) without it being a slog.
  */
-export const PUZZLE_SHAPE = { best: [7, 9], steps: [3, 7] } as const;
+export const PUZZLE_SHAPE = { best: [8, 10], steps: [3, 7] } as const;
 
 /**
  * A random puzzle: a start with a few doors, and a goal PUZZLE_SHAPE away. `endpoint` limits which
@@ -103,4 +104,77 @@ export function seededRandom(seed: number) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+// ---------- What a puzzle asks of the player ----------
+
+/** The letters drawn with a single stroke (C, I, V): the alphabet's hubs, which many changes pass through. */
+export const ONE_STROKE = new Set(Object.keys(LETTERS).filter((ch) => LETTERS[ch].parts.length === 1));
+
+/** A step that turns a letter into or out of a one-stroke letter. */
+export function hubStep(a: string, b: string): boolean {
+  for (let k = 0; k < a.length; k++) if (a[k] !== b[k] && (ONE_STROKE.has(a[k]) || ONE_STROKE.has(b[k]))) return true;
+  return false;
+}
+
+/** A word on the way that has a one-stroke letter in a spot where neither the start nor the goal has it. */
+export function steppingStone(word: string, start: string, goal: string): boolean {
+  for (let k = 0; k < word.length; k++) if (ONE_STROKE.has(word[k]) && word[k] !== start[k] && word[k] !== goal[k]) return true;
+  return false;
+}
+
+/**
+ * What a puzzle's shortest routes need from the one-stroke letters:
+ * - 'none': some shortest route never turns a letter into or out of C, I or V;
+ * - 'letter': every shortest route does, but only where the start or goal has one (LIME → MOLE
+ *   has to change its I), never through a stepping stone;
+ * - 'stone': every shortest route passes a stepping stone (BALL → BILL → BELL).
+ */
+export type Need = 'none' | 'letter' | 'stone';
+
+/**
+ * The pool's mix, filled by quota evenly across the best totals (see scripts/mazes.ts):
+ * - tricky: the share of puzzles the straightforward approach can't solve at par (see isObvious);
+ * - need: the share needing the one-stroke letters each way (see Need). A stepping stone is fine now
+ *   and then, but not in every maze. 'letter' puzzles are the most varied; 'none' puzzles can't
+ *   change a vowel, since vowels only change through I.
+ */
+export const POOL_MIX: { tricky: number; need: Record<Need, number> } = { tricky: 1, need: { none: 0.3, letter: 0.5, stone: 0.2 } };
+
+/** The puzzle's need, with a shortest route that shows it (one that avoids the hubs where it can). */
+export function classifyNeed(words: string[], adj: Graph, start: string, goal: string, best: number): { need: Need; path: string[] } {
+  const s = words.indexOf(start);
+  const g = words.indexOf(goal);
+  const route = (ok: (from: number, to: number) => boolean) => {
+    const { dist, prev } = dijkstra(adj, s, ok);
+    if (dist[g] !== best) return null;
+    const path: string[] = [];
+    for (let c = g; c >= 0; c = prev[c]) path.unshift(words[c]);
+    return path;
+  };
+  const none = route((u, v) => !hubStep(words[u], words[v]));
+  if (none) return { need: 'none', path: none };
+  const letter = route((_, v) => v === g || !steppingStone(words[v], start, goal));
+  if (letter) return { need: 'letter', path: letter };
+  return { need: 'stone', path: solve(words, adj, start, goal)!.path };
+}
+
+/**
+ * Whether the straightforward approach makes par: always taking a move that looks best (the
+ * fewest letters different from the goal, then the fewest strokes from it, then the cheapest),
+ * some such walk reaches the goal in `best` strokes. Moves that look equally good are all tried, so
+ * a puzzle only counts as tricky when none of them gets there.
+ */
+export function isObvious(words: string[], adj: Graph, start: string, goal: string, best: number): boolean {
+  const g = words.indexOf(goal);
+  const off = (w: string) => [...w].filter((ch, k) => ch !== goal[k]).length;
+  const walk = (cur: number, spent: number, seen: Set<number>): boolean => {
+    if (cur === g) return spent === best;
+    if (spent >= best) return false;
+    const moves = adj[cur].filter((e) => !seen.has(e.to)).map((e) => ({ e, key: [off(words[e.to]), wordDistance(words[e.to], goal), e.cost] }));
+    if (!moves.length) return false;
+    const top = moves.reduce((a, m) => (m.key[0] < a[0] || (m.key[0] === a[0] && (m.key[1] < a[1] || (m.key[1] === a[1] && m.key[2] < a[2]))) ? m.key : a), moves[0].key);
+    return moves.some(({ e, key }) => key.every((v, i) => v === top[i]) && walk(e.to, spent + e.cost, new Set([...seen, e.to])));
+  };
+  return walk(words.indexOf(start), 0, new Set([words.indexOf(start)]));
 }

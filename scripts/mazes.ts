@@ -9,7 +9,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { placePots, potRoute, potValues } from '../src/inkpots';
-import { buildGraph, randomPuzzle, seededRandom, solve } from '../src/maze';
+import { POOL_MIX, PUZZLE_SHAPE, buildGraph, classifyNeed, isObvious, randomPuzzle, seededRandom, solve, type Need } from '../src/maze';
 import { parseWordList } from '../src/wordlist';
 
 // Opposites make a nice maze: 14 strokes over 5 rooms, all everyday words.
@@ -41,24 +41,58 @@ const inkPots = { pots, best: ink.best, walk: ink.walk };
 // The pool the game picks a puzzle from on each load. Starts and goals are everyday base words
 // (in data/everyday-4.txt, defined as a noun, verb or adjective rather than a plural, past tense,
 // pronoun or archaic form), so a puzzle never opens on HAST, SOPS or SENT; the words between are any.
-const POOL = 400;
+// Its mix is set by quota (POOL_MIX in src/maze.ts), evenly across the best totals (8, 9 and 10).
+const POOL = 420;
+const { tricky: TRICKY, need: NEED } = POOL_MIX;
 const everyday = new Set(parseWordList(readFileSync(new URL('../data/everyday-4.txt', import.meta.url), 'utf8')));
 const definitions = JSON.parse(readFileSync(new URL('../public/definitions.json', import.meta.url), 'utf8'));
 const endpoint = (w: string) => {
   const d = definitions[w];
   return everyday.has(w) && Array.isArray(d) && d.length === 2 && ['n.', 'v.', 'adj.'].includes(d[0]) && !/old-fashioned|\(past of/.test(d[1]) && !/[^s]s$/i.test(w);
 };
+// Quota per cell: (best, need, tricky or obvious)
+const bests = Array.from({ length: PUZZLE_SHAPE.best[1] - PUZZLE_SHAPE.best[0] + 1 }, (_, i) => PUZZLE_SHAPE.best[0] + i);
+const quota = new Map<string, number>();
+for (const b of bests) {
+  for (const need of Object.keys(NEED) as Need[]) {
+    const n = Math.round((POOL / bests.length) * NEED[need]);
+    const tricky = Math.round(n * TRICKY);
+    quota.set(`${b}|${need}|tricky`, tricky);
+    quota.set(`${b}|${need}|obvious`, n - tricky);
+  }
+}
+const target = [...quota.values()].reduce((t, n) => t + n, 0);
 const random = seededRandom(7);
 const seen = new Set<string>();
 const puzzles = [];
-while (puzzles.length < POOL) {
+const tries = new Map<string, number>();
+let attempts = 0;
+console.time('pool');
+while (puzzles.length < target) {
+  if (++attempts > 200_000) {
+    const starved = [...quota].filter(([, n]) => n > 0).map(([k, n]) => `${k} (${n} short)`);
+    throw new Error(`gave up filling the pool after ${attempts - 1} candidates; still short: ${starved.join(', ')}`);
+  }
   const p = randomPuzzle(words, adj, random, endpoint);
   if (seen.has(p.start + p.goal) || seen.has(p.goal + p.start)) continue;
+  const kind = isObvious(words, adj, p.start, p.goal, p.best) ? 'obvious' : 'tricky';
+  if (![...quota].some(([k, n]) => n > 0 && k.startsWith(`${p.best}|`) && k.endsWith(`|${kind}`))) continue;
+  const { need, path } = classifyNeed(words, adj, p.start, p.goal, p.best);
+  const cell = `${p.best}|${need}|${kind}`;
+  tries.set(cell, (tries.get(cell) ?? 0) + 1);
+  if (!quota.get(cell)) continue;
+  quota.set(cell, quota.get(cell)! - 1);
   seen.add(p.start + p.goal);
-  const potWords = placePots(words, adj, p.start, p.goal, p.best, p.path, random);
+  const puzzle = { ...p, path };
+  const potWords = placePots(words, adj, p.start, p.goal, p.best, path, random);
   const { bound: _bound, ...plan } = potRoute(words, adj, p.start, p.goal, potWords);
-  puzzles.push({ puzzle: p, inkPots: plan });
+  puzzles.push({ puzzle, need, tricky: kind === 'tricky', inkPots: plan });
 }
-console.log(`pool: ${puzzles.length} puzzles, e.g. ${puzzles.slice(0, 8).map((x) => `${x.puzzle.start} → ${x.puzzle.goal} (${x.puzzle.best})`).join(', ')}`);
+console.timeEnd('pool');
+const mean = puzzles.reduce((t, x) => t + x.puzzle.best, 0) / puzzles.length;
+const share = (need: Need) => `${Math.round((100 * puzzles.filter((x) => x.need === need).length) / puzzles.length)}%`;
+console.log(`pool: ${puzzles.length} puzzles from ${attempts} candidates, best ${mean.toFixed(2)} on average; needs no C/I/V ${share('none')}, C/I/V in start or goal ${share('letter')}, a stepping stone ${share('stone')}`);
+console.log(`candidates seen per cell: ${[...tries].sort().map(([k, n]) => `${k} ${n}`).join(', ')}`);
+console.log(`e.g. ${puzzles.slice(0, 8).map((x) => `${x.puzzle.start} → ${x.puzzle.goal} (${x.puzzle.best}, ${x.need})`).join(', ')}`);
 
 writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, puzzle, inkPots, puzzles }));
