@@ -3,19 +3,29 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
 import { buildGraph, randomPuzzle, type Graph, type Puzzle } from './maze';
+import { payStep, placePots, potRoute, type InkPots } from './inkpots';
+import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
+import { InkDrop } from './components/maze/InkDrop';
 import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
 import { WordEditor } from './components/maze/WordEditor';
 import { Glyph, GlyphWord } from './components/Glyph';
 
+/** A puzzle's ink pots: where they are, the best score with them, and a route that gets it. */
+type PotPlan = Omit<InkPots, 'bound'>;
+
 interface MazeData {
   words: string[];
   puzzle: Puzzle;
+  inkPots: PotPlan;
 }
 
 interface Visit {
   word: string;
+  /** Strokes charged for reaching it (after any ink). */
   cost: number;
+  /** Ink spent on that step. */
+  used?: number;
 }
 
 /** Layout: the main column's width cap, the side card's width, and the width where the card sits beside it. */
@@ -61,12 +71,15 @@ export function MazeApp() {
   const [trail, setTrail] = useState<Visit[]>([]);
   const [spent, setSpent] = useState(0);
   /** The door just walked through (cost 0 when it led back to a word already visited). */
-  const [lastDoor, setLastDoor] = useState<Visit | null>(null);
+  const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   const [reveal, setReveal] = useState(false);
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
+  const [flags, setFlags] = useState(loadFlags);
+  /** Free strokes banked from ink pots, waiting to pay for the next steps to new words. */
+  const [ink, setInk] = useState(0);
   // How to play opens on a player's very first visit only.
   const [help, setHelp] = useState(() => !seenHelp());
   useEffect(() => markHelpSeen(), []);
@@ -83,8 +96,8 @@ export function MazeApp() {
       .catch(() => {});
   }, []);
 
-  // Dev only: a random start and goal in place of the fixed puzzle (see randomPuzzle).
-  const [custom, setCustom] = useState<Puzzle | null>(null);
+  // Dev only: a random start and goal in place of the fixed puzzle (see randomPuzzle), with pots.
+  const [custom, setCustom] = useState<{ puzzle: Puzzle; pots: PotPlan } | null>(null);
   const [generating, setGenerating] = useState(false);
   const graph = useRef<Graph | null>(null);
   const newPuzzle = () => {
@@ -93,15 +106,27 @@ export function MazeApp() {
     // Building the graph takes ~0.5 s the first time; let the button show it's working first.
     setTimeout(() => {
       graph.current ??= buildGraph(data.words);
-      let next = randomPuzzle(data.words, graph.current);
-      while (next.start === puzzle?.start && next.goal === puzzle?.goal) next = randomPuzzle(data.words, graph.current);
-      setCustom(next);
+      const g = graph.current;
+      let next = randomPuzzle(data.words, g);
+      while (next.start === puzzle?.start && next.goal === puzzle?.goal) next = randomPuzzle(data.words, g);
+      const pots = placePots(data.words, g, next.start, next.goal, next.best, next.path);
+      const { bound: _bound, ...plan } = potRoute(data.words, g, next.start, next.goal, pots);
+      setCustom({ puzzle: next, pots: plan });
       setGenerating(false);
     }, 30);
   };
 
-  const puzzle = custom ?? data?.puzzle;
+  const puzzle = custom?.puzzle ?? data?.puzzle;
+  /** The puzzle's ink pots, when that modifier is on. */
+  const potPlan = flags.inkPots ? ((custom ? custom.pots : data?.inkPots) ?? null) : null;
+  const best = potPlan?.best ?? puzzle?.best ?? 0;
   const dict = useMemo(() => new Set(data?.words ?? []), [data]);
+
+  const toggleFlag = (flag: Flag) => {
+    const next = { ...flags, [flag]: !flags[flag] };
+    saveFlags(next);
+    setFlags(next); // the puzzle restarts, so ink and the best score never mix across settings
+  };
 
   const restart = useCallback(() => {
     if (!puzzle) return;
@@ -111,9 +136,10 @@ export function MazeApp() {
     setTrail([{ word: puzzle.start, cost: 0 }]);
     setSpent(0);
     setLastDoor(null);
+    setInk(0);
     setReveal(false);
     setPeek(null);
-  }, [puzzle]);
+  }, [puzzle, potPlan]);
   useEffect(restart, [restart]);
 
   const roomExits = useMemo(() => (data && room ? exits(room, data.words) : []), [data, room]);
@@ -134,21 +160,27 @@ export function MazeApp() {
         return;
       }
       if (word && dict.has(word)) {
-        // Going back to a word already visited is free, and it isn't listed again.
-        const back = trail.some((v) => v.word === word);
-        const cost = back ? 0 : stepEdits + 1;
-        setSpent((s) => s + cost);
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
-        if (!back) setTrail((t) => [...t, { word, cost }]);
-        setLastDoor({ word, cost });
+        // Going back to a word already visited is free, and it isn't listed again.
+        if (trail.some((v) => v.word === word)) {
+          setLastDoor({ word, cost: 0, back: true, pot: false });
+          return;
+        }
+        // A new word: banked ink pays first (see payStep), and a pot banks more on its first visit.
+        const { paid, used } = payStep(stepEdits + 1, ink);
+        const pot = !!potPlan?.pots.includes(word);
+        setSpent((s) => s + paid);
+        setInk(ink - used + (pot ? 1 : 0));
+        setTrail((t) => [...t, { word, cost: paid, used }]);
+        setLastDoor({ word, cost: paid, used, back: false, pot });
         return;
       }
       setHistory((h) => [...h, cells]);
       setCells(next);
     },
-    [won, locked, room, dict, stepEdits, cells, trail],
+    [won, locked, room, dict, stepEdits, cells, trail, ink, potPlan],
   );
 
   const undo = () => {
@@ -173,6 +205,8 @@ export function MazeApp() {
   const found = roomExits.filter((x) => visited.has(x.word)).length;
   const lettersWithTile = hoverTile ? new Set(Object.keys(LETTERS).filter((ch) => recipe(ch).has(hoverTile))) : null;
   const toGoal = wordDistance(room, puzzle.goal);
+  const potsLeft = (potPlan?.pots ?? []).filter((p) => !visited.has(p));
+  const potNear = potsLeft.find((p) => wordDistance(room, p) <= STEP_LIMIT);
   const used = spent + stepEdits;
 
   // The step after a door opens, until the next stroke: confirm it (completion feedback).
@@ -198,12 +232,19 @@ export function MazeApp() {
                 <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
               </div>
               <div className="score-sub">
-                <span>best {puzzle.best}</span>
+                <span>best {best}</span>
                 <span>
                   {roomExits.length} {roomExits.length === 1 ? 'word' : 'words'} within reach
                   {found ? ` (${found} visited)` : ''}
                 </span>
               </div>
+              {potPlan && (
+                <div className={`ink-bank${ink ? ' full' : ''}`} aria-live="polite">
+                  <InkDrop filled={!!ink} />
+                  {ink ? `${ink} free ${ink === 1 ? 'stroke' : 'strokes'} banked` : 'no ink banked'}
+                  {!won && potNear && <span className="pot-near"> · ink pot within reach</span>}
+                </div>
+              )}
             </div>
           </section>
 
@@ -228,7 +269,7 @@ export function MazeApp() {
             <AnimatePresence>
               {won && (
                 <motion.div className="win" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  You reached {puzzle.goal} in {spent} strokes. Best possible: {puzzle.best}.
+                  You reached {puzzle.goal} in {spent} strokes. Best possible: {best}.
                 </motion.div>
               )}
             </AnimatePresence>
@@ -278,9 +319,11 @@ export function MazeApp() {
                 : stepEdits
                   ? 'Keep going: land on a real word.'
                   : justOpened
-                    ? lastDoor!.cost
-                      ? `New word: ${room} (+${lastDoor!.cost}). Find the next one.`
-                      : `Back in ${room}: free, you've been here before.`
+                    ? lastDoor!.back
+                      ? `Back in ${room}: free, you've been here before.`
+                      : `New word: ${room} (+${lastDoor!.cost}${lastDoor!.used ? `, ${lastDoor!.used} paid in ink` : ''}).${
+                          lastDoor!.pot ? ' Ink pot! You banked a free stroke.' : ' Find the next one.'
+                        }`
                     : 'Change the word into another real word.'}
             </p>
             <div className="step-meter">
@@ -314,7 +357,14 @@ export function MazeApp() {
                     onClick={() => setPeek((p) => (p === v.word ? null : v.word))}
                   >
                     {i > 0 && <span className="cost">+{v.cost}</span>}
+                    {!!v.used && (
+                      <span className="ink-used" aria-label={`${v.used} paid in ink`}>
+                        <InkDrop size={9} />
+                        {v.used}
+                      </span>
+                    )}
                     <GlyphWord word={v.word} size={14} />
+                    {potPlan?.pots.includes(v.word) && <InkDrop size={10} />}
                     {isHere && <span className="meta">{won ? 'goal' : 'here'}</span>}
                   </button>
                 </motion.li>
@@ -327,6 +377,19 @@ export function MazeApp() {
               </li>
             )}
           </ol>
+          {potPlan && (
+            <div className="pots" aria-label="Ink pots">
+              <span className="label">Ink pots</span>
+              <ul>
+                {potPlan.pots.map((p) => (
+                  <li key={p} className={visited.has(p) ? 'got' : ''} aria-label={`${p}${visited.has(p) ? ' (collected)' : ''}`}>
+                    <InkDrop filled={visited.has(p)} size={10} />
+                    <GlyphWord word={p} size={13} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {peek && defs?.[peek] && (
             <p className="definition peek">
               <Definition word={peek} def={defs[peek]} />
@@ -351,11 +414,16 @@ export function MazeApp() {
                   Back to {data.puzzle.start} → {data.puzzle.goal}
                 </button>
               )}
+              {(Object.keys(FLAGS) as Flag[]).map((f) => (
+                <label key={f} className="flag">
+                  <input type="checkbox" checked={flags[f]} onChange={() => toggleFlag(f)} /> {FLAGS[f].label}
+                </label>
+              ))}
             </div>
           )}
           {reveal && (
             <p className="answers">
-              {puzzle.path.join(' → ')} ({puzzle.best} strokes)
+              {(potPlan?.walk ?? puzzle.path).join(' → ')} ({best} strokes)
               <br />
               Words within reach of {room}: {roomExits.map((x) => `${x.word} (${x.cost})`).join(', ')}
             </p>

@@ -7,7 +7,8 @@
 // cheapest route from START to GOAL in total strokes (Dijkstra).
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { buildGraph, solve } from '../src/maze';
+import { placePots, potRoute, potValues } from '../src/inkpots';
+import { buildGraph, seededRandom, solve } from '../src/maze';
 import { parseWordList } from '../src/wordlist';
 
 // Opposites make a nice maze: 14 strokes over 5 rooms, all everyday words.
@@ -28,4 +29,12 @@ const puzzle = solve(words, adj, START, GOAL);
 if (!puzzle) throw new Error(`${GOAL} must be reachable from ${START}, and both must be in the word list`);
 console.log(`${START} → ${GOAL}: best ${puzzle.best} strokes / ${puzzle.path.length - 1} rooms, ${degree[words.indexOf(START)]} doors at the start   ${puzzle.path.join(' → ')}`);
 
-writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, puzzle }));
+// Ink pots (the `inkPots` modifier): placed with a fixed seed so the puzzle is the same for everyone.
+const pots = placePots(words, adj, START, GOAL, puzzle.best, puzzle.path, seededRandom(4));
+const value = potValues(adj, words.indexOf(START), words.indexOf(GOAL), puzzle.best);
+const ink = potRoute(words, adj, START, GOAL, pots);
+const label = (v: number) => (v > 0 ? 'saves a stroke' : v === 0 ? 'break-even' : 'costs a stroke');
+console.log(`ink pots: ${pots.map((p) => `${p} (${label(value[words.indexOf(p)])})`).join(', ')}; best with pots ${ink.best}   ${ink.walk.join(' → ')}`);
+const inkPots = { pots, best: ink.best, walk: ink.walk };
+
+writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, puzzle, inkPots }));

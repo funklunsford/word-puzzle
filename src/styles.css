@@ -5,6 +5,7 @@
   --muted: #8b8794;
   --line: #e4dfd5;
   --gold: #d9a520;
+  --ink-pot: #34478f;
   --spicy: #e4572e;
   --ok: #5e8c4f;
   --ledge: #e4ddcf;
@@ -36,6 +37,7 @@
     --muted: #8e8a99;
     --line: #34323d;
     --gold: #f0c04a;
+    --ink-pot: #9fb2f0;
     --spicy: #ff7a4d;
     --ok: #93c27f;
     --ledge: #0e0d12;
@@ -1011,6 +1013,76 @@ select,
 .trail .cost {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* Ink pots (a modifier behind the inkPots flag): drops of ink, the bank, and the pots to collect. */
+.ink-drop {
+  flex: none;
+  fill: var(--ink-pot);
+  stroke: var(--ink-pot);
+  stroke-width: 0.18;
+}
+
+.ink-drop.empty {
+  fill: none;
+}
+
+.ink-bank {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ink-bank.full {
+  color: var(--ink-pot);
+  font-weight: 700;
+}
+
+.ink-bank .pot-near {
+  color: var(--ink-pot);
+  font-weight: 600;
+}
+
+.ink-used {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: var(--ink-pot);
+  font-weight: 700;
+}
+
+.pots ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pots li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1.5px dashed color-mix(in srgb, var(--ink-pot) 60%, transparent);
+  border-radius: 999px;
+}
+
+.pots li.got {
+  border-style: solid;
+  background: color-mix(in srgb, var(--ink-pot) 12%, var(--surface));
+}
+
+.dev-tools .flag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 /* Dev-only tools (vite dev server): a random start and goal for playtesting. */
