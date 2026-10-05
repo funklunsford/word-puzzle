@@ -956,8 +956,8 @@ select,
   font-weight: 700;
 }
 
-/* Strokes this step: three dots under the total in the score card, gold as they're used, all red
-   once the step is out of strokes. */
+/* Strokes this step: three dots under Undo / Reset step, filling white (the text colour) as
+   strokes are used, all red once the step is out of strokes. */
 .step-meter {
   display: flex;
   align-items: center;
@@ -978,7 +978,7 @@ select,
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--gold) 45%, var(--line));
+  border: 2px solid color-mix(in srgb, var(--ink) 40%, transparent);
   background: transparent;
   transition:
     background 0.15s,
@@ -986,8 +986,8 @@ select,
 }
 
 .pip.used {
-  border-color: var(--gold);
-  background: var(--gold);
+  border-color: var(--ink);
+  background: var(--ink);
   animation: pip-fill 0.3s ease-out;
 }
 
@@ -1380,13 +1380,8 @@ select,
   height: 36px;
 }
 
-.maze.compact .step-meter {
-  order: 3;
-  flex: 1 1 100%;
-}
-
 .maze.compact .score-sub {
-  order: 4;
+  order: 3;
   flex: 1 1 100%;
   justify-content: flex-start;
   gap: 0 12px;
@@ -1395,7 +1390,7 @@ select,
 }
 
 .maze.compact .ink-bank {
-  order: 5;
+  order: 4;
   flex: 1 1 100%;
   font-size: 12px;
 }
@@ -1589,4 +1584,9 @@ select,
 .step-status.hinted {
   color: var(--ink);
   font-weight: 600;
+}
+
+/* The step line says nothing until there's something to say (a stroke used, a word made, a hint). */
+.step-status:empty {
+  display: none;
 }

@@ -340,16 +340,6 @@ export function MazeApp() {
               <div className="score-big">
                 <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
               </div>
-              {/* This step's strokes, under the total: three dots, filling as strokes are used. */}
-              <div className={`step-meter${locked ? ' full' : ''}`} aria-label={`${stepEdits} of ${STEP_LIMIT} strokes used this step`}>
-                <span>Strokes this step</span>
-                <span className="pips">
-                  {Array.from({ length: STEP_LIMIT }, (_, i) => (
-                    <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
-                  ))}
-                </span>
-              </div>
-
               <div className="score-sub">
                 <span>lowest strokes possible: {best}</span>
                 <span>
@@ -505,8 +495,17 @@ export function MazeApp() {
                       : `New word: ${room} (+${lastDoor!.cost}${lastDoor!.used ? `, ${lastDoor!.used} paid in ink` : ''}).${
                           lastDoor!.pot ? ' Ink pot! You banked a free stroke.' : ' Find the next one.'
                         }`
-                    : 'Change the word into another real word.'}
+                    : null}
             </p>
+            {/* This step's strokes: three dots, filling as strokes are used. */}
+            <div className={`step-meter${locked ? ' full' : ''}`} aria-label={`${stepEdits} of ${STEP_LIMIT} strokes used this step`}>
+              <span>Strokes this step</span>
+              <span className="pips">
+                {Array.from({ length: STEP_LIMIT }, (_, i) => (
+                  <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
+                ))}
+              </span>
+            </div>
           </section>
         </main>
 
