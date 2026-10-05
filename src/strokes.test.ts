@@ -165,6 +165,26 @@ describe('formedLooks', () => {
     expect(formedLooks(glyph('W').slice(1))).toEqual([undefined]); // a lone chevron is a V, drawn as itself
   });
 
+  it("merges a lone long bar with the cup beside it, the only half-built shape with a look (it can only become U)", () => {
+    const half = { len: 0.5, keep: 'start' };
+    const stem = { tile: 'LV' as const, x: 0, y: 1, rot: 0 };
+    const cup = { tile: 'P' as const, x: 0.5, y: 1.5, rot: 90 };
+    expect(formedLooks([stem, cup])).toEqual([half, undefined]);
+    expect(formedLooks([cup, { ...stem, x: 2 }].map((p) => ({ ...p, x: p.x + 2 })))).toBeNull(); // bar too far right: not U's
+    // Every half-built shape of every letter (not itself a letter): only U-less-a-stem gains a look.
+    const withLooks = new Set<string>();
+    for (const g of Object.values(LETTERS)) {
+      const n = g.parts.length;
+      for (let mask = 1; mask < (1 << n) - 1; mask++) {
+        const content = g.parts.filter((_, i) => mask & (1 << i)).map(({ look: _look, ...p }) => p);
+        if (recognize(content)) continue;
+        const looks = formedLooks(content);
+        if (looks?.some(Boolean)) withLooks.add(content.map((p) => `${p.tile}@${p.x},${p.y},${p.rot ?? 0}`).sort().join(' '));
+      }
+    }
+    expect([...withLooks]).toEqual(['LV@0,1,0 P@0.5,1.5,90']);
+  });
+
   it('never offers a stroke with a look: slots are always plain strokes', () => {
     for (const tile of TILE_IDS) {
       for (const content of [[], glyph('C'), glyph('L'), glyph('J')]) for (const s of slotsFor(content, tile)) expect(s.placement.look).toBeUndefined();

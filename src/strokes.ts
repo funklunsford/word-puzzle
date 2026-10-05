@@ -46,23 +46,26 @@ export function recognize(content: Placement[]): string | null {
   return null;
 }
 
+/** The shifts at which all of `content` sits inside letter `ch` (as part of it, or all of it). */
+function within(content: Placement[], ch: string): number[] {
+  const parts = LETTERS[ch].parts;
+  return alignments(content, parts).filter((dx) => !minus(content, parts.map((p) => shift(p, dx))).length);
+}
+
 /**
- * How a cell's strokes are drawn (see Look): the formed letter's looks, matched stroke by stroke,
- * or null while the strokes don't form a letter (every stroke is drawn as itself).
+ * How a cell's strokes are drawn (see Look), matched stroke by stroke: the formed letter's looks;
+ * or, for a shape on its way to exactly one letter (one long bar and the cup can only become U),
+ * that letter's looks, so the cup's tail meets the bar instead of crossing it. Null when no look
+ * applies (every stroke is drawn as itself).
  */
 export function formedLooks(content: Placement[]): (Look | undefined)[] | null {
+  if (!content.length) return null;
   const ch = recognize(content);
-  if (!ch) return null;
-  const parts = LETTERS[ch].parts;
-  for (const dx of alignments(content, parts)) {
-    const placed = parts.map((p) => shift(p, dx));
-    if (minus(content, placed).length) continue;
-    const free = [...placed];
-    return content.map((q) => {
-      return free.splice(free.findIndex((p) => slotKey(p) === slotKey(q)), 1)[0].look;
-    });
-  }
-  return null;
+  const fits = ch ? [{ ch, dx: within(content, ch)[0] }] : Object.keys(LETTERS).flatMap((c) => within(content, c).map((dx) => ({ ch: c, dx })));
+  if (fits.length !== 1) return null;
+  const free = LETTERS[fits[0].ch].parts.map((p) => shift(p, fits[0].dx));
+  const looks = content.map((q) => free.splice(free.findIndex((p) => slotKey(p) === slotKey(q)), 1)[0].look);
+  return ch || looks.some(Boolean) ? looks : null;
 }
 
 export interface Slot {
