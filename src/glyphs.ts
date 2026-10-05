@@ -1,0 +1,153 @@
+// Stroke tiles and the letters built from them.
+//
+// Coordinates are in "units": cap height is 2, y points down, the baseline is y = 2.
+// Each tile's path is drawn in local coordinates centered on its bounding box, so a
+// placement is just a translate + rotate. Recipes are derived from placements, so
+// this file is the single source of truth for both rendering and game rules.
+
+export type TileId = 'LV' | 'H' | 'LD' | 'LB' | 'SB' | 'BV' | 'SC' | 'C' | 'P';
+
+export interface TileShape {
+  id: TileId;
+  name: string;
+  path: string;
+  /** Whether the tile may be rotated when placed in a letter. */
+  rotates: boolean;
+  /** Rotation (degrees clockwise) the tile is shown and picked up at in the tray (chevrons as in V, M and Y). */
+  display?: number;
+}
+
+export const TILES: Record<TileId, TileShape> = {
+  LV: { id: 'LV', name: 'Long bar', path: 'M0 -1 L0 1', rotates: false },
+  // One 1-unit bar: flat as a crossbar (E, F, H…), upright as Y's stem.
+  H: { id: 'H', name: 'Bar', path: 'M-0.5 0 L0.5 0', rotates: true, display: 0 },
+  LD: { id: 'LD', name: 'Rising slash', path: 'M-0.5 1 L0.5 -1', rotates: false },
+  LB: { id: 'LB', name: 'Falling slash', path: 'M-0.5 -1 L0.5 1', rotates: false },
+  SB: { id: 'SB', name: 'Tail', path: 'M-0.25 -0.5 L0.25 0.5', rotates: false },
+  BV: { id: 'BV', name: 'Big chevron', path: 'M-1 -1 L0 1 L1 -1', rotates: true, display: 0 },
+  SC: { id: 'SC', name: 'Small chevron', path: 'M-1 -0.5 L0 0.5 L1 -0.5', rotates: true, display: 0 },
+  C: { id: 'C', name: 'Big arc', path: 'M0.5 -1 A1 1 0 0 0 0.5 1', rotates: true, display: 90 },
+  P: { id: 'P', name: 'Bowl', path: 'M-0.5 -0.5 L0 -0.5 A0.5 0.5 0 0 1 0 0.5 L-0.5 0.5', rotates: true },
+};
+
+export const TILE_IDS = Object.keys(TILES) as TileId[];
+
+/** Half-width and half-height of each tile at rotation 0, in units. */
+const TILE_EXTENT: Record<TileId, [number, number]> = {
+  LV: [0, 1],
+  H: [0.5, 0],
+  LD: [0.5, 1],
+  LB: [0.5, 1],
+  SB: [0.25, 0.5],
+  BV: [1, 1],
+  SC: [1, 0.5],
+  C: [0.5, 1],
+  P: [0.5, 0.5],
+};
+
+/** Horizontal extent [min, max] of a set of placements. */
+export function xExtent(parts: Placement[]): [number, number] {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const p of parts) {
+    // A formed letter's looks never reach beyond its strokes' own extent, so they're ignored here.
+    const [hx, hy] = TILE_EXTENT[p.tile];
+    const half = (p.rot ?? 0) % 180 === 0 ? hx : hy;
+    lo = Math.min(lo, p.x - half);
+    hi = Math.max(hi, p.x + half);
+  }
+  return [lo, hi];
+}
+
+export interface Placement {
+  tile: TileId;
+  x: number;
+  y: number;
+  /** Degrees clockwise. */
+  rot?: number;
+  /** How this stroke is drawn once its letter is formed (see Look). */
+  look?: Look;
+}
+
+/**
+ * How a stroke is drawn once its letter is formed. Display only, like LetterGlyph.squeeze: it
+ * never affects slots, recognition or distances. U is built from two long bars and a bowl (so a
+ * bowl dropped onto "||" makes it), and drawn with its stems stopping where the bowl begins.
+ */
+export interface Look {
+  /** Draw only this fraction of the stroke (along its path), measured from its `keep` end. */
+  len: number;
+  keep: 'start' | 'end';
+  /**
+   * Carry the pen this much further past the stroke's end, turned back the other way vertically,
+   * into the stroke it meets there: W's middle peak is then one pointed turn, like its bottoms.
+   */
+  over?: number;
+}
+
+export interface LetterGlyph {
+  width: number;
+  parts: Placement[];
+  /**
+   * Draw the letter squeezed horizontally by this factor once it's formed. Display only: the
+   * strokes and their positions (and so the game rules) are unchanged.
+   */
+  squeeze?: number;
+}
+
+const p = (tile: TileId, x: number, y: number, rot = 0, look?: Look): Placement =>
+  look ? { tile, x, y, rot, look } : { tile, x, y, rot };
+/** Formed look of a stem that stops halfway, where a bowl takes over (J, U). */
+const TOP_HALF: Look = { len: 0.5, keep: 'start' };
+/** Formed look of W's left chevron, which turns over the middle peak into the right one. */
+const W_PEAK: Look = { len: 1, keep: 'start', over: 0.12 };
+
+export const LETTERS: Record<string, LetterGlyph> = {
+  // The chevron is 1 wide at mid-height, so A's crossbar sits at the same height as E/F/H's.
+  A: { width: 2, parts: [p('BV', 1, 1, 180), p('H', 1, 1)] },
+  B: { width: 1, parts: [p('LV', 0, 1), p('P', 0.5, 0.5), p('P', 0.5, 1.5)] },
+  C: { width: 1, parts: [p('C', 0.5, 1)] },
+  D: { width: 1, parts: [p('LV', 0, 1), p('C', 0.5, 1, 180)] },
+  E: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 0), p('H', 0.5, 1), p('H', 0.5, 2)] },
+  F: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 0), p('H', 0.5, 1)] },
+  // The arc with an upright bar as its chin, drawn ¾ long from the baseline so there's air between
+  // it and the arc's top end. It sits where Y's stem does, so the two share a spot.
+  G: { width: 1, parts: [p('C', 0.5, 1), p('H', 1, 1.5, 90, { len: 0.75, keep: 'end' })] },
+  H: { width: 1, parts: [p('LV', 0, 1), p('LV', 1, 1), p('H', 0.5, 1)] },
+  I: { width: 0, parts: [p('LV', 0, 1)] },
+  // A long bar with the bowl curled under it. The long bar (shared with H, I, L, N, T…) is what
+  // keeps J and U near everyday letters: I → J and "||" → U are one bowl each. Once formed, the
+  // stems are drawn stopping halfway, where the bowl's tails take over.
+  J: { width: 1, parts: [p('LV', 1, 1, 0, TOP_HALF), p('P', 0.5, 1.5, 90)] },
+  K: { width: 1, parts: [p('LV', 0, 1), p('SC', 0.5, 1, 90)] },
+  L: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 2)] },
+  M: { width: 2, parts: [p('LV', 0, 1), p('LV', 2, 1), p('SC', 1, 0.5)] },
+  N: { width: 1, parts: [p('LV', 0, 1), p('LV', 1, 1), p('LB', 0.5, 1)] },
+  O: { width: 2, parts: [p('C', 0.5, 1), p('C', 1.5, 1, 180)] },
+  P: { width: 1, parts: [p('LV', 0, 1), p('P', 0.5, 0.5)] },
+  Q: { width: 2, parts: [p('C', 0.5, 1), p('C', 1.5, 1, 180), p('SB', 1.6, 1.9)] },
+  R: { width: 1, parts: [p('LV', 0, 1), p('P', 0.5, 0.5), p('SB', 0.75, 1.5)] },
+  // The same bowl stroke as B/P/R. The bowls are offset by a quarter so their middle ends overlap
+  // into a short spine: no full-width bar across the middle, and only a slight lean.
+  S: { width: 1.25, parts: [p('P', 0.5, 0.5, 180), p('P', 0.75, 1.5)] },
+  T: { width: 1, parts: [p('H', 0.5, 0), p('LV', 0.5, 1)] },
+  U: { width: 1, parts: [p('LV', 0, 1, 0, TOP_HALF), p('LV', 1, 1, 0, TOP_HALF), p('P', 0.5, 1.5, 90)] },
+  V: { width: 2, parts: [p('BV', 1, 1)] },
+  // Two full chevrons are 4 wide; once formed, W is drawn 2.5 wide (V's chevrons are untouched).
+  // The left chevron carries on over the middle peak into the right one's downstroke: two pen
+  // ends meeting there left a small dip in the peak.
+  W: { width: 4, squeeze: 0.625, parts: [p('BV', 1, 1, 0, W_PEAK), p('BV', 3, 1)] },
+  X: { width: 1, parts: [p('LD', 0.5, 1), p('LB', 0.5, 1)] },
+  Y: { width: 2, parts: [p('SC', 1, 0.5), p('H', 1, 1.5, 90)] },
+  Z: { width: 1, parts: [p('H', 0.5, 0), p('H', 0.5, 2), p('LD', 0.5, 1)] },
+};
+
+/** How wide a letter is drawn (its width after any squeeze). */
+export const drawnWidth = (letter: string) => LETTERS[letter].width * (LETTERS[letter].squeeze ?? 1);
+
+/** Tile counts needed to build a letter. */
+export function recipe(letter: string): Map<TileId, number> {
+  const counts = new Map<TileId, number>();
+  for (const part of LETTERS[letter].parts) counts.set(part.tile, (counts.get(part.tile) ?? 0) + 1);
+  return counts;
+}

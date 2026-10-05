@@ -1,0 +1,315 @@
+# Hand-written definitions for maze words WordNet lacks (mostly function words), or overrides.
+# WORD<TAB>part of speech<TAB>definition
+ACES	n.	playing cards with a single spot; people who are expert at something
+AILS	v.	troubles or afflicts; is ill
+ASPS	n.	small venomous snakes
+BAAS	n.	the bleats of sheep
+BALD	adj.	having no hair on the head
+BAND	n.	a group of musicians who play together
+BANI	n.	coins of Romania and Moldova (plural of ban)
+BARS	n.	long rigid pieces of metal or wood; places that serve drinks
+BASE	n.	the lowest part of something; a starting point
+BATH	n.	a tub for washing the body
+BEAK	n.	the horny projecting jaws of a bird
+BEAM	n.	a long thick piece of wood or metal; a ray of light
+BEAR	n.	a large heavy mammal with thick fur
+BEES	n.	flying insects that make honey
+BELT	n.	a band worn around the waist
+BIKE	n.	a bicycle or motorcycle
+BLUR	v.	make or become indistinct
+BOND	n.	a connection that holds people or things together
+BOPS	v.	hits lightly; dances to pop music
+BOTS	n.	automated programs; robots
+BOUT	n.	a contest or fight; a short period of activity
+BRED	v.	raised animals or children (past of breed)
+BUCK	n.	an adult male deer; a dollar
+BUNK	n.	a narrow bed, often one of a stacked pair
+BUNS	n.	small round bread rolls
+BUOY	n.	a float anchored in water to mark a channel or hazard
+CAKE	n.	a sweet baked food made from flour, eggs and sugar
+CASK	n.	a barrel for holding liquids
+CHEW	v.	bite and grind with the teeth
+CHIT	n.	a short note or voucher
+CLIP	n.	a fastener that holds things together; a short piece of film
+CLUB	n.	a group of people with a shared interest; a heavy stick
+COBS	n.	the central parts of ears of corn
+CODS	n.	large food fish of northern seas
+COGS	n.	teeth on the rim of a gear wheel
+CORE	n.	the central part of something
+COTS	n.	small portable beds
+COWL	n.	a monk's hood
+CROW	n.	a large black bird with a harsh call
+CRUD	n.	dirty or unpleasant matter
+CUBS	n.	young bears, lions or wolves
+CUSS	v.	swear; use bad language
+DAME	n.	a woman of rank; an old-fashioned word for a woman
+DEAL	n.	an agreement; a hand of cards
+DEER	n.	a hoofed animal whose males usually have antlers
+DENT	n.	a hollow made by a blow or pressure
+DIVE	n.	a headfirst plunge into water
+DOCK	n.	a platform where ships load and unload
+DODO	n.	an extinct flightless bird
+DONS	v.	puts on (clothing)
+DOPE	n.	a foolish person; inside information
+DOTE	v.	love someone to excess
+DUET	n.	a piece of music for two performers
+EARN	v.	gain money in return for work
+EMUS	n.	large flightless Australian birds
+ARCS	n.	curved lines or paths
+EYES	n.	the organs of sight
+FANG	n.	a long sharp tooth
+FARE	n.	the price of a journey; food and drink
+FENS	n.	low marshy lands
+FIGS	n.	soft sweet fruits full of tiny seeds
+FILE	n.	a folder or collection of records; a tool for smoothing
+FINS	n.	thin flat limbs that fish use to swim
+FIRE	n.	flames, light and heat from burning
+FLAK	n.	strong criticism; anti-aircraft fire
+FLEX	v.	bend a limb or tighten a muscle
+FLUE	n.	a duct that carries smoke up a chimney
+FOIL	v.	prevent from succeeding
+FORM	n.	the shape of something; a document with blanks to fill in
+GALA	n.	a festive celebration
+GALL	n.	bold rudeness; bile
+GALS	n.	girls or women
+GEEK	n.	an enthusiast, especially about computers
+GEMS	n.	precious stones
+GERM	n.	a microorganism that causes disease
+GIGS	n.	performances by musicians; jobs
+GILL	n.	the organ a fish breathes through
+GLOW	n.	a steady light given off without flame
+GLUT	n.	an excessive supply
+GOAD	v.	urge someone on
+GOLD	n.	a precious yellow metal
+GONE	adj.	no longer present; departed
+GRAD	n.	a graduate
+GRIT	n.	small loose particles of stone; courage
+GULL	n.	a seabird with long wings and webbed feet
+HAIL	n.	pellets of ice falling from the sky
+HALE	adj.	strong and healthy
+HIND	adj.	at the back; rear
+HIVE	n.	a home for bees
+HOLY	adj.	sacred; set apart for worship
+HONE	v.	sharpen; perfect
+HOOD	n.	a covering for the head and neck
+HOOP	n.	a circular band or ring
+HORN	n.	a hard pointed growth on an animal's head; a brass instrument
+HOSE	n.	a flexible tube for carrying water
+HOVE	v.	lifted; came into view (past of heave)
+HUNK	n.	a large piece of something
+HUTS	n.	small simple shelters
+JACK	n.	a device for lifting heavy objects; a playing card
+JARS	n.	glass containers with wide mouths
+JAWS	n.	the bones that frame the mouth
+JAZZ	n.	a style of music with improvisation and syncopated rhythms
+JOGS	v.	runs at a slow steady pace
+KALE	n.	a leafy green cabbage with curly leaves
+KEEL	n.	the main beam along the bottom of a ship
+KEEN	adj.	eager; sharp
+KIDS	n.	children
+KINK	n.	a sharp twist or curve
+KITE	n.	a light frame covered with fabric, flown in the wind
+KIWI	n.	a fuzzy brown fruit; a flightless New Zealand bird
+KNOT	n.	a fastening made by tying rope or string
+LACE	n.	a delicate fabric with open patterns
+LAME	adj.	unable to walk normally; unconvincing
+LAND	n.	the solid ground of the earth
+LAZY	adj.	unwilling to work or use energy
+LEGS	n.	the limbs used for walking
+LEST	conj.	for fear that; so as to prevent
+LICK	v.	pass the tongue over
+LIDS	n.	removable covers for containers
+LIED	v.	told an untruth (past of lie)
+LIME	n.	a small green citrus fruit
+LIRA	n.	the money of Turkey, and formerly of Italy
+LIST	n.	a series of names or items written one after another
+LOGS	n.	pieces of a felled tree
+LONG	adj.	having great length
+LOON	n.	a large diving bird with a haunting call
+LULL	n.	a temporary quiet period
+LUST	n.	a very strong desire
+LUTE	n.	a stringed instrument with a rounded back
+LYNX	n.	a wild cat with tufted ears and a short tail
+MACE	n.	a heavy club with a spiked head; a spice
+MAKE	v.	create or produce
+MALE	adj.	of the sex that can father offspring
+MALL	n.	a large enclosed shopping area
+MANS	v.	staffs; operates
+MATE	n.	a partner; a friend
+MELD	v.	blend together
+METE	v.	deal out; allot (as in mete out)
+MILL	n.	a building with machinery for grinding grain
+MINT	n.	an aromatic herb; a place where coins are made
+MINX	n.	an impudent or mischievous girl
+MITE	n.	a tiny eight-legged creature; a small amount
+MITT	n.	a thick padded glove
+MODS	n.	modifications
+MOLD	n.	a hollow form that shapes material; a fuzzy fungus
+MOLE	n.	a small burrowing mammal; a dark spot on the skin
+MOOT	adj.	open to debate; of no practical importance
+MOPE	v.	be gloomy and listless
+MUCK	n.	mud, dirt or manure
+MUGS	n.	large cups with handles
+NABS	v.	catches or arrests
+NERD	n.	a person devoted to a technical or academic interest
+NETS	n.	meshes of string or cord for catching things
+NITS	n.	eggs of lice; petty criticisms
+NONE	pron.	not any; no one
+NUTS	n.	dry fruits with a hard shell
+OFFS	v.	switches off
+PANS	n.	shallow containers for cooking
+PARE	v.	trim by cutting away the outer edge
+PART	n.	a piece or portion of a whole
+PATH	n.	a track for walking
+PAVE	v.	cover with a hard surface
+PEST	n.	an annoying person or animal; a destructive insect
+PIKE	n.	a large predatory freshwater fish; a long spear
+PINT	n.	a unit of liquid measure, half a quart
+PIPS	n.	small seeds of fruit
+PLUM	n.	a juicy fruit with smooth skin and a stone
+POKY	adj.	slow; small and cramped
+PONY	n.	a small horse
+POOP	n.	solid waste from the body (informal)
+POOR	adj.	having little money
+POSE	v.	hold a position to be photographed or painted
+PREY	n.	an animal hunted by another for food
+PRIM	adj.	stiffly formal and proper
+PUKE	v.	vomit
+PUNK	n.	a loud fast style of rock music; a young troublemaker
+PURL	n.	a knitting stitch
+RACK	n.	a frame for holding things
+RAPS	n.	sharp knocks; rhythmic spoken music
+RARE	adj.	seldom found; lightly cooked
+RASP	n.	a coarse file; a harsh grating sound
+REAR	n.	the back part of something
+REEK	v.	smell strongly and unpleasantly
+REEL	n.	a spool for winding thread or film; a lively dance
+RIBS	n.	the curved bones of the chest
+RIFT	n.	a crack or split; a break in a friendship
+RUES	v.	regrets
+SAGE	n.	a wise person; a grey-green herb
+SALT	n.	a white mineral used to season food
+SANG	v.	made music with the voice (past of sing)
+SASH	n.	a band of cloth worn over the shoulder or around the waist
+SCAB	n.	a crust that forms over a healing wound
+SCUM	n.	a film of dirt on the surface of a liquid
+SEAL	n.	a sea mammal with flippers; a stamp that closes or authenticates
+SEMI	n.	a large truck; a semifinal
+SENT	v.	caused to go (past of send)
+SIRE	n.	the male parent of an animal
+SLOT	n.	a narrow opening
+SLUG	n.	a slimy snail without a shell; a bullet
+SODA	n.	a sweet fizzy drink
+SOIL	n.	the top layer of earth, in which plants grow
+SOME	adj.	an unspecified amount or number
+SPAR	n.	a pole that supports a sail; a practice boxing bout
+SPUR	n.	a spike on a rider's heel; an incentive
+STAY	v.	remain in a place
+STEM	n.	the main stalk of a plant
+STEW	n.	meat and vegetables cooked slowly in liquid
+STUD	n.	a small knob or rivet; a horse kept for breeding
+SUIT	n.	a matching jacket and trousers
+SUNK	v.	gone to the bottom (past of sink)
+TAKE	v.	get hold of; carry with you
+TALE	n.	a story
+TAME	adj.	not wild; used to people
+TAMP	v.	pack down firmly
+TANK	n.	a large container for liquid or gas; an armored vehicle
+TAPS	n.	valves that let liquid out of a pipe; light knocks
+TATS	n.	tattoos (informal)
+THOU	pron.	you (old-fashioned)
+TIDY	adj.	neat and in order
+TILL	n.	a drawer for money in a shop
+TINS	n.	metal containers; cans
+TIRE	n.	a rubber ring around a wheel
+TOOK	v.	got hold of (past of take)
+TORE	v.	ripped (past of tear)
+TOTS	n.	small children
+TRAM	n.	a passenger vehicle running on rails in the street
+TREK	n.	a long difficult journey
+TRIO	n.	a group of three
+TUNA	n.	a large ocean fish used as food
+TYKE	n.	a small child
+VAMP	v.	improvise a simple musical accompaniment
+VANE	n.	a blade that turns in the wind
+VANS	n.	box-shaped vehicles for carrying goods or people
+VERY	adv.	to a high degree
+VIVA	interj.	a cheer: long live!
+VOID	n.	an empty space
+WADS	n.	small lumps of soft material
+WAKE	v.	stop sleeping
+WANT	v.	wish for; desire
+WARP	v.	bend or twist out of shape
+WAYS	n.	methods; directions
+WILD	adj.	living or growing in nature; not tame
+WILE	n.	a clever trick
+WOKE	v.	stopped sleeping (past of wake)
+WOOF	n.	the bark of a dog
+WOWS	v.	impresses greatly
+YARD	n.	a unit of length (3 feet); the land around a house
+YARN	n.	spun thread for knitting; a long story
+YEAH	interj.	yes (informal)
+YOKE	n.	a wooden bar joining two animals pulling a load
+ZANY	adj.	amusingly unconventional
+AHOY	interj.	a call used to hail a ship or a person
+AMEN	interj.	so be it; said at the end of a prayer
+AMID	prep.	in the middle of
+AYES	n.	votes in favor
+COED	n.	a female student at a school for both sexes
+DOST	v.	do (old-fashioned, with thou)
+DOTH	v.	does (old-fashioned)
+EKED	v.	made something last by using it sparingly (past of eke)
+EKES	v.	makes something last by using it sparingly (ekes out)
+ELSE	adv.	other; besides
+EXEC	n.	an executive (informal)
+FEDS	n.	federal agents (informal)
+FETA	n.	a crumbly white cheese from Greece
+FROM	prep.	starting at; out of
+FUTZ	v.	fiddle about (futz around)
+GOSH	interj.	an exclamation of surprise
+HAST	v.	have (old-fashioned, with thou)
+HATH	v.	has (old-fashioned)
+HECK	interj.	a mild exclamation of annoyance
+HERS	pron.	belonging to her
+HOWS	n.	ways in which things are done (the hows and whys)
+INTO	prep.	to the inside of
+JEEZ	interj.	an exclamation of surprise or annoyance
+KETO	n.	a low-carbohydrate, high-fat diet
+MADS	v.	makes angry
+NOEL	n.	a Christmas carol; Christmas
+NOPE	interj.	no (informal)
+ONTO	prep.	to a position on
+OOPS	interj.	said after a small mistake
+ORCS	n.	monstrous creatures from fantasy stories
+OUCH	interj.	an exclamation of sudden pain
+OURS	pron.	belonging to us
+POOH	interj.	an exclamation of disdain
+PSST	interj.	a sound used to quietly get someone's attention
+RUNT	n.	the smallest animal in a litter
+SANS	prep.	without
+SHAH	n.	a title of the former kings of Iran
+STAT	adv.	immediately (as in a hospital)
+THAN	conj.	used to compare (bigger than)
+THAT	pron.	the one there; the one mentioned
+THEE	pron.	you (old-fashioned)
+THEM	pron.	those people or things
+THEY	pron.	those people or things
+THIS	pron.	the one here; the one being mentioned
+THRU	prep.	through (informal spelling)
+TONY	adj.	fashionable and stylish
+UNTO	prep.	to (old-fashioned)
+UPON	prep.	on; on top of
+VEEP	n.	a vice president (informal)
+WACK	adj.	bad; worthless (slang)
+WHAT	pron.	which thing; asks for information
+WHEN	adv.	at what time
+WHEW	interj.	an exclamation of relief
+WHOA	interj.	a command to stop; an exclamation of surprise
+WHOM	pron.	what person (as an object)
+WITH	prep.	accompanied by; using
+YOUR	pron.	belonging to you
+YUCK	interj.	an exclamation of disgust
+YUKS	n.	laughs (informal)
+YULE	n.	Christmas; the Christmas season
+YUPS	interj.	yeses (informal)
+FART	n.	a release of gas from the bowels
