@@ -431,7 +431,18 @@ export function MazeApp() {
               )}
             </AnimatePresence>
             <div className="board-head">
-              <span className="label">You are in</span>
+              {/* The step's strokes sit right above the word being edited: three dots, filling as strokes are used. */}
+              <div className="board-top">
+                <span className="label">You are in</span>
+                <div className={`step-meter${locked ? ' full' : ''}`} aria-label={`${stepEdits} of ${STEP_LIMIT} strokes used this step`}>
+                  <span>Strokes this step</span>
+                  <span className="pips">
+                    {Array.from({ length: STEP_LIMIT }, (_, i) => (
+                      <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
+                    ))}
+                  </span>
+                </div>
+              </div>
               {/* The word's meaning sits right above it, and changes as each new word is made. */}
               <AnimatePresence mode="wait" initial={false}>
                 {defs?.[room] && (
@@ -497,14 +508,6 @@ export function MazeApp() {
                         }`
                     : 'Change the word into another real word.'}
             </p>
-            <div className="step-meter">
-              <span>This step:</span>
-              <span className="pips" aria-label={`${stepEdits} of ${STEP_LIMIT} strokes this step`}>
-                {Array.from({ length: STEP_LIMIT }, (_, i) => (
-                  <span key={i} className={`pip${i < stepEdits ? ' used' : ''}`} />
-                ))}
-              </span>
-            </div>
           </section>
         </main>
 

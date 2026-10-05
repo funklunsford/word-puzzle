@@ -956,29 +956,66 @@ select,
   font-weight: 700;
 }
 
+.board-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Strokes this step: three dots at the top right of the board, gold as they're used, all red once
+   the step is out of strokes. */
 .step-meter {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 15px;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
 .pips {
   display: inline-flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .pip {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--line);
-  transition: background 0.15s;
+  border: 2px solid color-mix(in srgb, var(--gold) 45%, var(--line));
+  background: transparent;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .pip.used {
-  background: var(--ink);
+  border-color: var(--gold);
+  background: var(--gold);
+  animation: pip-fill 0.3s ease-out;
+}
+
+.step-meter.full .pip.used {
+  border-color: var(--spicy);
+  background: var(--spicy);
+}
+
+@keyframes pip-fill {
+  from {
+    transform: scale(0.5);
+  }
+  60% {
+    transform: scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pip.used {
+    animation: none;
+  }
 }
 
 .how {

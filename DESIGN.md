@@ -347,3 +347,6 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - **Taming:** the wild growth is gathered onto TAME's nearest strokes as it shrinks away, while the background calms to the page's own.
   - **Tamed:** one neat vine grows along each stroke of TAME (stroke by stroke, about the game's stroke weight, tapering only at real ends), with leaves unfolding at even spacing, fern fronds on the bars, and at last a small flower at each stroke's tip in the game's colour for that stroke; then a gentle breeze.
 - **Drawing:** a ribbon mesh for the stems and instanced leaves, petals and flower centres, all recomputed from the time each frame (walking along each stem, never from the last frame), so any moment can be held (`?celebrate=2.9`). Phones fit the words to 88% of the width.
+
+## Strokes this step, up by the word (2026-10-05, branch `qol`)
+- The three step dots moved from under Undo / Reset step (often below the fold on a phone) to the top right of the board, opposite "You are in", right above the word being edited, labelled "Strokes this step". Empty dots are gold rings; each used stroke fills one gold with a small pop; once the step is out of strokes all three turn red, matching the "Out of strokes" line. The definition text under the word is a little larger (16 px, 15 px on phones).
