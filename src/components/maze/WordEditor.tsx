@@ -88,6 +88,10 @@ interface Drag {
   touch: boolean;
   /** The orientation it was picked up at; a touch drag keeps to it where a spot fits it more than one way. */
   chosen: number;
+  /** Where it was picked up (screen px). */
+  home: { x: number; y: number };
+  /** The second tap of a double tap on a placed stroke (the first is waiting to remove it). */
+  again: boolean;
 }
 
 /** A released stroke's starting pose relative to its slot (cell units), so it springs in from there. */
@@ -190,6 +194,18 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     setTrayTurn((s) => ({ ...s, [t]: ORIENTS[t][(ORIENTS[t].indexOf(s[t]) + 1) % ORIENTS[t].length] }));
   // A single tap wiggles a turnable stroke (a hint that it turns); a second tap soon after turns it.
   const lastTap = useRef<{ tile: TileId; at: number } | null>(null);
+  // On a touch screen a tap on a placed stroke that could sit the other way round on its spot waits
+  // a moment before removing it: a second tap turns it there instead.
+  const pendingTap = useRef<{ cell: number; key: string; timer: number; remove: () => void } | null>(null);
+  const settleTap = (run: boolean) => {
+    const pt = pendingTap.current;
+    if (!pt) return;
+    pendingTap.current = null;
+    clearTimeout(pt.timer);
+    if (run) pt.remove();
+  };
+  // A word changed some other way (undo, reset, a new puzzle) drops a waiting removal.
+  useEffect(() => () => settleTap(false), [cells]);
   const [nudges, setNudges] = useState<Partial<Record<TileId, number>>>({});
 
   // The floating stroke: centre (screen px), scale (1 = word size) and extra rotation (flights).
@@ -377,6 +393,16 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     animate(gs, home.scale, SETTLE).then(() => setFlight((f) => (f?.id === id ? null : f)));
   };
 
+  /** The next way round a placed stroke fits on its own spot (cycling), or null if it fits only one way there. */
+  const turnedInPlace = (d: Drag, cell: number, original: Placement): Placement | null => {
+    const rot = norm(original.rot ?? 0);
+    const ways = d.slots[cell]
+      .map((s) => s.placement)
+      .filter((q) => q.x === original.x && q.y === original.y && norm(q.rot ?? 0) !== rot)
+      .sort((a, b) => norm(norm(a.rot ?? 0) - rot) - norm(norm(b.rot ?? 0) - rot));
+    return ways[0] ?? null;
+  };
+
   const finish = (d: Drag) => {
     const next = cells.map((c) => [...c]);
     const from = d.source.kind === 'cell' ? d.source : null;
@@ -400,6 +426,37 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
           setNudges((n) => ({ ...n, [d.tile]: (n[d.tile] ?? 0) + 1 }));
         }
         return;
+      }
+      // On a touch screen, double-tapping a placed stroke turns it on its spot, where it fits the
+      // other way round too (a chevron as V or A, a bowl as B's or U's); one tap still removes it.
+      if (d.touch && from && original) {
+        const turned = turnedInPlace(d, from.cell, original);
+        if (turned && d.again) {
+          next[from.cell][from.index] = turned;
+          land(from.cell, turned, d.turn);
+          onEdit(next);
+          return;
+        }
+        if (turned) {
+          land(from.cell, original, d.turn);
+          const timer = window.setTimeout(() => settleTap(true), DOUBLE_TAP);
+          pendingTap.current = {
+            cell: from.cell,
+            key: slotKey(original),
+            timer,
+            remove: () => {
+              // It flies home from its spot, as if it had been removed at once.
+              [gx, gy, gs, gr].forEach((v) => v.stop());
+              gx.set(d.home.x);
+              gy.set(d.home.y);
+              gs.set(1);
+              gr.set(0);
+              remove();
+              flyHome(d);
+            },
+          };
+          return;
+        }
       }
       // A tap removes a placed stroke; a tray stroke that was only pressed goes back.
       remove();
@@ -425,6 +482,14 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   const start = (e: React.PointerEvent, tile: TileId, rot: number, source: Source, home: { x: number; y: number; scale: number } | null, look0: Pt[] | null = null) => {
     if (disabled || dragRef.current || !home) return;
     e.preventDefault();
+    // A press while a tapped stroke waits to be removed: on that same stroke it may be the second
+    // tap; on anything else the removal goes ahead, and this press is spent (the word just changed).
+    const pt = pendingTap.current;
+    const again = !!pt && source.kind === 'cell' && source.cell === pt.cell && slotKey(cells[source.cell][source.index]) === pt.key;
+    if (pt) {
+      settleTap(!again);
+      if (!again) return;
+    }
     const touch = e.pointerType === 'touch';
     // A touch pointer is captured by the element it pressed, and a pressed placed stroke leaves
     // the page as it lifts: capture it on the editor instead, so the drag keeps getting its events.
@@ -471,6 +536,8 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       look0,
       touch,
       chosen: rot,
+      home,
+      again,
     };
     dragRef.current = d0;
     setDrag(d0);
@@ -623,7 +690,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                             setHover(null);
                           }}
                         >
-                          <title>Tap to remove · drag to move</title>
+                          <title>{coarse ? 'Tap to remove · double-tap to turn · drag to move' : 'Tap to remove · drag to move'}</title>
                         </path>
                       </motion.g>
                     );

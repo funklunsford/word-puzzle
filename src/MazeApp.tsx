@@ -321,7 +321,7 @@ export function MazeApp() {
                 <li>Change the word into another real word, using up to 3 strokes per step.</li>
                 <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
                 {coarse ? (
-                  <li>A chevron, arc or bowl that fits a spot either way round goes in the way it's turned: double-tap it in the tray to turn it.</li>
+                  <li>A chevron, arc or bowl that fits a spot either way round goes in the way it's turned: double-tap it in the tray to turn it, or double-tap it in the word to turn it where it is.</li>
                 ) : (
                   <li>A chevron, arc or bowl that fits a spot either way round? Hold it over the spot and circle the cursor around it to turn it.</li>
                 )}
