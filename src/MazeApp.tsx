@@ -12,6 +12,8 @@ import { InkPot } from './components/maze/InkPot';
 import { centerOf, useInkFlights } from './components/maze/InkFlights';
 import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
+import { Celebration } from './celebration/Celebration';
+import { themeFor } from './celebration/themes';
 import { WordEditor } from './components/maze/WordEditor';
 import { Glyph, GlyphWord } from './components/Glyph';
 
@@ -190,6 +192,17 @@ export function MazeApp() {
   const roomExits = useMemo(() => (data && room ? exits(room, data.words) : []), [data, room]);
 
   const won = !!puzzle && room === puzzle.goal;
+  // Reaching the goal celebrates, for puzzles that have a celebration (the pilot: WILD → TAME). In
+  // development, ?celebrate opens it at once, and ?celebrate=2.2 holds it at 2.2 seconds.
+  const theme = puzzle ? themeFor(puzzle.start, puzzle.goal) : undefined;
+  const [celebrating, setCelebrating] = useState<{ freezeAt?: number } | null>(null);
+  useEffect(() => {
+    if (won && theme) setCelebrating({});
+  }, [won, theme]);
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get('celebrate');
+    if (import.meta.env.DEV && q !== null) setCelebrating({ freezeAt: q ? Number(q) : undefined });
+  }, []);
   const stepEdits = history.length;
   const locked = stepEdits >= STEP_LIMIT;
 
@@ -553,6 +566,9 @@ export function MazeApp() {
                   Play {data.puzzle.start} → {data.puzzle.goal}
                 </button>
               ) : null}
+              <button className="pill quiet" onClick={() => setCelebrating({})}>
+                Preview celebration
+              </button>
               {(Object.keys(FLAGS) as Flag[]).map((f) => (
                 <label key={f} className="flag">
                   <input type="checkbox" checked={flags[f]} onChange={() => toggleFlag(f)} /> {FLAGS[f].label}
@@ -570,6 +586,17 @@ export function MazeApp() {
         </aside>
       </div>
       {inkFlights}
+      {celebrating && (
+        <Celebration
+          start={theme ? puzzle.start : data.puzzle.start}
+          goal={theme ? puzzle.goal : data.puzzle.goal}
+          theme={theme ?? themeFor(data.puzzle.start, data.puzzle.goal)!}
+          strokes={won ? spent : data.puzzle.best + 1}
+          best={theme ? best : data.puzzle.best}
+          freezeAt={celebrating.freezeAt}
+          onClose={() => setCelebrating(null)}
+        />
+      )}
     </MotionConfig>
   );
 }
