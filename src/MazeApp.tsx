@@ -214,15 +214,15 @@ export function MazeApp() {
   const locked = stepEdits >= STEP_LIMIT;
 
   const onEdit = useCallback(
-    (next: Placement[][]) => {
-      if (won || locked) return;
+    (next: Placement[][]): boolean => {
+      if (won || locked) return false;
       const letters = next.map(recognize);
       const word = letters.every(Boolean) ? letters.join('') : null;
       if (word === room) {
         // Back to where this step started: refund it.
         setCells(cellsFor(room));
         setHistory([]);
-        return;
+        return true;
       }
       if (word && dict.has(word)) {
         setRoom(word);
@@ -231,7 +231,7 @@ export function MazeApp() {
         // Going back to a word already visited is free, and it isn't listed again.
         if (trail.some((v) => v.word === word)) {
           setLastDoor({ word, cost: 0, back: true, pot: false });
-          return;
+          return true;
         }
         // A new word: banked ink pays first (see payStep), and a pot banks more on its first visit.
         const { paid, used } = payStep(stepEdits + 1, ink);
@@ -240,10 +240,11 @@ export function MazeApp() {
         setInk(ink - used + (pot ? 1 : 0));
         setTrail((t) => [...t, { word, cost: paid, used }]);
         setLastDoor({ word, cost: paid, used, back: false, pot });
-        return;
+        return true;
       }
       setHistory((h) => [...h, cells]);
       setCells(next);
+      return true;
     },
     [won, locked, room, dict, stepEdits, cells, trail, ink, potPlan],
   );

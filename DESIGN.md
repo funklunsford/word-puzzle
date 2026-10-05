@@ -331,3 +331,10 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 ## Half-built U merges (2026-10-05, branch `qol`)
 - **The problem:** a long bar with the cup to its right isn't a letter yet (U needs both bars), so no look applied and the bar ran through the cup's left tail.
 - **The rule** (`formedLooks`): a shape that isn't a letter but fits inside exactly one letter, at one alignment, is drawn with that letter's looks. One bar and the cup can only become U, so the bar stops where the cup starts, while the cup hovers and once it's dropped (the bar's tap area is then its top half, as in U). A test goes through every half-built shape of every letter: this is the only one that gains a look ("‖", a lone cup and G's lone chin stay as they are, since several letters fit them). Display only.
+
+## Double-tap on a phone never removes two strokes (2026-10-05, branch `qol`)
+- **The bug** (from the mobile playtest): a tap removed a stroke at once unless it could turn on its spot, so a double tap on, say, R's bowl removed the bowl and then whatever stroke sat under the second tap (two strokes spent).
+- **Now, on a touch screen, every tap on a placed stroke waits 400 ms** (the stroke dims; it stays tappable) before removing it. A second tap on it in that time turns it on its spot where it fits the other way round, or wiggles it where it doesn't, and removes nothing. This supersedes "only strokes that fit their spot another way wait" above.
+- **A press on anything else in that moment** lets the removal go ahead and then carries on normally (it used to be spent): edits are made against the latest cells (a ref kept up to date as edits are applied; `onEdit` reports whether the game took the edit), and a pressed stroke is found again by its key. Three quick taps on three strokes remove all three.
+- **The mouse is unchanged:** a click removes at once.
+- **Not done** (from the same playtest): turn badges (rejected before), the small chevron turning (it never needs to), hit areas picked by draw order where strokes meet.

@@ -75,7 +75,7 @@ const ORIENTS = Object.fromEntries(
   TILE_IDS.map((t) => [t, [...new Set(Object.values(LETTERS).flatMap((g) => g.parts.filter((p) => p.tile === t).map((p) => norm(p.rot ?? 0))))].sort((a, b) => a - b)]),
 ) as Record<TileId, number[]>;
 
-type Source = { kind: 'tray' } | { kind: 'cell'; cell: number; index: number };
+type Source = { kind: 'tray' } | { kind: 'cell'; cell: number; index: number; key: string };
 
 /** The spot a rotatable stroke is locked onto while it's held over a cell. */
 interface Aim {
@@ -136,7 +136,8 @@ interface Props {
   disabled: boolean;
   /** The current room; when it changes (a door opened) the word briefly glows. */
   room: string;
-  onEdit: (next: Placement[][]) => void;
+  /** Apply an edit; returns false when the game refuses it (the step is out of strokes, or won). */
+  onEdit: (next: Placement[][]) => boolean | void;
   onHoverTile: (tile: TileId | null) => void;
   /** Phone layout: narrower cells sharing the row's width (the unit is then measured, not given). */
   compact?: boolean;
@@ -229,16 +230,27 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     setTrayTurn((s) => ({ ...s, [t]: ORIENTS[t][(ORIENTS[t].indexOf(s[t]) + 1) % ORIENTS[t].length] }));
   // A single tap wiggles a turnable stroke (a hint that it turns); a second tap soon after turns it.
   const lastTap = useRef<{ tile: TileId; at: number } | null>(null);
-  // On a touch screen a tap on a placed stroke that could sit the other way round on its spot waits
-  // a moment before removing it: a second tap turns it there instead.
+  // Edits are made against the latest cells: the word as last drawn, or as just edited ahead of
+  // the next draw (a tap can let a waiting removal go ahead and then carry on with its own press).
+  const cellsRef = useRef(cells);
+  cellsRef.current = cells;
+  const apply = (next: Placement[][]) => {
+    if (onEdit(next) !== false) cellsRef.current = next;
+  };
+  // On a touch screen a tap on a placed stroke waits a moment before removing it (it dims): a
+  // second tap turns it on its spot if it fits the other way round there, or wiggles it if it
+  // doesn't, and removes nothing. Then a double tap can never remove two strokes.
   const pendingTap = useRef<{ cell: number; key: string; timer: number; remove: () => void } | null>(null);
+  const [pendingStroke, setPendingStroke] = useState<string | null>(null);
   const settleTap = (run: boolean) => {
     const pt = pendingTap.current;
     if (!pt) return;
     pendingTap.current = null;
     clearTimeout(pt.timer);
+    setPendingStroke(null);
     if (run) pt.remove();
   };
+  const [wiggle, setWiggle] = useState<{ id: string; n: number }>({ id: '', n: 0 });
   // A word changed some other way (undo, reset, a new puzzle) drops a waiting removal.
   useEffect(() => () => settleTap(false), [cells]);
   const [nudges, setNudges] = useState<Partial<Record<TileId, number>>>({});
@@ -271,8 +283,10 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     return () => clearTimeout(t);
   }, [room]);
 
-  const without = (cell: number, source: Source | undefined) =>
-    source?.kind === 'cell' && source.cell === cell ? cells[cell].filter((_, i) => i !== source.index) : cells[cell];
+  const without = (cell: number, source: Source | undefined) => {
+    const now = cellsRef.current;
+    return source?.kind === 'cell' && source.cell === cell ? now[cell].filter((_, i) => i !== source.index) : now[cell];
+  };
 
   /** Screen position of a point in a cell's coordinates. */
   const screenOf = (cell: number, x: number, y: number) => {
@@ -447,7 +461,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     const rot = norm(original.rot ?? 0);
     // A stroke alone in its cell (V's chevron) is offered back at the empty cell's x, not where it
     // sits in its letter: there only its height has to match, and it keeps its own x.
-    const alone = cells[cell].length === 1;
+    const alone = cellsRef.current[cell].length === 1;
     const ways = d.slots[cell]
       .map((s) => (alone ? { ...s.placement, x: original.x } : s.placement))
       .filter((q) => q.x === original.x && q.y === original.y && norm(q.rot ?? 0) !== rot)
@@ -456,13 +470,16 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   };
 
   const finish = (d: Drag) => {
-    const next = cells.map((c) => [...c]);
+    const base = cellsRef.current;
+    const next = base.map((c) => [...c]);
     const from = d.source.kind === 'cell' ? d.source : null;
-    const original = from ? cells[from.cell][from.index] : null;
+    const at = from ? base[from.cell].findIndex((q) => slotKey(q) === from.key) : -1;
+    if (from && at < 0) return; // the stroke's gone (the word changed under the press)
+    const original = from ? base[from.cell][at] : null;
     const remove = () => {
       if (!from) return;
-      next[from.cell].splice(from.index, 1);
-      onEdit(next);
+      next[from.cell].splice(at, 1);
+      apply(next);
     };
     if (!d.moved) {
       // On a touch screen, double-tapping a stroke in the tray turns it (if it ever needs turning).
@@ -479,35 +496,42 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
         }
         return;
       }
-      // On a touch screen, double-tapping a placed stroke turns it on its spot, where it fits the
-      // other way round too (a chevron as V or A, a bowl as B's or U's); one tap still removes it.
+      // On a touch screen a tap on a placed stroke waits a moment (dimmed) before removing it; a
+      // second tap turns it on its spot where it fits the other way round too (a chevron as V or Λ,
+      // a bowl as B's or U's), or wiggles it where it doesn't (and removes nothing).
       if (d.touch && from && original) {
-        const turned = turnedInPlace(d, from.cell, original);
-        if (turned && d.again) {
-          next[from.cell][from.index] = turned;
-          land(from.cell, turned, d.turn);
-          onEdit(next);
+        if (d.again) {
+          const turned = turnedInPlace(d, from.cell, original);
+          if (turned) {
+            next[from.cell][at] = turned;
+            land(from.cell, turned, d.turn);
+            apply(next);
+          } else setWiggle((w) => ({ id: `${from.cell}|${from.key}`, n: w.n + 1 }));
           return;
         }
-        if (turned) {
-          const timer = window.setTimeout(() => settleTap(true), DOUBLE_TAP);
-          pendingTap.current = {
-            cell: from.cell,
-            key: slotKey(original),
-            timer,
-            remove: () => {
-              // It flies home from its spot, as if it had been removed at once.
-              [gx, gy, gs, gr].forEach((v) => v.stop());
-              gx.set(d.home.x);
-              gy.set(d.home.y);
-              gs.set(1);
-              gr.set(0);
-              remove();
-              flyHome(d);
-            },
-          };
-          return;
-        }
+        const timer = window.setTimeout(() => settleTap(true), DOUBLE_TAP);
+        pendingTap.current = {
+          cell: from.cell,
+          key: from.key,
+          timer,
+          remove: () => {
+            // Whatever the word is by then: the stroke is found again by its key.
+            const now = cellsRef.current.map((c) => [...c]);
+            const i = now[from.cell].findIndex((q) => slotKey(q) === from.key);
+            if (i < 0) return;
+            now[from.cell].splice(i, 1);
+            // It flies home from its spot, as if it had been removed at once.
+            [gx, gy, gs, gr].forEach((v) => v.stop());
+            gx.set(d.home.x);
+            gy.set(d.home.y);
+            gs.set(1);
+            gr.set(0);
+            apply(now);
+            flyHome(d);
+          },
+        };
+        setPendingStroke(`${from.cell}|${from.key}`);
+        return;
       }
       // A tap removes a placed stroke; a tray stroke that was only pressed goes back.
       remove();
@@ -518,9 +542,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       const p = d.target.slot.placement;
       land(d.target.cell, p, d.turn);
       if (from && from.cell === d.target.cell && slotKey(original!) === slotKey(p)) return; // dropped where it was
-      if (from) next[from.cell].splice(from.index, 1);
+      if (from) next[from.cell].splice(at, 1);
       next[d.target.cell].push(p);
-      onEdit(next);
+      apply(next);
       return;
     }
     // Nowhere to go: a placed stroke springs back to its slot, a tray stroke back to the tray.
@@ -534,12 +558,16 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     if (disabled || dragRef.current || !home) return;
     e.preventDefault();
     // A press while a tapped stroke waits to be removed: on that same stroke it may be the second
-    // tap; on anything else the removal goes ahead, and this press is spent (the word just changed).
+    // tap; on anything else the removal goes ahead first, and this press carries on against the
+    // word as it is now (its stroke found again by key).
     const pt = pendingTap.current;
-    const again = !!pt && source.kind === 'cell' && source.cell === pt.cell && slotKey(cells[source.cell][source.index]) === pt.key;
-    if (pt) {
-      settleTap(!again);
-      if (!again) return;
+    const again = !!pt && source.kind === 'cell' && source.cell === pt.cell && source.key === pt.key;
+    if (pt) settleTap(!again);
+    if (source.kind === 'cell') {
+      const { cell, key } = source;
+      const index = cellsRef.current[cell].findIndex((q) => slotKey(q) === key);
+      if (index < 0) return;
+      source = { ...source, index };
     }
     const touch = e.pointerType === 'touch';
     // A touch pointer is captured by the element it pressed, and a pressed placed stroke leaves
@@ -572,7 +600,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     else animate(gs, g.scaleTo, SETTLE);
     samples.current = [{ t: performance.now(), x: e.clientX, y: e.clientY }];
 
-    const slots = cells.map((_, c) => slotsFor(without(c, source), tile));
+    const slots = cellsRef.current.map((_, c) => slotsFor(without(c, source), tile));
     const d0: Drag = {
       tile,
       source,
@@ -656,7 +684,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   const pressPlaced = (e: React.PointerEvent, cell: number, p: Placement, x: number) => {
     const index = cells[cell].findIndex((q) => slotKey(q) === slotKey(p));
     const at = screenOf(cell, x, p.y);
-    if (index >= 0) start(e, p.tile, p.rot ?? 0, { kind: 'cell', cell, index }, at && { ...at, scale: 1 }, lookPoints(cells[cell], !!compact)[index]);
+    if (index >= 0) start(e, p.tile, p.rot ?? 0, { kind: 'cell', cell, index, key: slotKey(p) }, at && { ...at, scale: 1 }, lookPoints(cells[cell], !!compact)[index]);
   };
 
   const held = drag?.moved ? drag : null;
@@ -721,31 +749,37 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                     const x = squeezed(p.x);
                     const hovered = !drag && !disabled && hover?.cell === c && hover.key === key;
                     const landing = landings.current.get(`${c}|${key}`);
+                    // Tapped on a touch screen and about to go: dimmed (still there to tap again).
+                    const leaving = pendingStroke === `${c}|${key}`;
+                    // Double-tapped where it can't turn: a wiggle, and nothing removed.
+                    const wiggled = wiggle.id === `${c}|${key}` ? wiggle.n : 0;
                     return (
                       <motion.g
                         key={key}
                         className={`placed${hovered ? ' hovered' : ''}`}
                         initial={landing ? { x: landing.x, y: landing.y, scale: landing.scale, rotate: landing.rotate } : { opacity: 0 }}
-                        animate={{ x: 0, y: 0, rotate: 0, opacity: 1, scale: hovered ? 1.06 : 1 }}
+                        animate={{ x: 0, y: 0, rotate: 0, opacity: leaving ? 0.35 : 1, scale: hovered ? 1.06 : 1 }}
                         transition={
                           landing
                             ? { ...LAND, x: { ...LAND, velocity: landing.vx }, y: { ...LAND, velocity: landing.vy } }
-                            : { ...SETTLE, opacity: { duration: 0.15 } }
+                            : { ...SETTLE, opacity: { duration: leaving ? 0.08 : 0.15 } }
                         }
                       >
-                        {/* Eases into its formed letter's look and back (U's bar bends into the cup). */}
-                        <MorphStroke
-                          tile={p.tile}
-                          rot={p.rot ?? 0}
-                          x={x}
-                          y={p.y}
-                          seed={inkSeed(p)}
-                          minHalfWidth={minHalf}
-                          squeeze={squeeze}
-                          fill={red ? 'var(--spicy)' : undefined}
-                          look={look}
-                          from={landing ? (look ?? 'own') : undefined}
-                        />
+                        <motion.g key={wiggled} initial={wiggled ? { rotate: 0 } : false} animate={wiggled ? { rotate: [0, 11, -8, 4, 0] } : undefined} transition={WIGGLE}>
+                          {/* Eases into its formed letter's look and back (U's bar bends into the cup). */}
+                          <MorphStroke
+                            tile={p.tile}
+                            rot={p.rot ?? 0}
+                            x={x}
+                            y={p.y}
+                            seed={inkSeed(p)}
+                            minHalfWidth={minHalf}
+                            squeeze={squeeze}
+                            fill={red ? 'var(--spicy)' : undefined}
+                            look={look}
+                            from={landing ? (look ?? 'own') : undefined}
+                          />
+                        </motion.g>
                         {/* The hit area follows what's drawn, so tapping U's cup takes the bar, not a stem. */}
                         <path
                           className="hit"
