@@ -6,6 +6,7 @@ import { dataUrl } from './data';
 import type { Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
+import { COARSE, useMedia } from './useMedia';
 import { InkDrop } from './components/maze/InkDrop';
 import { InkPot } from './components/maze/InkPot';
 import { centerOf, useInkFlights } from './components/maze/InkFlights';
@@ -48,6 +49,8 @@ interface Visit {
 const COLUMN_W = 640;
 const SIDE_W = 260;
 const SIDE_MIN = 1000;
+/** Below this width the layout is the phone one: compact header and score, bigger word (see .maze.compact). */
+const COMPACT_MAX = 600;
 
 const HELP_KEY = 'strokes:seen-help';
 /** Storage can be missing or blocked (private windows); then help just opens every time. */
@@ -108,20 +111,28 @@ export function MazeApp() {
   const [help, setHelp] = useState(() => !seenHelp());
   useEffect(() => markHelpSeen(), []);
   const width = useWidth();
+  const compact = width < COMPACT_MAX;
+  const coarse = useMedia(COARSE);
 
   useEffect(() => {
-    // Every load plays a fresh puzzle, picked before the first render.
+    // Every load plays a fresh puzzle, picked before the first render. (`live` drops a load that
+    // was superseded, e.g. by StrictMode running this effect twice in development.)
+    let live = true;
     fetch(dataUrl('mazes.json'))
       .then((r) => r.json())
       .then((d: MazeData) => {
+        if (!live) return;
         setData(d);
         setCurrent(pickPuzzle(d));
       });
     // Definitions are a nicety: the game plays without them if they don't load.
     fetch(dataUrl('definitions.json'))
       .then((r) => r.json())
-      .then(setDefs)
+      .then((d) => live && setDefs(d))
       .catch(() => {});
+    return () => {
+      live = false;
+    };
   }, []);
 
   /** The puzzle being played: a random one from the pool (dev can switch to another, or to WILD → TAME). */
@@ -246,8 +257,11 @@ export function MazeApp() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className={`maze${side ? ' side' : ''}`} style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}>
-        <Masthead />
+      <div
+        className={`maze${side ? ' side' : ''}${compact ? ' compact' : ''}`}
+        style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}
+      >
+        <Masthead compact={compact} />
 
         <main className="column">
           <section className="scorecard">
@@ -256,7 +270,7 @@ export function MazeApp() {
             </button>
             <div className={`goal-panel${won ? ' reached' : ''}`}>
               <span className="label">{won ? 'Reached' : 'Goal'}</span>
-              <GlyphWord word={puzzle.goal} size={unit * 1.3} />
+              <GlyphWord word={puzzle.goal} size={compact ? 24 : unit * 1.3} />
               {!won && toGoal <= STEP_LIMIT && <div className="score-hint">One step away</div>}
             </div>
             <div className="score-panel">
@@ -306,7 +320,11 @@ export function MazeApp() {
               <ul className="how">
                 <li>Change the word into another real word, using up to 3 strokes per step.</li>
                 <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
-                <li>A chevron, arc or bowl that fits a spot either way round? Hold it over the spot and circle the cursor around it to turn it.</li>
+                {coarse ? (
+                  <li>A chevron, arc or bowl that fits a spot either way round goes in the way it's turned: tap it in the tray to turn it.</li>
+                ) : (
+                  <li>A chevron, arc or bowl that fits a spot either way round? Hold it over the spot and circle the cursor around it to turn it.</li>
+                )}
                 <li>Going back to a word you've already visited is free.</li>
                 {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke that pays for a later step.</li>}
               </ul>
@@ -339,7 +357,15 @@ export function MazeApp() {
                 )}
               </AnimatePresence>
             </div>
-            <WordEditor cells={cells} unit={unit} disabled={won || locked} room={room} onEdit={onEdit} onHoverTile={setHoverTile} />
+            <WordEditor
+              cells={cells}
+              unit={unit}
+              compact={compact}
+              disabled={won || locked}
+              room={room}
+              onEdit={onEdit}
+              onHoverTile={setHoverTile}
+            />
             <div className="letters" aria-label="Letters by stroke">
               {Object.keys(LETTERS).map((ch) => (
                 <span

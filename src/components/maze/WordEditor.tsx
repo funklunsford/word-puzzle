@@ -1,16 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import { LETTERS, TILES, TILE_IDS, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, lookCenterline, type Pt } from '../../ink';
 import { EMPTY_CELL_X, formedLooks, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
 import { MorphStroke, centerlinePath } from './MorphStroke';
+import { COARSE, useMedia } from '../../useMedia';
 
 const CELL_W = 4;
+/**
+ * On phones the cells are narrower (most letters are at most 2 units wide; a half-built W spills
+ * over its neighbours for a moment), so the four of them can draw the word bigger.
+ */
+const CELL_W_COMPACT = 2.75;
 const CELL_TOP = -0.7;
 const CELL_H = 3.6;
-/** A press that moves less than this many pixels is a tap (remove), not a drag. */
+/** A press that moves less than this many pixels is a tap (remove), not a drag. Fingers wobble more. */
 const TAP_SLOP = 6;
+const TAP_SLOP_TOUCH = 10;
 /** Tray tiles draw their 2.4-unit box in about 40 px. */
 const TRAY_PX_PER_UNIT = 40 / 2.4;
 
@@ -36,6 +43,11 @@ const norm = (deg: number) => ((deg % 360) + 360) % 360;
 const wrap = (deg: number) => norm(deg + 180) - 180;
 /** The quarter turn nearest to `turn` (unwrapped, so turn − quarter is the leftover twist). */
 const quarter = (turn: number) => Math.round(turn / 90) * 90;
+
+/** The orientations each stroke takes in some letter: what tapping it in the tray cycles through on a touch screen. */
+const ORIENTS = Object.fromEntries(
+  TILE_IDS.map((t) => [t, [...new Set(Object.values(LETTERS).flatMap((g) => g.parts.filter((p) => p.tile === t).map((p) => norm(p.rot ?? 0))))].sort((a, b) => a - b)]),
+) as Record<TileId, number[]>;
 
 type Source = { kind: 'tray' } | { kind: 'cell'; cell: number; index: number };
 
@@ -69,6 +81,10 @@ interface Drag {
   overCell: number | null;
   /** The look it had in a formed letter when picked up (U's cup), so it eases back to itself as it lifts. */
   look0: Pt[] | null;
+  /** A finger, not a mouse or pen: the stroke is held above the fingertip, and isn't twisted. */
+  touch: boolean;
+  /** The orientation it was picked up at; a touch drag keeps to it where a spot fits it more than one way. */
+  chosen: number;
 }
 
 /** A released stroke's starting pose relative to its slot (cell units), so it springs in from there. */
@@ -89,6 +105,8 @@ interface Props {
   room: string;
   onEdit: (next: Placement[][]) => void;
   onHoverTile: (tile: TileId | null) => void;
+  /** Phone layout: narrower cells sharing the row's width (the unit is then measured, not given). */
+  compact?: boolean;
 }
 
 /** The centrelines a cell's strokes are drawn along: their formed letter's looks, or null where a stroke is drawn as itself. */
@@ -125,7 +143,7 @@ const TWISTS = new Set(
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
  * slot from where it was released or flies back to its tray tile.
  */
-export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }: Props) {
+export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, compact = false }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<{ cell: number; key: string } | null>(null);
   /** A stroke flying home to its tray tile after the drag ended (removed, or not placed). */
@@ -135,18 +153,51 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
   const svgs = useRef<(SVGSVGElement | null)[]>([]);
   const trayEls = useRef(new Map<TileId, HTMLElement>());
   const landings = useRef(new Map<string, Landing>());
+  const rootRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
+  const coarse = useMedia(COARSE);
+
+  // On phones the four cells share the row's width, and the unit is whatever that makes it.
+  const cellW = compact ? CELL_W_COMPACT : CELL_W;
+  const [measured, setMeasured] = useState<number | null>(null);
+  const u = compact && measured ? measured : unit;
+  useLayoutEffect(() => {
+    const el = svgs.current[0];
+    if (!compact || !el) return;
+    const measure = () => setMeasured(el.getBoundingClientRect().width / CELL_W_COMPACT);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [compact]);
+
+  // How each stroke sits in the tray. On a touch screen tapping a chevron, arc or bowl turns it
+  // there (there's no twisting a stroke under a finger), and it goes in the way it's turned; it
+  // starts the way it most often goes in (an arc as C, not on its side).
+  const [trayTurn, setTrayTurn] = useState(
+    () =>
+      Object.fromEntries(
+        TILE_IDS.map((t) => {
+          const display = TILES[t].display ?? 0;
+          return [t, window.matchMedia(COARSE).matches && !ORIENTS[t].includes(display) ? ORIENTS[t][0] : display];
+        }),
+      ) as Record<TileId, number>,
+  );
+  const turnInTray = (t: TileId) =>
+    setTrayTurn((s) => ({ ...s, [t]: ORIENTS[t][(ORIENTS[t].indexOf(s[t]) + 1) % ORIENTS[t].length] }));
 
   // The floating stroke: centre (screen px), scale (1 = word size) and extra rotation (flights).
   const gx = useMotionValue(0);
   const gy = useMotionValue(0);
   const gs = useMotionValue(1);
   const gr = useMotionValue(0);
-  const grip = useRef({ dx: 0, dy: 0, scale0: 1, snapped: false, scaleTo: 1, flightId: 0 });
+  // Where the stroke was grabbed (it keeps that point under a mouse; under a finger it's held
+  // `lift` px above the fingertip instead, so the finger doesn't hide it or where it's going).
+  const grip = useRef({ dx: 0, dy: 0, lift: 0, scale0: 1, snapped: false, scaleTo: 1, flightId: 0 });
   const samples = useRef<{ t: number; x: number; y: number }[]>([]);
 
   const offsets = useMemo(() => cells.map(centerOffset), [cells]);
-  const minHalf = minHalfWidthAt(unit);
+  const minHalf = minHalfWidthAt(u);
 
   // Landings are read when their stroke mounts, so they only need to live for one commit.
   useEffect(() => {
@@ -177,7 +228,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
   /** Where a tray tile's stroke sits on screen, and its size relative to the word's strokes. */
   const trayHome = (tile: TileId) => {
     const r = trayEls.current.get(tile)?.querySelector('svg')?.getBoundingClientRect();
-    return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2, scale: r.width / 2.4 / unit } : null;
+    return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2, scale: r.width / 2.4 / u } : null;
   };
 
   /** Pointer velocity (px/s) over the last tenth of a second. */
@@ -238,6 +289,14 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       return { overCell, target: { cell: overCell, slot: nearest }, aim: null, turn };
     }
 
+    // Under a finger there's no twisting: the stroke goes in the way it was turned in the tray,
+    // following the nearest spot (red, and the label says so, if it doesn't fit there that way).
+    if (d.touch) {
+      const aim = { cell: overCell, x: nearest.placement.x, y: nearest.placement.y, armed: false, angle: null };
+      const slot = ways.find((s) => norm(s.placement.rot ?? 0) === norm(d.chosen));
+      return { overCell, target: slot ? { cell: overCell, slot } : null, aim, turn: d.turn + wrap(d.chosen - d.turn) };
+    }
+
     // Rotatable strokes lock onto a spot; circling the cursor around it turns them.
     let aim = d.aim;
     const stray = !aim || aim.cell !== overCell || dist(aim) > RELEASE;
@@ -289,12 +348,12 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
     if (!at || reduce) return;
     const v = velocity();
     landings.current.set(`${cell}|${slotKey(p)}`, {
-      x: (gx.get() - at.x) / unit,
-      y: (gy.get() - at.y) / unit,
+      x: (gx.get() - at.x) / u,
+      y: (gy.get() - at.y) / u,
       scale: gs.get(),
       rotate: wrap(turn - (p.rot ?? 0)),
-      vx: v.x / unit,
-      vy: v.y / unit,
+      vx: v.x / u,
+      vy: v.y / u,
     });
   };
 
@@ -305,7 +364,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
     const id = ++grip.current.flightId;
     setFlight({ id, tile: d.tile });
     // The floating stroke switches to the tray's orientation and turns there from its own.
-    gr.set(wrap(d.turn - (TILES[d.tile].display ?? 0)));
+    gr.set(wrap(d.turn - trayTurn[d.tile]));
     animate(gx, home.x, SETTLE);
     animate(gy, home.y, SETTLE);
     animate(gr, 0, SETTLE);
@@ -322,6 +381,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       onEdit(next);
     };
     if (!d.moved) {
+      // On a touch screen, tapping a stroke in the tray turns it (if it ever needs turning).
+      if (d.touch && d.source.kind === 'tray') {
+        if (TWISTS.has(d.tile)) turnInTray(d.tile);
+        return;
+      }
       // A tap removes a placed stroke; a tray stroke that was only pressed goes back.
       remove();
       flyHome(d);
@@ -346,6 +410,16 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
   const start = (e: React.PointerEvent, tile: TileId, rot: number, source: Source, home: { x: number; y: number; scale: number } | null, look0: Pt[] | null = null) => {
     if (disabled || dragRef.current || !home) return;
     e.preventDefault();
+    const touch = e.pointerType === 'touch';
+    // A touch pointer is captured by the element it pressed, and a pressed placed stroke leaves
+    // the page as it lifts: capture it on the editor instead, so the drag keeps getting its events.
+    if (touch) {
+      try {
+        rootRef.current?.setPointerCapture(e.pointerId);
+      } catch {
+        // the pointer's already gone (lifted at once, or synthetic): the window listeners still work
+      }
+    }
     // Lift the stroke from exactly where it sits, keeping the point that was grabbed.
     const g = grip.current;
     g.flightId++;
@@ -355,11 +429,13 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
     gy.set(home.y);
     gr.set(0);
     gs.set(home.scale);
-    const reach = 0.8 * unit * home.scale;
-    g.dx = Math.max(-reach, Math.min(reach, e.clientX - home.x));
-    g.dy = Math.max(-reach, Math.min(reach, e.clientY - home.y));
+    const reach = 0.8 * u * home.scale;
+    g.dx = touch ? 0 : Math.max(-reach, Math.min(reach, e.clientX - home.x));
+    g.dy = touch ? 0 : Math.max(-reach, Math.min(reach, e.clientY - home.y));
+    g.lift = touch ? Math.round(Math.min(72, Math.max(44, 1.7 * u))) : 0;
     g.scale0 = home.scale;
-    g.snapped = false;
+    // Under a finger the stroke glides up to its place above the fingertip rather than jumping there.
+    g.snapped = touch;
     g.scaleTo = home.scale * LIFT;
     if (reduce) gs.set(g.scaleTo);
     else animate(gs, g.scaleTo, SETTLE);
@@ -378,22 +454,28 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
       target: null,
       overCell: null,
       look0,
+      touch,
+      chosen: rot,
     };
     dragRef.current = d0;
     setDrag(d0);
     setHover(null);
+    // (The letter strip lights up for the held stroke; with the pointer captured it can't hover.)
+    if (touch) onHoverTile(tile);
     const update = (ev: PointerEvent) => {
       const d = dragRef.current!;
       samples.current = [...samples.current.slice(-5), { t: performance.now(), x: ev.clientX, y: ev.clientY }];
-      const moved = d.moved || Math.hypot(ev.clientX - d.startX, ev.clientY - d.startY) >= TAP_SLOP;
-      const nd = { ...d, moved, ...(moved ? locate(d, ev.clientX, ev.clientY) : {}) };
+      const moved = d.moved || Math.hypot(ev.clientX - d.startX, ev.clientY - d.startY) >= (d.touch ? TAP_SLOP_TOUCH : TAP_SLOP);
+      // Where the stroke is aimed: the cursor, or the point held above a fingertip.
+      const ay = ev.clientY - grip.current.lift;
+      const nd = { ...d, moved, ...(moved ? locate(d, ev.clientX, ay) : {}) };
       dragRef.current = nd;
       // An automatic turn (snapping into an existing letter) is animated; twisting follows the cursor.
-      if (nd.turn !== d.turn && !nd.aim && !reduce) {
+      if (nd.turn !== d.turn && !nd.aim?.armed && !reduce) {
         gr.set(gr.get() + d.turn - nd.turn);
         animate(gr, 0, SETTLE);
       }
-      if (moved) steer(nd, ev.clientX, ev.clientY);
+      if (moved) steer(nd, ev.clientX, ay);
       return nd;
     };
     const onMove = (ev: PointerEvent) => setDrag(update(ev));
@@ -434,21 +516,23 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
     const looks = lookPoints(onSpot ? [...kept, onSpot] : kept);
     return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null };
   };
-  const floating = drag
+  // A finger pressing a tray stroke may be about to tap it (to turn it), so it stays put until it moves.
+  const lifting = !!drag && !(drag.touch && drag.source.kind === 'tray' && !drag.moved);
+  const floating = lifting
     ? {
-        tile: drag.tile,
-        turn: drag.turn,
+        tile: drag!.tile,
+        turn: drag!.turn,
         red: !!held?.aim && !held.target,
         lifted: true,
-        look0: drag.look0,
+        look0: drag!.look0,
         look: held?.target ? preview(held.target.cell).heldLook : null,
       }
     : flight
-      ? { tile: flight.tile, turn: TILES[flight.tile].display ?? 0, red: false, lifted: false, look0: null, look: null }
+      ? { tile: flight.tile, turn: trayTurn[flight.tile], red: false, lifted: false, look0: null, look: null }
       : null;
 
   return (
-    <div className={`editor${disabled ? ' disabled' : ''}`}>
+    <div ref={rootRef} className={`editor${disabled ? ' disabled' : ''}${compact ? ' compact' : ''}`}>
       <div className={`word-cells${glow ? ' opened' : ''}`}>
         {cells.map((content, c) => {
           const letter = recognize(content);
@@ -469,9 +553,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                 ref={(el) => {
                   svgs.current[c] = el;
                 }}
-                viewBox={`${-CELL_W / 2} ${CELL_TOP} ${CELL_W} ${CELL_H}`}
-                width={CELL_W * unit}
-                height={CELL_H * unit}
+                viewBox={`${-cellW / 2} ${CELL_TOP} ${cellW} ${CELL_H}`}
+                width={compact ? '100%' : cellW * unit}
+                height={compact ? undefined : CELL_H * unit}
               >
                 <motion.g className="cell-content" initial={false} animate={{ x: offsets[c] }} transition={SETTLE}>
                   {shown.map(({ p, look }) => {
@@ -507,6 +591,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                         {/* The hit area follows what's drawn, so tapping U's cup takes the bar, not a stem. */}
                         <path
                           className="hit"
+                          data-slot={key /* which stroke this is (read by tests and tools) */}
                           d={look ? centerlinePath(look) : TILES[p.tile].path}
                           transform={
                             look
@@ -531,7 +616,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? 'circle to turn' : noFit ? 'no fit' : (letter ?? '·')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (held?.touch ? 'turn in tray' : 'circle to turn') : noFit ? 'no fit' : (letter ?? '·')}
               </span>
             </div>
           );
@@ -540,7 +625,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
 
       <div className="tray">
         {TILE_IDS.map((t) => {
-          const taken = (drag?.source.kind === 'tray' && drag.tile === t) || flight?.tile === t;
+          const taken = (lifting && drag?.source.kind === 'tray' && drag.tile === t) || flight?.tile === t;
           return (
             <button
               key={t}
@@ -548,14 +633,19 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
                 if (el) trayEls.current.set(t, el);
               }}
               className={`tray-tile${taken ? ' taken' : ''}`}
+              data-turn={trayTurn[t] /* how it's turned (read by tests and tools) */}
               style={{ ['--tile' as string]: `var(--t-${t})` }}
-              title={TWISTS.has(t) ? `${TILES[t].name}: where it fits a spot either way round, circle the cursor around the spot to turn it` : TILES[t].name}
-              onPointerDown={(e) => start(e, t, TILES[t].display ?? 0, { kind: 'tray' }, trayHome(t))}
+              title={
+                TWISTS.has(t)
+                  ? `${TILES[t].name}: ${coarse ? 'tap to turn it' : 'where it fits a spot either way round, circle the cursor around the spot to turn it'}`
+                  : TILES[t].name
+              }
+              onPointerDown={(e) => start(e, t, trayTurn[t], { kind: 'tray' }, trayHome(t))}
               onPointerEnter={() => onHoverTile(t)}
               onPointerLeave={() => onHoverTile(null)}
             >
               <svg viewBox="-1.2 -1.2 2.4 2.4">
-                <TileStroke tile={t} rot={TILES[t].display} minHalfWidth={minHalfWidthAt(TRAY_PX_PER_UNIT)} />
+                <TrayStroke tile={t} turn={trayTurn[t]} />
               </svg>
             </button>
           );
@@ -566,9 +656,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
         <motion.svg
           className={`floating${floating.lifted ? ' lifted' : ''}`}
           viewBox="-1.2 -1.2 2.4 2.4"
-          width={2.4 * unit}
-          height={2.4 * unit}
-          style={{ left: -1.2 * unit, top: -1.2 * unit, x: gx, y: gy, scale: gs, rotate: gr }}
+          width={2.4 * u}
+          height={2.4 * u}
+          style={{ left: -1.2 * u, top: -1.2 * u, x: gx, y: gy, scale: gs, rotate: gr }}
         >
           <Turned
             tile={floating.tile}
@@ -581,6 +671,20 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile }:
         </motion.svg>
       )}
     </div>
+  );
+}
+
+/** A stroke in its tray tile, turning (forwards, with a spring) when it's turned in the tray. */
+function TrayStroke({ tile, turn }: { tile: TileId; turn: number }) {
+  const prev = useRef(turn);
+  const delta = norm(turn - prev.current);
+  useEffect(() => {
+    prev.current = turn;
+  }, [turn]);
+  return (
+    <motion.g key={turn} initial={delta ? { rotate: -delta } : false} animate={{ rotate: 0 }} transition={SETTLE}>
+      <TileStroke tile={tile} rot={turn} minHalfWidth={minHalfWidthAt(TRAY_PX_PER_UNIT)} />
+    </motion.g>
   );
 }
 

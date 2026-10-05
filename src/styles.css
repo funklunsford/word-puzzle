@@ -1236,3 +1236,168 @@ select,
     animation-duration: 0.3s;
   }
 }
+
+/* ---------- Phones (.maze.compact: under 600 px wide) ----------
+   The game gets the screen: a slim wordmark, the score on one row, and the word as big as the
+   width allows (four narrower cells share the row, and the editor measures its unit from them). */
+.maze.compact {
+  padding: 10px 10px 32px;
+  gap: 10px;
+}
+
+.maze.compact .masthead-art {
+  width: min(170px, 48vw);
+}
+
+.maze.compact .column {
+  gap: 10px;
+}
+
+.maze.compact .scorecard {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 54px 10px 10px;
+  text-align: left;
+  border-radius: 18px;
+  box-shadow: 0 4px 0 var(--ledge);
+}
+
+.maze.compact .goal-panel {
+  flex: none;
+  padding: 4px 10px 3px;
+  border-radius: 12px;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--gold) 45%, var(--ledge));
+}
+
+.maze.compact .goal-panel.reached {
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--ok) 45%, var(--ledge));
+}
+
+.maze.compact .score-panel {
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.maze.compact .score-big {
+  font-size: 15px;
+}
+
+.maze.compact .score-big strong {
+  font-size: 34px;
+}
+
+.maze.compact .score-sub {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.maze.compact .ink-bank {
+  font-size: 12px;
+}
+
+.maze.compact .help-btn {
+  top: 50%;
+  right: 10px;
+  translate: 0 -50%;
+}
+
+.maze.compact .help-card {
+  padding: 10px 12px 12px;
+  font-size: 13px;
+}
+
+.maze.compact .board {
+  gap: 8px;
+  padding: 10px;
+  border-radius: 18px;
+}
+
+.maze.compact .definition {
+  font-size: 13px;
+}
+
+.maze.compact .editor {
+  gap: 10px;
+}
+
+.maze.compact .word-cells {
+  gap: 5px;
+}
+
+.maze.compact .cell {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 3px 3px 2px;
+  border-radius: 12px;
+  box-shadow: 0 3px 0 var(--ledge);
+}
+
+.maze.compact .cell svg {
+  width: 100%;
+  height: auto;
+}
+
+.maze.compact .cell-letter {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+
+.maze.compact .tray {
+  gap: 8px;
+}
+
+.maze.compact .tray-tile {
+  flex: 1 1 52px;
+  min-width: 46px;
+  max-width: 64px;
+  padding: 8px;
+}
+
+.maze.compact .letters {
+  padding-top: 6px;
+}
+
+.maze.compact .controls {
+  gap: 6px;
+}
+
+.maze.compact .side-card {
+  padding: 12px;
+  border-radius: 18px;
+}
+
+/* Touch screens: targets sized for a fingertip, and no callouts or double-tap zoom mid-game. */
+@media (pointer: coarse) {
+  .hit {
+    stroke-width: 1.1;
+  }
+
+  .editor {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+  }
+
+  .pill,
+  .help-btn,
+  .trail-word,
+  .help-card .close {
+    touch-action: manipulation;
+  }
+
+  .pill {
+    min-height: 44px;
+  }
+
+  .pill.quiet {
+    min-height: 40px;
+  }
+}

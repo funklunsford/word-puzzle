@@ -268,3 +268,34 @@ Modifiers are prototyped behind **feature flags** (`src/flags.ts`).
 - **The cache:** GitHub Pages lets browsers cache every file for 10 minutes. The data files (`mazes.json`, `definitions.json`, `boards.json`) keep their names across builds, so new code could meet old cached data. That happened right after the puzzle pool shipped: a stale `mazes.json` had no pool, and the page hung on "Loading…".
 - **Versioned data:** the game now requests data with the build's data version (a hash of the files, `src/data.ts` and `vite.config.ts`). As a backstop, a missing pool falls back to WILD → TAME.
 - **Previous version kept:** `npm run deploy` keeps the live version's scripts and styles alongside the new ones, so a browser still holding the old page for those 10 minutes doesn't ask for missing files.
+
+## Phones and touch (2026-10-05)
+Playtesting on a phone found the layout awkward, strokes too small to place, and twisting impossible: it needs the finger within about 6 px of a spot, then circling it. Phones (under 600 px wide, `.maze.compact`) now get their own layout, touch gets its own handling, and desktop is unchanged (checked box for box at 1280 px).
+
+**Layout** (the `compact` class from `MazeApp`, styles in `styles.css`):
+- **Header:** a slim wordmark only. Its strokes fly in from above; the parts row is hidden.
+- **Score card:** one row, with the goal tile, the stroke count, the lowest possible and words within reach, and **?**.
+- **Board:** starts about 150 px down, instead of 375.
+- **Word:** four narrower cells (2.75 units instead of 4) share the row. The editor measures its unit from them with a `ResizeObserver`: about 24, 25.5, 27 and 30 px at 360, 375, 393 and 430 px wide, against 14 before. A half-built W spills over its neighbours for a moment.
+- **Tray:** five tiles a row, 56–64 px each.
+
+**Touch** (per gesture, `pointerType === 'touch'`, so a mouse or pen on any screen behaves as before):
+- **The held stroke** floats about 1.7 units above the fingertip (44–72 px). It and its target spot stay visible, and it glides up there when lifted.
+- **Turning:** there's no twisting under a finger. Tapping a chevron, arc or bowl in the tray turns it, cycling through the ways it goes into letters (the arc starts as C on touch screens). It goes in the way it's turned. Spots that fit a stroke only one way still turn it automatically. Over a spot that needs the other way, it shows red and the cell says "turn in tray". How to play says so on touch screens.
+- **Taps:** a tap on a tray stroke doesn't lift it, so turning it doesn't flicker. The tap slop is 10 px instead of 6.
+- **Pointer capture:** the editor captures the pointer while you drag, because a pressed placed stroke leaves the page as it lifts and would otherwise lose the touch.
+- **Comfort:** hit areas are wider (1.1 units), pills are at least 44 px tall, and there are no callouts or double-tap zoom.
+- **Letter strip:** it lights up for the held stroke.
+
+**Tested** in the browser pane at 375 px with synthetic touch events:
+- turning in the tray, then V or A in an empty cell;
+- the bowl under a stem as B (flat) or U (turned);
+- tap to remove;
+- a stroke moved between letters;
+- W built by dropping a chevron on a V;
+- undo and reset;
+- a new word, going back to a visited one free, and a full WILD → TAME win;
+- path definitions, help and the route reveal;
+- the misfit hint.
+
+No horizontal scroll at 360–430 px. Not yet tried on a real phone.

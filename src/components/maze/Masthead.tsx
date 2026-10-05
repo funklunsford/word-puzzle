@@ -57,17 +57,15 @@ const PAD = 0.5;
 /**
  * The header graphic: the ten strokes as a parts row, and the wordmark built from them. On load
  * every stroke leaves its part tile, turns and snaps into its letter, the way players build words.
+ * On phones (`compact`) only the wordmark is shown, its strokes flying in from above, to leave
+ * the screen to the game.
  */
-export function Masthead() {
+export function Masthead({ compact = false }: { compact?: boolean }) {
+  const top = compact ? -PAD : PART_Y - PART / 2 - PAD;
   return (
     <header className="masthead">
-      <svg
-        className="masthead-art"
-        viewBox={`${-PAD} ${PART_Y - PART / 2 - PAD} ${width + 2 * PAD} ${2.4 - (PART_Y - PART / 2) + 2 * PAD}`}
-        role="img"
-        aria-label="Strokes"
-      >
-        {parts.map((p) => (
+      <svg className="masthead-art" viewBox={`${-PAD} ${top} ${width + 2 * PAD} ${2.4 + PAD - top}`} role="img" aria-label="Strokes">
+        {!compact && parts.map((p) => (
           <g key={p.tile} transform={`translate(${p.x} ${p.y})`}>
             <rect
               className="part-tile"
