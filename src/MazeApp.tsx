@@ -117,9 +117,22 @@ export function MazeApp() {
   const boardRef = useRef<HTMLElement>(null);
   const bankRef = useRef<HTMLSpanElement>(null);
   const reduce = useReducedMotion();
-  // How to play opens on a player's very first visit only.
-  const [help, setHelp] = useState(() => !seenHelp());
+  // How to play pops up on a player's very first visit only (or with ?help in the address, for testing).
+  const [help, setHelp] = useState(() => !seenHelp() || new URLSearchParams(location.search).has('help'));
   useEffect(() => markHelpSeen(), []);
+  const helpBtn = useRef<HTMLButtonElement>(null);
+  const helpClose = useRef<HTMLButtonElement>(null);
+  const closeHelp = useCallback(() => {
+    setHelp(false);
+    helpBtn.current?.focus();
+  }, []);
+  useEffect(() => {
+    if (!help) return;
+    helpClose.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeHelp();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [help, closeHelp]);
   const width = useWidth();
   const compact = width < COMPACT_MAX;
   const coarse = useMedia(COARSE);
@@ -275,7 +288,7 @@ export function MazeApp() {
 
         <main className="column">
           <section className="scorecard">
-            <button className="help-btn" aria-label="How to play" aria-expanded={help} onClick={() => setHelp((h) => !h)}>
+            <button ref={helpBtn} className="help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
               ?
             </button>
             <div className={`goal-panel${won ? ' reached' : ''}`}>
@@ -319,27 +332,54 @@ export function MazeApp() {
             </div>
           </section>
 
-          {help && (
-            <section className="help-card" aria-label="How to play">
-              <div className="help-head">
-                <span className="label">How to play</span>
-                <button className="close" aria-label="Close how to play" onClick={() => setHelp(false)}>
-                  ×
-                </button>
-              </div>
-              <ul className="how">
-                <li>Change the word into another real word, using up to 3 strokes per step.</li>
-                <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
-                {coarse ? (
-                  <li>A chevron, arc or bowl that fits a spot either way round goes in the way it's turned: double-tap it in the tray to turn it, or double-tap it in the word to turn it where it is.</li>
-                ) : (
-                  <li>A chevron, arc or bowl that fits a spot either way round? As you place it, swipe the way you want it to point: up turns a V into Λ, for A.</li>
-                )}
-                <li>Going back to a word you've already visited is free.</li>
-                {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke that pays for a later step.</li>}
-              </ul>
-            </section>
-          )}
+          <AnimatePresence>
+            {help && (
+              <motion.div
+                className="help-backdrop"
+                onClick={closeHelp}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <motion.section
+                  className="help-card"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="help-title"
+                  onClick={(e) => e.stopPropagation()}
+                  initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                  transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                >
+                  <div className="help-head">
+                    <h2 id="help-title">How to play</h2>
+                    <button ref={helpClose} className="close" aria-label="Close how to play" onClick={closeHelp}>
+                      ×
+                    </button>
+                  </div>
+                  <p className="help-lead">
+                    Turn the start word into the goal word, one real word at a time, in as few strokes as you can.
+                  </p>
+                  <ul className="how">
+                    <li>Change the word into another real word, using up to 3 strokes per step.</li>
+                    <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
+                    {coarse ? (
+                      <li>A chevron, arc or bowl that fits a spot either way round goes in the way it's turned: double-tap it in the tray to turn it, or double-tap it in the word to turn it where it is.</li>
+                    ) : (
+                      <li>A chevron, arc or bowl that fits a spot either way round? As you place it, swipe the way you want it to point: up turns a V into Λ, for A.</li>
+                    )}
+                    <li>Going back to a word you've already visited is free.</li>
+                    {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke that pays for a later step.</li>}
+                  </ul>
+                  <button className="pill help-go" onClick={closeHelp}>
+                    Let's play
+                  </button>
+                </motion.section>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <section className="board" ref={boardRef}>
             <AnimatePresence>
