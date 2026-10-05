@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
+import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import { LETTERS, TILES, TILE_IDS, xExtent, type Placement, type TileId } from '../../glyphs';
-import { inkSeed, lookCenterline, type Pt } from '../../ink';
+import { inkSeed, lookCenterline, strokeCenterline, type Pt } from '../../ink';
 import { EMPTY_CELL_X, formedLooks, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
 import { MorphStroke, centerlinePath } from './MorphStroke';
@@ -39,16 +39,34 @@ const LAND = { type: 'spring', bounce: 0.2, duration: 0.4 } as const;
 /** How much a stroke grows when it's picked up. */
 const LIFT = 1.08;
 
-// Twisting, only when starting a new letter in an empty cell (units, in the cell's coordinates).
-// Bring the cursor within ARM of the spot the stroke is locked onto, then circle the cursor around
-// the spot to turn it; straight moves don't turn it. Moving further than RELEASE from the spot lets
-// the stroke lock onto a different spot.
-const ARM = 0.45;
+// Turning a stroke on a spot that fits it more than one way (a chevron as V or Λ, an arc as C or
+// reversed, a bowl as B's or U's), in the cell's units. Once the cursor comes within ARM of the
+// spot, the stroke stays on it (until the cursor is RELEASE away) and a swipe of SWIPE turns it the
+// way the swipe goes: its point, or the back of its curve, follows the cursor (up turns V into Λ).
+const ARM = 0.6;
 const RELEASE = 1.6;
+const SWIPE = 0.5;
 
 const norm = (deg: number) => ((deg % 360) + 360) % 360;
 /** Shortest signed angle from one direction to another, in degrees. */
 const wrap = (deg: number) => norm(deg + 180) - 180;
+/** Which way a stroke points (its corner, or the back of its curve) unturned: away from the middle of its ends. */
+const POINTS = Object.fromEntries(
+  TILE_IDS.map((t) => {
+    const pts = strokeCenterline(t, 0);
+    const mid = [(pts[0][0] + pts[pts.length - 1][0]) / 2, (pts[0][1] + pts[pts.length - 1][1]) / 2];
+    const c = [pts.reduce((a, p) => a + p[0], 0) / pts.length - mid[0], pts.reduce((a, p) => a + p[1], 0) / pts.length - mid[1]];
+    const n = Math.hypot(c[0], c[1]) || 1;
+    return [t, [c[0] / n, c[1] / n]];
+  }),
+) as Record<TileId, number[]>;
+/** Which way a stroke points at `rot` degrees (clockwise), as a unit vector in screen axes (y down). */
+const pointing = (t: TileId, rot: number) => {
+  const a = (rot * Math.PI) / 180;
+  const [x, y] = POINTS[t];
+  return [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+};
+
 /** The quarter turn nearest to `turn` (unwrapped, so turn − quarter is the leftover twist). */
 const quarter = (turn: number) => Math.round(turn / 90) * 90;
 
@@ -64,10 +82,11 @@ interface Aim {
   cell: number;
   x: number;
   y: number;
-  /** The cursor has been brought onto the spot, so circling it now twists the stroke. */
+  /** The cursor has been brought onto the spot, so a swipe now turns the stroke. */
   armed: boolean;
-  /** Cursor's last angle around the spot (degrees), or null when it's too close to measure. */
-  angle: number | null;
+  /** Where the cursor was when the stroke last settled here (armed or turned): swipes are measured from it. */
+  ax: number;
+  ay: number;
 }
 
 interface Drag {
@@ -97,6 +116,8 @@ interface Drag {
   home: { x: number; y: number };
   /** The second tap of a double tap on a placed stroke (the first is waiting to remove it). */
   again: boolean;
+  /** It has reached the letters' row, so it stays within the row's height (until the pointer is over the tray). */
+  entered: boolean;
 }
 
 /** A released stroke's starting pose relative to its slot (cell units), so it springs in from there. */
@@ -156,7 +177,7 @@ const TWISTS = new Set(
 
 /**
  * The current word as editable strokes, plus the tray of strokes to drag in. Drag a stroke in
- * from the tray, drag a placed stroke to move it, tap a placed stroke to remove it, and twist chevrons, arcs and bowls by circling the cursor around a spot that fits them more than one way.
+ * from the tray, drag a placed stroke to move it, tap a placed stroke to remove it, and turn chevrons, arcs and bowls on a spot that fits them more than one way with a swipe (up turns a V into Λ).
  *
  * The held stroke lives in a floating layer for its whole life: it lifts from where it sits,
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
@@ -192,8 +213,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
 
   // How each stroke sits in the tray: a way it goes into letters (an arc as C, not on its side), and
   // it goes in the way it's turned. On a touch screen double-tapping a chevron, arc or bowl turns it
-  // there (there's no twisting a stroke under a finger); with a mouse, hovering it slides out its
-  // other ways round to drag instead (see the flyout below).
+  // there; with a mouse, a swipe turns it as it's placed (see locate).
   const [trayTurn, setTrayTurn] = useState(
     () =>
       Object.fromEntries(
@@ -203,26 +223,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
         }),
       ) as Record<TileId, number>,
   );
-  // The flyout: a hovered chevron, arc or bowl's other ways round, sliding out beside its tile.
-  const [flyout, setFlyout] = useState<{ tile: TileId; left: number; top: number; size: number; side: 1 | -1 } | null>(null);
-  const flyoutTimer = useRef(0);
-  const keepFlyout = () => clearTimeout(flyoutTimer.current);
-  const dropFlyout = () => {
-    clearTimeout(flyoutTimer.current);
-    flyoutTimer.current = window.setTimeout(() => setFlyout(null), 140);
-  };
-  const otherWays = (t: TileId) => ORIENTS[t].filter((r) => r !== trayTurn[t]);
-  const openFlyout = (t: TileId, el: HTMLElement) => {
-    keepFlyout();
-    if (coarse || disabled || dragRef.current || !TWISTS.has(t)) return setFlyout(null);
-    const size = el.offsetWidth;
-    const gap = 6;
-    const span = otherWays(t).length * (size + gap);
-    // Out to the right, unless that runs past the tray's edge.
-    const right = el.offsetLeft + size + span <= (el.parentElement?.clientWidth ?? Infinity);
-    setFlyout({ tile: t, top: el.offsetTop, size, side: right ? 1 : -1, left: right ? el.offsetLeft + size + gap : el.offsetLeft - span });
-  };
-  useEffect(() => () => clearTimeout(flyoutTimer.current), []);
   const turnInTray = (t: TileId) =>
     setTrayTurn((s) => ({ ...s, [t]: ORIENTS[t][(ORIENTS[t].indexOf(s[t]) + 1) % ORIENTS[t].length] }));
   // A single tap wiggles a turnable stroke (a hint that it turns); a second tap soon after turns it.
@@ -297,15 +297,15 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   };
 
   /** Where the held stroke is over the word: the cell, the spot it's locked onto, its twist, and the drop. */
-  const locate = (d: Drag, x: number, y: number): Pick<Drag, 'target' | 'aim' | 'turn' | 'overCell'> => {
+  const locate = (d: Drag, x: number, y: number, raw = { x, y }): Pick<Drag, 'target' | 'aim' | 'turn' | 'overCell'> => {
     const inside = (el: Element | null | undefined) => {
       const r = el?.getBoundingClientRect();
       return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
     };
-    const toCell = (cell: number) => {
+    const toCell = (cell: number, px = x, py = y) => {
       const m = svgs.current[cell]?.getScreenCTM();
       if (!m) return null;
-      const p = new DOMPoint(x, y).matrixTransform(m.inverse());
+      const p = new DOMPoint(px, py).matrixTransform(m.inverse());
       return { lx: p.x - offsets[cell], ly: p.y };
     };
     // A stroke on a spot keeps it while the cursor stays nearby, even past the cell's edge
@@ -334,41 +334,55 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
 
     // A spot that fits the stroke only one way takes it that way, following the nearest spot on
     // every move: a second chevron beside a V, the bar upright for Y, K's chevron on its side, a
-    // bowl under "||" for U. Only a spot that fits it several ways needs a twist (a chevron as V or
-    // A in an empty cell; a bowl under a stem as B's or U's), and once the cursor is circling one,
-    // it stays locked there (within RELEASE) so the twist isn't interrupted.
-    const twisting = !!d.aim && d.aim.cell === overCell && d.aim.armed && dist(d.aim) <= RELEASE;
-    const ways = slots.filter((s) => s.placement.x === nearest.placement.x && s.placement.y === nearest.placement.y);
-    if (!twisting && ways.length === 1) {
-      const turn = d.turn + wrap((nearest.placement.rot ?? 0) - d.turn);
-      return { overCell, target: { cell: overCell, slot: nearest }, aim: null, turn };
+    // bowl under "||" for U. A spot that fits it several ways (a chevron as V or Λ in an empty cell;
+    // a bowl under a stem as B's or U's) holds it once the cursor has come onto it (within RELEASE),
+    // so a swipe can turn it there without carrying it off to another spot.
+    const held = !!d.aim && d.aim.cell === overCell && d.aim.armed && dist(d.aim) <= RELEASE;
+    const at = held ? { x: d.aim!.x, y: d.aim!.y } : nearest.placement;
+    const ways = slots.filter((s) => s.placement.x === at.x && s.placement.y === at.y);
+    if (ways.length === 1) {
+      const turn = d.turn + wrap((ways[0].placement.rot ?? 0) - d.turn);
+      return { overCell, target: { cell: overCell, slot: ways[0] }, aim: null, turn };
     }
 
-    // Under a finger there's no twisting: the stroke goes in the way it was turned in the tray,
-    // following the nearest spot (red, and the label says so, if it doesn't fit there that way).
+    // Under a finger the stroke goes in the way it was turned in the tray (double-tap there to turn
+    // it), following the nearest spot (red, and the label says so, if it doesn't fit that way).
     if (d.touch) {
-      const aim = { cell: overCell, x: nearest.placement.x, y: nearest.placement.y, armed: false, angle: null };
+      const aim = { cell: overCell, x: at.x, y: at.y, armed: false, ax: lx, ay: ly };
       const slot = ways.find((s) => norm(s.placement.rot ?? 0) === norm(d.chosen));
       return { overCell, target: slot ? { cell: overCell, slot } : null, aim, turn: d.turn + wrap(d.chosen - d.turn) };
     }
 
-    // Rotatable strokes lock onto a spot; circling the cursor around it turns them.
-    let aim = d.aim;
-    const stray = !aim || aim.cell !== overCell || dist(aim) > RELEASE;
-    if (stray && (!aim || aim.cell !== overCell || aim.x !== nearest.placement.x || aim.y !== nearest.placement.y)) {
-      aim = { cell: overCell, x: nearest.placement.x, y: nearest.placement.y, armed: false, angle: null };
+    // With a mouse it settles the way it's held, or the nearest way that fits, and a swipe turns it:
+    // whichever way round points most along the swipe (up turns V into Λ; left and right turn an arc
+    // or a bowl). Swipes count from where the cursor came onto the spot, or last turned it.
+    let aim: Aim = held ? d.aim! : { cell: overCell, x: at.x, y: at.y, armed: false, ax: lx, ay: ly };
+    const rawLocal = toCell(overCell, raw.x, raw.y) ?? local;
+    const closest = (turn: number) => ways.reduce((a, b) => (Math.abs(wrap((b.placement.rot ?? 0) - turn)) < Math.abs(wrap((a.placement.rot ?? 0) - turn)) ? b : a));
+    let way = closest(d.turn);
+    if (!aim.armed && dist(aim) < ARM) aim = { ...aim, armed: true, ax: rawLocal.lx, ay: rawLocal.ly };
+    if (aim.armed) {
+      const dx = rawLocal.lx - aim.ax;
+      const dy = rawLocal.ly - aim.ay;
+      const len = Math.hypot(dx, dy);
+      if (len >= SWIPE) {
+        const along = (w: Slot) => {
+          const [px, py] = pointing(d.tile, w.placement.rot ?? 0);
+          return (px * dx + py * dy) / len;
+        };
+        const best = ways.reduce((a, b) => (along(b) > along(a) ? b : a));
+        if (along(best) > 0.5) way = best;
+        aim = { ...aim, ax: rawLocal.lx, ay: rawLocal.ly };
+      }
     }
-    let turn = d.turn;
-    if (dist(aim!) < ARM) {
-      aim = { ...aim!, armed: true, angle: null };
-    } else if (aim!.armed) {
-      const angle = (Math.atan2(ly - aim!.y, lx - aim!.x) * 180) / Math.PI;
-      if (aim!.angle !== null) turn += wrap(angle - aim!.angle);
-      aim = { ...aim!, angle };
-    }
-    const q = norm(quarter(turn));
-    const slot = slots.find((s) => s.placement.x === aim!.x && s.placement.y === aim!.y && norm(s.placement.rot ?? 0) === q);
-    return { overCell, target: slot ? { cell: overCell, slot } : null, aim, turn };
+    const turn = d.turn + wrap((way.placement.rot ?? 0) - d.turn);
+    return { overCell, target: { cell: overCell, slot: way }, aim, turn };
+  };
+
+  /** The letters' row on screen, top to bottom (the cells' drawing area). */
+  const rowBand = () => {
+    const rs = svgs.current.filter(Boolean).map((el) => el!.getBoundingClientRect());
+    return rs.length ? { top: Math.min(...rs.map((r) => r.top)), bottom: Math.max(...rs.map((r) => r.bottom)) } : null;
   };
 
   /** Move the floating stroke: glide onto the spot it's locked to, else follow the cursor at the grip. */
@@ -517,9 +531,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   const start = (e: React.PointerEvent, tile: TileId, rot: number, source: Source, home: { x: number; y: number; scale: number } | null, look0: Pt[] | null = null) => {
     if (disabled || dragRef.current || !home) return;
     e.preventDefault();
-    // Picking a stroke up closes the tray's flyout (it may unmount under the cursor, with no hover-off to close it).
-    keepFlyout();
-    setFlyout(null);
     // A press while a tapped stroke waits to be removed: on that same stroke it may be the second
     // tap; on anything else the removal goes ahead, and this press is spent (the word just changed).
     const pt = pendingTap.current;
@@ -576,6 +587,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       chosen: rot,
       home,
       again,
+      entered: false,
     };
     dragRef.current = d0;
     setDrag(d0);
@@ -586,12 +598,18 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       const d = dragRef.current!;
       samples.current = [...samples.current.slice(-5), { t: performance.now(), x: ev.clientX, y: ev.clientY }];
       const moved = d.moved || Math.hypot(ev.clientX - d.startX, ev.clientY - d.startY) >= (d.touch ? TAP_SLOP_TOUCH : TAP_SLOP);
-      // Where the stroke is aimed: the cursor, or the point held above a fingertip.
-      const ay = ev.clientY - grip.current.lift;
-      const nd = { ...d, moved, ...(moved ? locate(d, ev.clientX, ay) : {}) };
+      // Where the stroke is aimed: the cursor, or the point held above a fingertip. Once it has
+      // reached the letters' row it stays within the row's height (a swipe up to turn it doesn't
+      // carry it off), until the pointer goes down over the tray to put it back.
+      const rawY = ev.clientY - grip.current.lift;
+      const row = rowBand();
+      const entered = d.entered || (!!row && rawY >= row.top && rawY <= row.bottom);
+      const overTray = ev.clientY >= (rootRef.current?.querySelector('.tray')?.getBoundingClientRect().top ?? Infinity);
+      const ay = entered && row && !overTray ? Math.min(row.bottom, Math.max(row.top, rawY)) : rawY;
+      const nd = { ...d, moved, entered, ...(moved ? locate(d, ev.clientX, ay, { x: ev.clientX, y: rawY }) : {}) };
       dragRef.current = nd;
-      // An automatic turn (snapping into an existing letter) is animated; twisting follows the cursor.
-      if (nd.turn !== d.turn && !nd.aim?.armed && !reduce) {
+      // Turns snap: the stroke springs round to its new way.
+      if (nd.turn !== d.turn && !reduce) {
         gr.set(gr.get() + d.turn - nd.turn);
         animate(gr, 0, SETTLE);
       }
@@ -754,7 +772,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (held?.touch ? 'double-tap tray' : 'circle to turn') : noFit ? 'no fit' : (letter ?? '·')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (held?.touch ? 'double-tap tray' : 'swipe to turn') : noFit ? 'no fit' : (letter ?? '·')}
               </span>
             </div>
           );
@@ -775,18 +793,12 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
               style={{ ['--tile' as string]: `var(--t-${t})` }}
               title={
                 TWISTS.has(t)
-                  ? `${TILES[t].name}: ${coarse ? 'double-tap to turn it' : 'hover to pick another way round'}`
+                  ? `${TILES[t].name}: ${coarse ? 'double-tap to turn it' : 'where it fits a spot either way round, swipe as you place it to turn it (up turns V into Λ)'}`
                   : TILES[t].name
               }
               onPointerDown={(e) => start(e, t, trayTurn[t], { kind: 'tray' }, trayHome(t))}
-              onPointerEnter={(e) => {
-                onHoverTile(t);
-                if (e.pointerType !== 'touch') openFlyout(t, e.currentTarget);
-              }}
-              onPointerLeave={() => {
-                onHoverTile(null);
-                dropFlyout();
-              }}
+              onPointerEnter={() => onHoverTile(t)}
+              onPointerLeave={() => onHoverTile(null)}
             >
               <svg viewBox="-1.2 -1.2 2.4 2.4">
                 <TrayStroke tile={t} turn={trayTurn[t]} nudge={nudges[t] ?? 0} />
@@ -794,45 +806,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
             </button>
           );
         })}
-        <AnimatePresence>
-          {flyout && !drag && !disabled && (
-            <motion.div
-              key={flyout.tile}
-              className="tray-flyout"
-              style={{ left: flyout.left, top: flyout.top }}
-              initial={{ opacity: 0, x: (-flyout.side * flyout.size) / 2, scale: 0.9 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: (-flyout.side * flyout.size) / 2, scale: 0.9 }}
-              transition={SETTLE}
-              onPointerEnter={() => {
-                keepFlyout();
-                onHoverTile(flyout.tile);
-              }}
-              onPointerLeave={() => {
-                onHoverTile(null);
-                dropFlyout();
-              }}
-            >
-              {otherWays(flyout.tile).map((r) => (
-                <button
-                  key={r}
-                  className="tray-tile turned"
-                  data-turn={r}
-                  style={{ ['--tile' as string]: `var(--t-${flyout.tile})`, width: flyout.size, height: flyout.size }}
-                  title={`${TILES[flyout.tile].name}, the other way round`}
-                  onPointerDown={(e) => {
-                    const r0 = e.currentTarget.querySelector('svg')!.getBoundingClientRect();
-                    start(e, flyout.tile, r, { kind: 'tray' }, { x: r0.left + r0.width / 2, y: r0.top + r0.height / 2, scale: r0.width / 2.4 / u });
-                  }}
-                >
-                  <svg viewBox="-1.2 -1.2 2.4 2.4">
-                    <TileStroke tile={flyout.tile} rot={r} minHalfWidth={minHalfWidthAt(TRAY_PX_PER_UNIT)} />
-                  </svg>
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {floating && (

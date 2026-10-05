@@ -333,7 +333,7 @@ export function MazeApp() {
                 {coarse ? (
                   <li>A chevron, arc or bowl that fits a spot either way round goes in the way it's turned: double-tap it in the tray to turn it, or double-tap it in the word to turn it where it is.</li>
                 ) : (
-                  <li>A chevron, arc or bowl that fits a spot either way round goes in the way it's turned: hover it in the tray and drag the way round you want.</li>
+                  <li>A chevron, arc or bowl that fits a spot either way round? As you place it, swipe the way you want it to point: up turns a V into Λ, for A.</li>
                 )}
                 <li>Going back to a word you've already visited is free.</li>
                 {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke that pays for a later step.</li>}
