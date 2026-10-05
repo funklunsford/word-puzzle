@@ -1246,7 +1246,7 @@ select,
    The game gets the screen: a slim wordmark, the score on one row, and the word as big as the
    width allows (four narrower cells share the row, and the editor measures its unit from them). */
 .maze.compact {
-  padding: 10px 10px 32px;
+  padding: 10px 6px 32px;
   gap: 10px;
 }
 
@@ -1327,8 +1327,12 @@ select,
 
 .maze.compact .board {
   gap: 8px;
-  padding: 10px;
+  padding: 10px 5px;
   border-radius: 18px;
+}
+
+.maze.compact .board-head {
+  padding: 0 5px;
 }
 
 .maze.compact .definition {
@@ -1340,13 +1344,13 @@ select,
 }
 
 .maze.compact .word-cells {
-  gap: 5px;
+  gap: 4px;
 }
 
 .maze.compact .cell {
   flex: 1 1 0;
   min-width: 0;
-  padding: 3px 3px 2px;
+  padding: 2px 1px;
   border-radius: 12px;
   box-shadow: 0 3px 0 var(--ledge);
 }
@@ -1365,14 +1369,14 @@ select,
 }
 
 .maze.compact .tray {
-  gap: 8px;
+  gap: 6px;
 }
 
 .maze.compact .tray-tile {
-  flex: 1 1 52px;
+  flex: 1 1 56px;
   min-width: 46px;
-  max-width: 64px;
-  padding: 8px;
+  max-width: 72px;
+  padding: 5px;
 }
 
 .maze.compact .letters {

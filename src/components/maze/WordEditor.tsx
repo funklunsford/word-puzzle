@@ -9,15 +9,18 @@ import { COARSE, useMedia } from '../../useMedia';
 
 const CELL_W = 4;
 /**
- * On phones the cells are narrower (most letters are at most 2 units wide; a half-built W spills
- * over its neighbours for a moment), so the four of them can draw the word bigger.
+ * On phones the cells are just wide enough for the widest letter (a formed W, 2.5 units plus its
+ * pen; a half-built W spills over its neighbours for a moment), so the four of them draw the word big.
  */
-const CELL_W_COMPACT = 2.75;
+const CELL_W_COMPACT = 2.6;
 const CELL_TOP = -0.7;
 const CELL_H = 3.6;
 /** A press that moves less than this many pixels is a tap (remove), not a drag. Fingers wobble more. */
 const TAP_SLOP = 6;
 const TAP_SLOP_TOUCH = 10;
+/** Two taps on a tray stroke within this long (ms) are a double tap, which turns it on a touch screen. */
+const DOUBLE_TAP = 350;
+const WIGGLE = { duration: 0.4, times: [0, 0.35, 0.7, 1], ease: 'easeOut' as const };
 /** Tray tiles draw their 2.4-unit box in about 40 px. */
 const TRAY_PX_PER_UNIT = 40 / 2.4;
 
@@ -171,8 +174,8 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     return () => ro.disconnect();
   }, [compact]);
 
-  // How each stroke sits in the tray. On a touch screen tapping a chevron, arc or bowl turns it
-  // there (there's no twisting a stroke under a finger), and it goes in the way it's turned; it
+  // How each stroke sits in the tray. On a touch screen double-tapping a chevron, arc or bowl turns
+  // it there (there's no twisting a stroke under a finger), and it goes in the way it's turned; it
   // starts the way it most often goes in (an arc as C, not on its side).
   const [trayTurn, setTrayTurn] = useState(
     () =>
@@ -185,6 +188,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   );
   const turnInTray = (t: TileId) =>
     setTrayTurn((s) => ({ ...s, [t]: ORIENTS[t][(ORIENTS[t].indexOf(s[t]) + 1) % ORIENTS[t].length] }));
+  // A single tap wiggles a turnable stroke (a hint that it turns); a second tap soon after turns it.
+  const lastTap = useRef<{ tile: TileId; at: number } | null>(null);
+  const [nudges, setNudges] = useState<Partial<Record<TileId, number>>>({});
 
   // The floating stroke: centre (screen px), scale (1 = word size) and extra rotation (flights).
   const gx = useMotionValue(0);
@@ -381,9 +387,18 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       onEdit(next);
     };
     if (!d.moved) {
-      // On a touch screen, tapping a stroke in the tray turns it (if it ever needs turning).
+      // On a touch screen, double-tapping a stroke in the tray turns it (if it ever needs turning).
       if (d.touch && d.source.kind === 'tray') {
-        if (TWISTS.has(d.tile)) turnInTray(d.tile);
+        if (!TWISTS.has(d.tile)) return;
+        const now = performance.now();
+        const prev = lastTap.current;
+        if (prev && prev.tile === d.tile && now - prev.at < DOUBLE_TAP) {
+          lastTap.current = null;
+          turnInTray(d.tile);
+        } else {
+          lastTap.current = { tile: d.tile, at: now };
+          setNudges((n) => ({ ...n, [d.tile]: (n[d.tile] ?? 0) + 1 }));
+        }
         return;
       }
       // A tap removes a placed stroke; a tray stroke that was only pressed goes back.
@@ -616,7 +631,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (held?.touch ? 'turn in tray' : 'circle to turn') : noFit ? 'no fit' : (letter ?? '·')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (held?.touch ? 'double-tap tray' : 'circle to turn') : noFit ? 'no fit' : (letter ?? '·')}
               </span>
             </div>
           );
@@ -637,7 +652,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
               style={{ ['--tile' as string]: `var(--t-${t})` }}
               title={
                 TWISTS.has(t)
-                  ? `${TILES[t].name}: ${coarse ? 'tap to turn it' : 'where it fits a spot either way round, circle the cursor around the spot to turn it'}`
+                  ? `${TILES[t].name}: ${coarse ? 'double-tap to turn it' : 'where it fits a spot either way round, circle the cursor around the spot to turn it'}`
                   : TILES[t].name
               }
               onPointerDown={(e) => start(e, t, trayTurn[t], { kind: 'tray' }, trayHome(t))}
@@ -645,7 +660,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
               onPointerLeave={() => onHoverTile(null)}
             >
               <svg viewBox="-1.2 -1.2 2.4 2.4">
-                <TrayStroke tile={t} turn={trayTurn[t]} />
+                <TrayStroke tile={t} turn={trayTurn[t]} nudge={nudges[t] ?? 0} />
               </svg>
             </button>
           );
@@ -674,15 +689,24 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   );
 }
 
-/** A stroke in its tray tile, turning (forwards, with a spring) when it's turned in the tray. */
-function TrayStroke({ tile, turn }: { tile: TileId; turn: number }) {
-  const prev = useRef(turn);
-  const delta = norm(turn - prev.current);
+/**
+ * A stroke in its tray tile, turning (forwards, with a spring) when it's turned in the tray, and
+ * wiggling when it's tapped once (`nudge` counts the taps), a hint that a second tap turns it.
+ */
+function TrayStroke({ tile, turn, nudge }: { tile: TileId; turn: number; nudge: number }) {
+  const prev = useRef({ turn, nudge });
+  const delta = norm(turn - prev.current.turn);
+  const wiggle = !delta && nudge !== prev.current.nudge;
   useEffect(() => {
-    prev.current = turn;
-  }, [turn]);
+    prev.current = { turn, nudge };
+  }, [turn, nudge]);
   return (
-    <motion.g key={turn} initial={delta ? { rotate: -delta } : false} animate={{ rotate: 0 }} transition={SETTLE}>
+    <motion.g
+      key={`${turn}:${nudge}`}
+      initial={delta ? { rotate: -delta } : wiggle ? { rotate: 0 } : false}
+      animate={wiggle ? { rotate: [0, 14, -6, 0] } : { rotate: 0 }}
+      transition={wiggle ? WIGGLE : SETTLE}
+    >
       <TileStroke tile={tile} rot={turn} minHalfWidth={minHalfWidthAt(TRAY_PX_PER_UNIT)} />
     </motion.g>
   );

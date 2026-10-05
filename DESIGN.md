@@ -276,12 +276,12 @@ Playtesting on a phone found the layout awkward, strokes too small to place, and
 - **Header:** a slim wordmark only. Its strokes fly in from above; the parts row is hidden.
 - **Score card:** two rows. The goal tile, the stroke count and **?** sit on top; the lowest possible and words within reach run across the full width below. At 360 px a single row left "13" alone on a line.
 - **Board:** starts about 150 px down, instead of 375.
-- **Word:** four narrower cells (2.75 units instead of 4) share the row. The editor measures its unit from them with a `ResizeObserver`: about 24, 25.5, 27 and 30 px at 360, 375, 393 and 430 px wide, against 14 before. A half-built W spills over its neighbours for a moment.
-- **Tray:** five tiles a row, 56–64 px each.
+- **Word:** four narrower cells (2.6 units instead of 4: just room for a formed W, 2.5 units plus its pen) share the row, with slim gaps and padding around them. The editor measures its unit from them with a `ResizeObserver`: about 30.5 px at 375 px wide, against 14 before. A half-built W spills over its neighbours for a moment.
+- **Tray:** five tiles a row, about 65 px each at 375 px wide (up to 72), with the strokes drawn larger inside them.
 
 **Touch** (per gesture, `pointerType === 'touch'`, so a mouse or pen on any screen behaves as before):
 - **The held stroke** floats about 1.7 units above the fingertip (44–72 px). It and its target spot stay visible, and it glides up there when lifted.
-- **Turning:** there's no twisting under a finger. Tapping a chevron, arc or bowl in the tray turns it, cycling through the ways it goes into letters (the arc starts as C on touch screens). It goes in the way it's turned. Spots that fit a stroke only one way still turn it automatically. Over a spot that needs the other way, it shows red and the cell says "turn in tray". How to play says so on touch screens.
+- **Turning:** there's no twisting under a finger. Double-tapping a chevron, arc or bowl in the tray (two taps within 350 ms) turns it, cycling through the ways it goes into letters (the arc starts as C on touch screens). It goes in the way it's turned. Spots that fit a stroke only one way still turn it automatically. Over a spot that needs the other way, it shows red and the cell says "double-tap tray". A single tap gives the stroke a small wiggle, a hint that it turns. How to play says so on touch screens.
 - **Taps:** a tap on a tray stroke doesn't lift it, so turning it doesn't flicker. The tap slop is 10 px instead of 6.
 - **Pointer capture:** the editor captures the pointer while you drag, because a pressed placed stroke leaves the page as it lifts and would otherwise lose the touch.
 - **Comfort:** hit areas are wider (1.1 units), pills are at least 44 px tall, How to play's × has a 44 px target, and there are no callouts or double-tap zoom.
