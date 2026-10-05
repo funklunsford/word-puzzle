@@ -956,15 +956,8 @@ select,
   font-weight: 700;
 }
 
-.board-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-/* Strokes this step: three dots at the top right of the board, gold as they're used, all red once
-   the step is out of strokes. */
+/* Strokes this step: three dots under the total in the score card, gold as they're used, all red
+   once the step is out of strokes. */
 .step-meter {
   display: flex;
   align-items: center;
@@ -1387,8 +1380,13 @@ select,
   height: 36px;
 }
 
-.maze.compact .score-sub {
+.maze.compact .step-meter {
   order: 3;
+  flex: 1 1 100%;
+}
+
+.maze.compact .score-sub {
+  order: 4;
   flex: 1 1 100%;
   justify-content: flex-start;
   gap: 0 12px;
@@ -1397,7 +1395,7 @@ select,
 }
 
 .maze.compact .ink-bank {
-  order: 4;
+  order: 5;
   flex: 1 1 100%;
   font-size: 12px;
 }
