@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { dataUrl } from './data';
 import { AnimatePresence, motion, useAnimate } from 'motion/react';
 import { LETTERS, recipe, type TileId } from './glyphs';
 import {
@@ -42,7 +43,7 @@ export function App() {
   const board = boards[boardIdx];
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}boards.json`)
+    fetch(dataUrl('boards.json'))
       .then((r) => r.json())
       .then(setBoards);
     const onResize = () => setWidth(Math.min(window.innerWidth, 640) - 32);

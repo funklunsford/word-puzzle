@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
+import { dataUrl } from './data';
 import type { Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
@@ -28,9 +29,10 @@ interface MazeData extends Pick {
   puzzles: Pick[];
 }
 
-/** A random puzzle from the pool, other than the one being played. */
+/** A random puzzle from the pool, other than the one being played (WILD → TAME if there's no pool). */
 function pickPuzzle(data: MazeData, current?: Puzzle): Pick {
-  const options = data.puzzles.filter((p) => p.puzzle.start !== current?.start || p.puzzle.goal !== current?.goal);
+  const pool = data.puzzles?.length ? data.puzzles : [{ puzzle: data.puzzle, inkPots: data.inkPots }];
+  const options = pool.length > 1 ? pool.filter((p) => p.puzzle.start !== current?.start || p.puzzle.goal !== current?.goal) : pool;
   return options[Math.floor(Math.random() * options.length)];
 }
 
@@ -109,14 +111,14 @@ export function MazeApp() {
 
   useEffect(() => {
     // Every load plays a fresh puzzle, picked before the first render.
-    fetch(`${import.meta.env.BASE_URL}mazes.json`)
+    fetch(dataUrl('mazes.json'))
       .then((r) => r.json())
       .then((d: MazeData) => {
         setData(d);
         setCurrent(pickPuzzle(d));
       });
     // Definitions are a nicety: the game plays without them if they don't load.
-    fetch(`${import.meta.env.BASE_URL}definitions.json`)
+    fetch(dataUrl('definitions.json'))
       .then((r) => r.json())
       .then(setDefs)
       .catch(() => {});

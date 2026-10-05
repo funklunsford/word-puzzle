@@ -32,6 +32,17 @@ MD
 
 SITE="$(mktemp -d)"
 cp -R dist/. "$SITE"
+# Git authenticates with the GitHub CLI's login for these commands only (git's settings are untouched).
+# Keep the live version's scripts and styles too: GitHub Pages lets browsers cache index.html for
+# 10 minutes, and one still holding the old page would otherwise ask for files that are gone.
+AUTH=(-c credential.helper= -c 'credential.helper=!gh auth git-credential')
+if gh repo view "$REPO" >/dev/null 2>&1; then
+  LIVE="$(mktemp -d)"
+  git "${AUTH[@]}" clone -q --depth 1 "https://github.com/${REPO}.git" "$LIVE"
+  for f in $(grep -o 'assets/[^"]*' "$LIVE/index.html" 2>/dev/null || true); do
+    [ -e "$SITE/$f" ] || cp "$LIVE/$f" "$SITE/$f"
+  done
+fi
 SOURCE="$(git rev-parse --short HEAD)"
 cd "$SITE"
 git init -q -b main
@@ -43,8 +54,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 if ! gh repo view "$REPO" >/dev/null 2>&1; then
   gh repo create "$REPO" --public --description "Strokes: a word maze where every letter is built from pen strokes"
 fi
-# Authenticate this one push with the GitHub CLI's login, without changing git's settings.
-git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push -q --force "https://github.com/${REPO}.git" main
+git "${AUTH[@]}" push -q --force "https://github.com/${REPO}.git" main
 if ! gh api "repos/${REPO}/pages" >/dev/null 2>&1; then
   gh api -X POST "repos/${REPO}/pages" -f 'source[branch]=main' -f 'source[path]=/' >/dev/null
 fi
