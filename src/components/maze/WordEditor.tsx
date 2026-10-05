@@ -396,8 +396,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   /** The next way round a placed stroke fits on its own spot (cycling), or null if it fits only one way there. */
   const turnedInPlace = (d: Drag, cell: number, original: Placement): Placement | null => {
     const rot = norm(original.rot ?? 0);
+    // A stroke alone in its cell (V's chevron) is offered back at the empty cell's x, not where it
+    // sits in its letter: there only its height has to match, and it keeps its own x.
+    const alone = cells[cell].length === 1;
     const ways = d.slots[cell]
-      .map((s) => s.placement)
+      .map((s) => (alone ? { ...s.placement, x: original.x } : s.placement))
       .filter((q) => q.x === original.x && q.y === original.y && norm(q.rot ?? 0) !== rot)
       .sort((a, b) => norm(norm(a.rot ?? 0) - rot) - norm(norm(b.rot ?? 0) - rot));
     return ways[0] ?? null;
