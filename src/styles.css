@@ -1394,6 +1394,11 @@ select,
 
 /* Touch screens: targets sized for a fingertip, and no callouts or double-tap zoom mid-game. */
 @media (pointer: coarse) {
+  /* No double-tap zoom anywhere (a quick second tap is the game's own gesture); pinch still zooms. */
+  html {
+    touch-action: manipulation;
+  }
+
   .hit {
     stroke-width: 1.1;
   }

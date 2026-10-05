@@ -19,7 +19,7 @@ const CELL_H = 3.6;
 const TAP_SLOP = 6;
 const TAP_SLOP_TOUCH = 10;
 /** Two taps on a tray stroke within this long (ms) are a double tap, which turns it on a touch screen. */
-const DOUBLE_TAP = 350;
+const DOUBLE_TAP = 400;
 const WIGGLE = { duration: 0.4, times: [0, 0.35, 0.7, 1], ease: 'easeOut' as const };
 /** Tray tiles draw their 2.4-unit box in about 40 px. */
 const TRAY_PX_PER_UNIT = 40 / 2.4;
@@ -438,7 +438,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
           return;
         }
         if (turned) {
-          land(from.cell, original, d.turn);
           const timer = window.setTimeout(() => settleTap(true), DOUBLE_TAP);
           pendingTap.current = {
             cell: from.cell,
@@ -560,21 +559,38 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       if (moved) steer(nd, ev.clientX, ay);
       return nd;
     };
-    const onMove = (ev: PointerEvent) => setDrag(update(ev));
+    // The rest of the press is heard on the window and on the pressed element itself: a phone that
+    // doesn't honour the capture above keeps sending it to that element, even after it leaves the
+    // page as the stroke lifts (where nothing bubbles up to the window). Each event is handled once.
+    const pressed = e.currentTarget as Element;
+    const targets: EventTarget[] = touch ? [window, pressed] : [window];
+    let last: Event | null = null;
+    const once = (ev: Event) => ev !== last && ((last = ev), true);
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId === e.pointerId && once(ev)) setDrag(update(ev));
+    };
     const onUp = (ev: PointerEvent) => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
+      if (ev.pointerId !== e.pointerId || !once(ev)) return;
+      for (const t of targets) {
+        t.removeEventListener('pointermove', onMove as EventListener);
+        t.removeEventListener('pointerup', onUp as EventListener);
+        t.removeEventListener('pointercancel', onUp as EventListener);
+      }
       const d = update(ev);
       dragRef.current = null;
       setDrag(null);
       onHoverTile(null);
       if (ev.type === 'pointerup') finish(d);
-      else flyHome(d);
+      // A phone may cancel a quick second tap as a gesture of its own: it's still a double tap.
+      else if (d.touch && !d.moved && d.source.kind === 'cell') {
+        if (d.again) finish(d);
+      } else flyHome(d);
     };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
+    for (const t of targets) {
+      t.addEventListener('pointermove', onMove as EventListener);
+      t.addEventListener('pointerup', onUp as EventListener);
+      t.addEventListener('pointercancel', onUp as EventListener);
+    }
   };
 
   /** Press on a placed stroke. Looked up by position, so a stale press can't grab the wrong one. */
@@ -585,8 +601,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   };
 
   const held = drag?.moved ? drag : null;
-  // The pressed stroke leaves its cell for the floating layer from the moment it's pressed.
-  const carried = drag?.source.kind === 'cell' ? drag.source : null;
+  // The pressed stroke leaves its cell for the floating layer from the moment it's pressed, except
+  // under a finger, which may be about to tap it (to remove or turn it): there it stays put, and in
+  // the page, until the finger moves.
+  const lifting = !!drag && !(drag.touch && !drag.moved);
+  const carried = lifting && drag?.source.kind === 'cell' ? drag.source : null;
   /**
    * How a cell's strokes are drawn (see Look): what's left in it once the held stroke is lifted
    * out, previewed with the held stroke on the spot it's over. So U's stems draw back to meet the
@@ -598,8 +617,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     const looks = lookPoints(onSpot ? [...kept, onSpot] : kept);
     return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null };
   };
-  // A finger pressing a tray stroke may be about to tap it (to turn it), so it stays put until it moves.
-  const lifting = !!drag && !(drag.touch && drag.source.kind === 'tray' && !drag.moved);
   const floating = lifting
     ? {
         tile: drag!.tile,
