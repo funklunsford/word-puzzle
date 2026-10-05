@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
-import { buildGraph, randomPuzzle, solve } from './maze';
+import { PUZZLE_SHAPE, buildGraph, randomPuzzle, solve } from './maze';
 import { STEP_LIMIT, wordDistance } from './strokes';
 
 const { words, puzzle } = mazeJson as { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] } };
@@ -57,10 +57,10 @@ describe('maze graph', () => {
       const p = randomPuzzle(words, adj, random);
       expect(p.path[0]).toBe(p.start);
       expect(p.path.at(-1)).toBe(p.goal);
-      expect(p.path.length - 1).toBeGreaterThanOrEqual(4);
-      expect(p.path.length - 1).toBeLessThanOrEqual(7);
-      expect(p.best).toBeGreaterThanOrEqual(10);
-      expect(p.best).toBeLessThanOrEqual(20);
+      expect(p.path.length - 1).toBeGreaterThanOrEqual(PUZZLE_SHAPE.steps[0]);
+      expect(p.path.length - 1).toBeLessThanOrEqual(PUZZLE_SHAPE.steps[1]);
+      expect(p.best).toBeGreaterThanOrEqual(PUZZLE_SHAPE.best[0]);
+      expect(p.best).toBeLessThanOrEqual(PUZZLE_SHAPE.best[1]);
       let sum = 0;
       for (let i = 1; i < p.path.length; i++) {
         const c = wordDistance(p.path[i - 1], p.path[i]);
