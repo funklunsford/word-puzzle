@@ -276,7 +276,7 @@ Playtesting on a phone found the layout awkward, strokes too small to place, and
 - **Header:** a slim wordmark only. Its strokes fly in from above; the parts row is hidden.
 - **Score card:** two rows. The goal tile, the stroke count and **?** sit on top; the lowest possible and words within reach run across the full width below. At 360 px a single row left "13" alone on a line.
 - **Board:** starts about 150 px down, instead of 375.
-- **Word:** four narrower cells (2.6 units instead of 4: just room for a formed W, 2.5 units plus its pen) share the row, with slim gaps and padding around them. The editor measures its unit from them with a `ResizeObserver`: about 30.5 px at 375 px wide, against 14 before. A half-built W spills over its neighbours for a moment.
+- **Word:** four narrower cells (2.6 units instead of 4; a formed letter is drawn at most 2.2 units wide there, so W, 2.5 units elsewhere, is a little narrower on phones and its pen keeps clear of the cell border) share the row, with slim gaps and padding around them. The editor measures its unit from them with a `ResizeObserver`: about 30.5 px at 375 px wide, against 14 before. A half-built W spills over its neighbours for a moment.
 - **Tray:** five tiles a row, about 65 px each at 375 px wide (up to 72), with the strokes drawn larger inside them.
 
 **Touch** (per gesture, `pointerType === 'touch'`, so a mouse or pen on any screen behaves as before):

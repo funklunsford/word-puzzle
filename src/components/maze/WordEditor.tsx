@@ -9,10 +9,15 @@ import { COARSE, useMedia } from '../../useMedia';
 
 const CELL_W = 4;
 /**
- * On phones the cells are just wide enough for the widest letter (a formed W, 2.5 units plus its
- * pen; a half-built W spills over its neighbours for a moment), so the four of them draw the word big.
+ * On phones the cells are narrow, so the four of them draw the word big (a half-built W spills
+ * over its neighbours for a moment).
  */
 const CELL_W_COMPACT = 2.6;
+/**
+ * The widest a formed letter is drawn in those cells, so the pen keeps clear of the cell's border
+ * (only W, 2.5 units at its usual squeeze, is wider: it's drawn a little narrower on phones).
+ */
+const MAX_DRAWN_COMPACT = 2.2;
 const CELL_TOP = -0.7;
 const CELL_H = 3.6;
 /** A press that moves less than this many pixels is a tap (remove), not a drag. Fingers wobble more. */
@@ -638,7 +643,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       <div className={`word-cells${glow ? ' opened' : ''}`}>
         {cells.map((content, c) => {
           const letter = recognize(content);
-          const squeeze = (letter && LETTERS[letter].squeeze) || 1;
+          const squeeze = letter
+            ? Math.min(LETTERS[letter].squeeze ?? 1, compact ? MAX_DRAWN_COMPACT / LETTERS[letter].width : Infinity)
+            : 1;
           const [lo, hi] = content.length ? xExtent(content) : [0, 0];
           const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * squeeze;
           const { kept, looks } = preview(c);
