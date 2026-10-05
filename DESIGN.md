@@ -274,7 +274,7 @@ Playtesting on a phone found the layout awkward, strokes too small to place, and
 
 **Layout** (the `compact` class from `MazeApp`, styles in `styles.css`):
 - **Header:** a slim wordmark only. Its strokes fly in from above; the parts row is hidden.
-- **Score card:** one row, with the goal tile, the stroke count, the lowest possible and words within reach, and **?**.
+- **Score card:** two rows. The goal tile, the stroke count and **?** sit on top; the lowest possible and words within reach run across the full width below. At 360 px a single row left "13" alone on a line.
 - **Board:** starts about 150 px down, instead of 375.
 - **Word:** four narrower cells (2.75 units instead of 4) share the row. The editor measures its unit from them with a `ResizeObserver`: about 24, 25.5, 27 and 30 px at 360, 375, 393 and 430 px wide, against 14 before. A half-built W spills over its neighbours for a moment.
 - **Tray:** five tiles a row, 56–64 px each.
@@ -284,7 +284,7 @@ Playtesting on a phone found the layout awkward, strokes too small to place, and
 - **Turning:** there's no twisting under a finger. Tapping a chevron, arc or bowl in the tray turns it, cycling through the ways it goes into letters (the arc starts as C on touch screens). It goes in the way it's turned. Spots that fit a stroke only one way still turn it automatically. Over a spot that needs the other way, it shows red and the cell says "turn in tray". How to play says so on touch screens.
 - **Taps:** a tap on a tray stroke doesn't lift it, so turning it doesn't flicker. The tap slop is 10 px instead of 6.
 - **Pointer capture:** the editor captures the pointer while you drag, because a pressed placed stroke leaves the page as it lifts and would otherwise lose the touch.
-- **Comfort:** hit areas are wider (1.1 units), pills are at least 44 px tall, and there are no callouts or double-tap zoom.
+- **Comfort:** hit areas are wider (1.1 units), pills are at least 44 px tall, How to play's × has a 44 px target, and there are no callouts or double-tap zoom.
 - **Letter strip:** it lights up for the held stroke.
 
 **Tested** in the browser pane at 375 px with synthetic touch events:

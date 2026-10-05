@@ -281,7 +281,7 @@ export function MazeApp() {
                 <span>lowest strokes possible: {best}</span>
                 <span>
                   {roomExits.length} {roomExits.length === 1 ? 'word' : 'words'} within reach
-                  {found ? ` (${found} visited)` : ''}
+                  {found ? <span className="nowrap"> ({found} visited)</span> : null}
                 </span>
               </div>
               {potPlan && (

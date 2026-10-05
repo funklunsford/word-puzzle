@@ -611,6 +611,11 @@ select,
   color: var(--muted);
 }
 
+/* Kept on one line: wraps as a whole rather than leaving "visited)" alone. */
+.nowrap {
+  white-space: nowrap;
+}
+
 .score-hint {
   font-size: 13px;
   font-weight: 600;
@@ -1253,18 +1258,21 @@ select,
   gap: 10px;
 }
 
+/* The score card in two rows: the goal, the stroke count and ?, then the details across the
+   card's full width (the score panel's pieces join the card's own flex rows). */
 .maze.compact .scorecard {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   justify-content: flex-start;
   align-items: center;
-  gap: 12px;
-  padding: 10px 54px 10px 10px;
+  gap: 6px 12px;
+  padding: 10px 12px;
   text-align: left;
   border-radius: 18px;
   box-shadow: 0 4px 0 var(--ledge);
 }
 
 .maze.compact .goal-panel {
+  order: 0;
   flex: none;
   padding: 4px 10px 3px;
   border-radius: 12px;
@@ -1276,12 +1284,12 @@ select,
 }
 
 .maze.compact .score-panel {
-  flex: 1 1 auto;
-  align-items: flex-start;
-  gap: 2px;
+  display: contents;
 }
 
 .maze.compact .score-big {
+  order: 1;
+  flex: 1 1 auto;
   font-size: 15px;
 }
 
@@ -1289,22 +1297,27 @@ select,
   font-size: 34px;
 }
 
+.maze.compact .help-btn {
+  order: 2;
+  position: static;
+  flex: none;
+  width: 36px;
+  height: 36px;
+}
+
 .maze.compact .score-sub {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
+  order: 3;
+  flex: 1 1 100%;
+  justify-content: flex-start;
+  gap: 0 12px;
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .maze.compact .ink-bank {
+  order: 4;
+  flex: 1 1 100%;
   font-size: 12px;
-}
-
-.maze.compact .help-btn {
-  top: 50%;
-  right: 10px;
-  translate: 0 -50%;
 }
 
 .maze.compact .help-card {
@@ -1399,5 +1412,12 @@ select,
 
   .pill.quiet {
     min-height: 40px;
+  }
+
+  /* How to play's ×: a fingertip-sized target, drawn where it was. */
+  .help-card .close {
+    min-width: 44px;
+    min-height: 44px;
+    margin: -10px -12px -10px 0;
   }
 }
