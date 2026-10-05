@@ -81,16 +81,43 @@ const lerp = (a: Pt, b: Pt, k: number): Pt => [a[0] + (b[0] - a[0]) * k, a[1] + 
 const gap = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
 /**
- * The centreline a straight stroke is drawn along once its letter is formed (see Look), relative
- * to the stroke's own position: the part of it kept from one end.
+ * The centreline a stroke is drawn along once its letter is formed (see Look), relative to the
+ * stroke's own position: the part of it kept from one end (of its path, so a chevron keeps its
+ * corner), and any carry-over past its end, narrowed by its letter's `squeeze`.
  */
-export function lookCenterline(p: Placement, look: Look): Pt[] {
-  const own = strokeCenterline(p.tile, p.rot ?? 0);
+export function lookCenterline(p: Placement, look: Look, squeeze = 1): Pt[] {
+  const kept = keptCenterline(p, look, squeeze);
+  if (!look.over) return kept;
+  // On past the end, turned back the other way vertically (see Look.over).
+  const [a, b] = [kept[kept.length - 2], kept[kept.length - 1]];
+  const d = gap(a, b) || 1;
+  const dir: Pt = [(b[0] - a[0]) / d, -(b[1] - a[1]) / d];
+  const n = Math.max(1, Math.ceil(look.over / STEP));
+  return [...kept, ...Array.from({ length: n }, (_, i): Pt => [b[0] + (dir[0] * look.over! * (i + 1)) / n, b[1] + (dir[1] * look.over! * (i + 1)) / n])];
+}
+
+/** The part of a stroke's centreline its look keeps (see lookCenterline). */
+function keptCenterline(p: Placement, look: Look, squeeze: number): Pt[] {
+  const own = strokeCenterline(p.tile, p.rot ?? 0, squeeze);
   const [s, e] = [own[0], own[own.length - 1]];
   const k = look.len;
-  const [a, b] = look.keep === 'end' ? [lerp(e, s, k), e] : [s, lerp(s, e, k)];
-  const n = Math.max(1, Math.ceil(gap(a, b) / STEP));
-  return Array.from({ length: n + 1 }, (_, i) => lerp(a, b, i / n));
+  const length = own.reduce((t, q, i) => (i ? t + gap(q, own[i - 1]) : 0), 0);
+  if (Math.abs(length - gap(s, e)) < 1e-6) {
+    // A straight stroke: evenly spaced along the part kept.
+    const [a, b] = look.keep === 'end' ? [lerp(e, s, k), e] : [s, lerp(s, e, k)];
+    const n = Math.max(1, Math.ceil(gap(a, b) / STEP));
+    return Array.from({ length: n + 1 }, (_, i) => lerp(a, b, i / n));
+  }
+  // A stroke with corners: walk its path from the kept end and stop part of the way along.
+  const path = look.keep === 'end' ? [...own].reverse() : own;
+  const kept: Pt[] = [path[0]];
+  let left = k * length;
+  for (let i = 1; i < path.length && left > 0; i++) {
+    const step = gap(path[i], path[i - 1]);
+    kept.push(step <= left ? path[i] : lerp(path[i - 1], path[i], left / step));
+    left -= step;
+  }
+  return look.keep === 'end' ? kept.reverse() : kept;
 }
 
 /** Filled nib-and-ink outline around a centreline (see inkOutline). */
@@ -135,7 +162,7 @@ export function inkOutline(tile: TileId, rot = 0, seed = 0, minHalfWidth = 0, sq
   const key = `${tile}|${rot}|${seed}|${minHalfWidth.toFixed(3)}|${squeeze}${look ? `|${JSON.stringify(look)}@${at}` : ''}`;
   const hit = outlines.get(key);
   if (hit) return hit;
-  const pts = look ? lookCenterline({ tile, x: at[0], y: at[1], rot }, look) : strokeCenterline(tile, rot, squeeze);
+  const pts = look ? lookCenterline({ tile, x: at[0], y: at[1], rot }, look, squeeze) : strokeCenterline(tile, rot, squeeze);
   const d = inkPath(pts, seed, minHalfWidth);
   outlines.set(key, d);
   return d;

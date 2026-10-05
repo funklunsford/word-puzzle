@@ -121,10 +121,17 @@ interface Props {
   compact?: boolean;
 }
 
+/** How much a formed letter is narrowed (W); on phones no letter is drawn wider than MAX_DRAWN_COMPACT. */
+function drawnSqueeze(letter: string | null, compact: boolean): number {
+  if (!letter) return 1;
+  return Math.min(LETTERS[letter].squeeze ?? 1, compact ? MAX_DRAWN_COMPACT / LETTERS[letter].width : Infinity);
+}
+
 /** The centrelines a cell's strokes are drawn along: their formed letter's looks, or null where a stroke is drawn as itself. */
-function lookPoints(content: Placement[]): (Pt[] | null)[] {
+function lookPoints(content: Placement[], compact: boolean): (Pt[] | null)[] {
   const looks = formedLooks(content);
-  return content.map((p, i) => (looks?.[i] ? lookCenterline(p, looks[i]!) : null));
+  const squeeze = drawnSqueeze(recognize(content), compact);
+  return content.map((p, i) => (looks?.[i] ? lookCenterline(p, looks[i]!, squeeze) : null));
 }
 
 /** Offset that centers a cell's strokes horizontally. */
@@ -605,7 +612,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   const pressPlaced = (e: React.PointerEvent, cell: number, p: Placement, x: number) => {
     const index = cells[cell].findIndex((q) => slotKey(q) === slotKey(p));
     const at = screenOf(cell, x, p.y);
-    if (index >= 0) start(e, p.tile, p.rot ?? 0, { kind: 'cell', cell, index }, at && { ...at, scale: 1 }, lookPoints(cells[cell])[index]);
+    if (index >= 0) start(e, p.tile, p.rot ?? 0, { kind: 'cell', cell, index }, at && { ...at, scale: 1 }, lookPoints(cells[cell], !!compact)[index]);
   };
 
   const held = drag?.moved ? drag : null;
@@ -622,7 +629,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   const preview = (c: number) => {
     const kept = cells[c].filter((_, i) => !(carried?.cell === c && carried.index === i));
     const onSpot = held?.target?.cell === c ? held.target.slot.placement : null;
-    const looks = lookPoints(onSpot ? [...kept, onSpot] : kept);
+    const looks = lookPoints(onSpot ? [...kept, onSpot] : kept, !!compact);
     return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null };
   };
   const floating = lifting
@@ -643,9 +650,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       <div className={`word-cells${glow ? ' opened' : ''}`}>
         {cells.map((content, c) => {
           const letter = recognize(content);
-          const squeeze = letter
-            ? Math.min(LETTERS[letter].squeeze ?? 1, compact ? MAX_DRAWN_COMPACT / LETTERS[letter].width : Infinity)
-            : 1;
+          const squeeze = drawnSqueeze(letter, !!compact);
           const [lo, hi] = content.length ? xExtent(content) : [0, 0];
           const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * squeeze;
           const { kept, looks } = preview(c);

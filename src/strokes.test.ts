@@ -159,6 +159,12 @@ describe('formedLooks', () => {
     expect(formedLooks(glyph('U').slice(0, 2))).toBeNull(); // "||" isn't a letter yet
   });
 
+  it("carries W's left chevron over the middle peak once W is formed, and not the right one", () => {
+    const peak = { len: 1, keep: 'start', over: 0.12 };
+    expect(formedLooks(glyph('W'))).toEqual([peak, undefined]);
+    expect(formedLooks(glyph('W').slice(1))).toEqual([undefined]); // a lone chevron is a V, drawn as itself
+  });
+
   it('never offers a stroke with a look: slots are always plain strokes', () => {
     for (const tile of TILE_IDS) {
       for (const content of [[], glyph('C'), glyph('L'), glyph('J')]) for (const s of slotsFor(content, tile)) expect(s.placement.look).toBeUndefined();

@@ -75,9 +75,14 @@ export interface Placement {
  * bowl dropped onto "||" makes it), and drawn with its stems stopping where the bowl begins.
  */
 export interface Look {
-  /** Draw only this fraction of a straight stroke, measured from its `keep` end. */
+  /** Draw only this fraction of the stroke (along its path), measured from its `keep` end. */
   len: number;
   keep: 'start' | 'end';
+  /**
+   * Carry the pen this much further past the stroke's end, turned back the other way vertically,
+   * into the stroke it meets there: W's middle peak is then one pointed turn, like its bottoms.
+   */
+  over?: number;
 }
 
 export interface LetterGlyph {
@@ -94,6 +99,8 @@ const p = (tile: TileId, x: number, y: number, rot = 0, look?: Look): Placement 
   look ? { tile, x, y, rot, look } : { tile, x, y, rot };
 /** Formed look of a stem that stops halfway, where a bowl takes over (J, U). */
 const TOP_HALF: Look = { len: 0.5, keep: 'start' };
+/** Formed look of W's left chevron, which turns over the middle peak into the right one. */
+const W_PEAK: Look = { len: 1, keep: 'start', over: 0.12 };
 
 export const LETTERS: Record<string, LetterGlyph> = {
   // The chevron is 1 wide at mid-height, so A's crossbar sits at the same height as E/F/H's.
@@ -127,7 +134,9 @@ export const LETTERS: Record<string, LetterGlyph> = {
   U: { width: 1, parts: [p('LV', 0, 1, 0, TOP_HALF), p('LV', 1, 1, 0, TOP_HALF), p('P', 0.5, 1.5, 90)] },
   V: { width: 2, parts: [p('BV', 1, 1)] },
   // Two full chevrons are 4 wide; once formed, W is drawn 2.5 wide (V's chevrons are untouched).
-  W: { width: 4, squeeze: 0.625, parts: [p('BV', 1, 1), p('BV', 3, 1)] },
+  // The left chevron carries on over the middle peak into the right one's downstroke: two pen
+  // ends meeting there left a small dip in the peak.
+  W: { width: 4, squeeze: 0.625, parts: [p('BV', 1, 1, 0, W_PEAK), p('BV', 3, 1)] },
   X: { width: 1, parts: [p('LD', 0.5, 1), p('LB', 0.5, 1)] },
   Y: { width: 2, parts: [p('SC', 1, 0.5), p('H', 1, 1.5, 90)] },
   Z: { width: 1, parts: [p('H', 0.5, 0), p('H', 0.5, 2), p('LD', 0.5, 1)] },

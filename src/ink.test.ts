@@ -66,6 +66,30 @@ describe('inkSeed', () => {
   });
 });
 
+describe('lookCenterline', () => {
+  const chevron = { tile: 'BV' as const, x: 1, y: 1, rot: 0 };
+  const own = strokeCenterline('BV', 0, 0.625);
+  const close = (a: number[], b: number[]) => a.forEach((v, i) => expect(v).toBeCloseTo(b[i], 6));
+
+  it('keeps part of a chevron along its path, corner included', () => {
+    const kept = lookCenterline(chevron, { len: 0.75, keep: 'start' }, 0.625);
+    close(kept[0], own[0]);
+    expect(kept.some(([x, y]) => Math.abs(x) < 1e-9 && Math.abs(y - 1) < 1e-9)).toBe(true); // through its corner
+    const end = kept[kept.length - 1];
+    expect(end[1]).toBeCloseTo(0, 1); // halfway back up the second arm
+  });
+
+  it("carries W's left chevron on past its end and back down, narrowed with the letter", () => {
+    const peak = lookCenterline(chevron, { len: 1, keep: 'start', over: 0.12 }, 0.625);
+    const top = own[own.length - 1];
+    expect(peak.slice(0, own.length).every((q, i) => Math.hypot(q[0] - own[i][0], q[1] - own[i][1]) < 1e-9)).toBe(true);
+    const last = peak[peak.length - 1];
+    expect(Math.hypot(last[0] - top[0], last[1] - top[1])).toBeCloseTo(0.12, 6);
+    expect(last[0]).toBeGreaterThan(top[0]); // on to the right
+    expect(last[1]).toBeGreaterThan(top[1]); // and back down
+  });
+});
+
 describe('inkMorph', () => {
   it("eases a stem between full height and the half it's drawn at in a formed U", () => {
     const stem = { tile: 'LV' as const, x: 0, y: 1, rot: 0 };
