@@ -145,15 +145,16 @@ export function MazeApp() {
   const coarse = useMedia(COARSE);
 
   useEffect(() => {
-    // Every load plays a fresh puzzle, picked before the first render. (`live` drops a load that
-    // was superseded, e.g. by StrictMode running this effect twice in development.)
+    // The puzzle is picked before the first render: WILD → TAME, or with the freshPuzzle flag a
+    // random one from the pool. (`live` drops a load that was superseded, e.g. by StrictMode
+    // running this effect twice in development.)
     let live = true;
     fetch(dataUrl('mazes.json'))
       .then((r) => r.json())
       .then((d: MazeData) => {
         if (!live) return;
         setData(d);
-        setCurrent(pickPuzzle(d));
+        setCurrent(flags.freshPuzzle ? pickPuzzle(d) : { puzzle: d.puzzle, inkPots: d.inkPots });
       });
     // Definitions are a nicety: the game plays without them if they don't load.
     fetch(dataUrl('definitions.json'))
@@ -165,7 +166,7 @@ export function MazeApp() {
     };
   }, []);
 
-  /** The puzzle being played: a random one from the pool (dev can switch to another, or to WILD → TAME). */
+  /** The puzzle being played: WILD → TAME, or a random one from the pool (see the freshPuzzle flag; dev can switch). */
   const [current, setCurrent] = useState<Pick | null>(null);
   const puzzle = current?.puzzle;
   /** The puzzle's ink pots, when that modifier is on. */
@@ -177,6 +178,7 @@ export function MazeApp() {
     const next = { ...flags, [flag]: !flags[flag] };
     saveFlags(next);
     setFlags(next); // the puzzle restarts, so ink and the best score never mix across settings
+    if (flag === 'freshPuzzle' && data) setCurrent(next.freshPuzzle ? pickPuzzle(data, puzzle) : { puzzle: data.puzzle, inkPots: data.inkPots });
   };
 
   const restart = useCallback(() => {
