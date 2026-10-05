@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
+import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import { LETTERS, TILES, TILE_IDS, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, lookCenterline, type Pt } from '../../ink';
 import { EMPTY_CELL_X, formedLooks, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
@@ -190,18 +190,39 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     return () => ro.disconnect();
   }, [compact]);
 
-  // How each stroke sits in the tray. On a touch screen double-tapping a chevron, arc or bowl turns
-  // it there (there's no twisting a stroke under a finger), and it goes in the way it's turned; it
-  // starts the way it most often goes in (an arc as C, not on its side).
+  // How each stroke sits in the tray: a way it goes into letters (an arc as C, not on its side), and
+  // it goes in the way it's turned. On a touch screen double-tapping a chevron, arc or bowl turns it
+  // there (there's no twisting a stroke under a finger); with a mouse, hovering it slides out its
+  // other ways round to drag instead (see the flyout below).
   const [trayTurn, setTrayTurn] = useState(
     () =>
       Object.fromEntries(
         TILE_IDS.map((t) => {
           const display = TILES[t].display ?? 0;
-          return [t, window.matchMedia(COARSE).matches && !ORIENTS[t].includes(display) ? ORIENTS[t][0] : display];
+          return [t, ORIENTS[t].includes(display) ? display : ORIENTS[t][0]];
         }),
       ) as Record<TileId, number>,
   );
+  // The flyout: a hovered chevron, arc or bowl's other ways round, sliding out beside its tile.
+  const [flyout, setFlyout] = useState<{ tile: TileId; left: number; top: number; size: number; side: 1 | -1 } | null>(null);
+  const flyoutTimer = useRef(0);
+  const keepFlyout = () => clearTimeout(flyoutTimer.current);
+  const dropFlyout = () => {
+    clearTimeout(flyoutTimer.current);
+    flyoutTimer.current = window.setTimeout(() => setFlyout(null), 140);
+  };
+  const otherWays = (t: TileId) => ORIENTS[t].filter((r) => r !== trayTurn[t]);
+  const openFlyout = (t: TileId, el: HTMLElement) => {
+    keepFlyout();
+    if (coarse || disabled || dragRef.current || !TWISTS.has(t)) return setFlyout(null);
+    const size = el.offsetWidth;
+    const gap = 6;
+    const span = otherWays(t).length * (size + gap);
+    // Out to the right, unless that runs past the tray's edge.
+    const right = el.offsetLeft + size + span <= (el.parentElement?.clientWidth ?? Infinity);
+    setFlyout({ tile: t, top: el.offsetTop, size, side: right ? 1 : -1, left: right ? el.offsetLeft + size + gap : el.offsetLeft - span });
+  };
+  useEffect(() => () => clearTimeout(flyoutTimer.current), []);
   const turnInTray = (t: TileId) =>
     setTrayTurn((s) => ({ ...s, [t]: ORIENTS[t][(ORIENTS[t].indexOf(s[t]) + 1) % ORIENTS[t].length] }));
   // A single tap wiggles a turnable stroke (a hint that it turns); a second tap soon after turns it.
@@ -496,6 +517,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   const start = (e: React.PointerEvent, tile: TileId, rot: number, source: Source, home: { x: number; y: number; scale: number } | null, look0: Pt[] | null = null) => {
     if (disabled || dragRef.current || !home) return;
     e.preventDefault();
+    // Picking a stroke up closes the tray's flyout (it may unmount under the cursor, with no hover-off to close it).
+    keepFlyout();
+    setFlyout(null);
     // A press while a tapped stroke waits to be removed: on that same stroke it may be the second
     // tap; on anything else the removal goes ahead, and this press is spent (the word just changed).
     const pt = pendingTap.current;
@@ -751,12 +775,18 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
               style={{ ['--tile' as string]: `var(--t-${t})` }}
               title={
                 TWISTS.has(t)
-                  ? `${TILES[t].name}: ${coarse ? 'double-tap to turn it' : 'where it fits a spot either way round, circle the cursor around the spot to turn it'}`
+                  ? `${TILES[t].name}: ${coarse ? 'double-tap to turn it' : 'hover to pick another way round'}`
                   : TILES[t].name
               }
               onPointerDown={(e) => start(e, t, trayTurn[t], { kind: 'tray' }, trayHome(t))}
-              onPointerEnter={() => onHoverTile(t)}
-              onPointerLeave={() => onHoverTile(null)}
+              onPointerEnter={(e) => {
+                onHoverTile(t);
+                if (e.pointerType !== 'touch') openFlyout(t, e.currentTarget);
+              }}
+              onPointerLeave={() => {
+                onHoverTile(null);
+                dropFlyout();
+              }}
             >
               <svg viewBox="-1.2 -1.2 2.4 2.4">
                 <TrayStroke tile={t} turn={trayTurn[t]} nudge={nudges[t] ?? 0} />
@@ -764,6 +794,45 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
             </button>
           );
         })}
+        <AnimatePresence>
+          {flyout && !drag && !disabled && (
+            <motion.div
+              key={flyout.tile}
+              className="tray-flyout"
+              style={{ left: flyout.left, top: flyout.top }}
+              initial={{ opacity: 0, x: (-flyout.side * flyout.size) / 2, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: (-flyout.side * flyout.size) / 2, scale: 0.9 }}
+              transition={SETTLE}
+              onPointerEnter={() => {
+                keepFlyout();
+                onHoverTile(flyout.tile);
+              }}
+              onPointerLeave={() => {
+                onHoverTile(null);
+                dropFlyout();
+              }}
+            >
+              {otherWays(flyout.tile).map((r) => (
+                <button
+                  key={r}
+                  className="tray-tile turned"
+                  data-turn={r}
+                  style={{ ['--tile' as string]: `var(--t-${flyout.tile})`, width: flyout.size, height: flyout.size }}
+                  title={`${TILES[flyout.tile].name}, the other way round`}
+                  onPointerDown={(e) => {
+                    const r0 = e.currentTarget.querySelector('svg')!.getBoundingClientRect();
+                    start(e, flyout.tile, r, { kind: 'tray' }, { x: r0.left + r0.width / 2, y: r0.top + r0.height / 2, scale: r0.width / 2.4 / u });
+                  }}
+                >
+                  <svg viewBox="-1.2 -1.2 2.4 2.4">
+                    <TileStroke tile={flyout.tile} rot={r} minHalfWidth={minHalfWidthAt(TRAY_PX_PER_UNIT)} />
+                  </svg>
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {floating && (
