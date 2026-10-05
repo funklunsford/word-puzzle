@@ -40,13 +40,13 @@ const inkPots = { pots, best: ink.best, walk: ink.walk };
 
 // The pool the game picks a puzzle from on each load. Starts and goals are everyday base words
 // (in data/everyday-4.txt, defined as a noun, verb or adjective rather than a plural, past tense,
-// pronoun or archaic form), so a puzzle never opens on HAST or SOPS; the words between are any.
+// pronoun or archaic form), so a puzzle never opens on HAST, SOPS or SENT; the words between are any.
 const POOL = 400;
 const everyday = new Set(parseWordList(readFileSync(new URL('../data/everyday-4.txt', import.meta.url), 'utf8')));
 const definitions = JSON.parse(readFileSync(new URL('../public/definitions.json', import.meta.url), 'utf8'));
 const endpoint = (w: string) => {
   const d = definitions[w];
-  return everyday.has(w) && Array.isArray(d) && d.length === 2 && ['n.', 'v.', 'adj.'].includes(d[0]) && !/old-fashioned/.test(d[1]) && !/[^s]s$/i.test(w);
+  return everyday.has(w) && Array.isArray(d) && d.length === 2 && ['n.', 'v.', 'adj.'].includes(d[0]) && !/old-fashioned|\(past of/.test(d[1]) && !/[^s]s$/i.test(w);
 };
 const random = seededRandom(7);
 const seen = new Set<string>();

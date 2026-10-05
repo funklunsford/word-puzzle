@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
 import everydayText from '../data/everyday-4.txt?raw';
+import definitionsJson from '../public/definitions.json';
 import { payStep, placePots, potRoute, potValues, scoreWalk } from './inkpots';
 import { buildGraph, randomPuzzle, seededRandom } from './maze';
 import { STEP_LIMIT, wordDistance } from './strokes';
@@ -74,9 +75,15 @@ describe('puzzle pool (one is picked on each load)', () => {
   it('holds hundreds of distinct puzzles that start and end on everyday words', () => {
     expect(puzzles.length).toBeGreaterThanOrEqual(300);
     expect(new Set(puzzles.map((p) => `${p.puzzle.start}-${p.puzzle.goal}`)).size).toBe(puzzles.length);
+    const defs = definitionsJson as unknown as Record<string, string[]>;
     for (const { puzzle } of puzzles) {
-      expect(everyday.has(puzzle.start), puzzle.start).toBe(true);
-      expect(everyday.has(puzzle.goal), puzzle.goal).toBe(true);
+      for (const w of [puzzle.start, puzzle.goal]) {
+        expect(everyday.has(w), w).toBe(true);
+        // A base form: not an inflection of another word, not a past tense, not archaic, not a plural.
+        expect(defs[w].length, w).toBe(2);
+        expect(defs[w][1], w).not.toMatch(/\(past of|old-fashioned/);
+        expect(w, w).not.toMatch(/[^S]S$/);
+      }
     }
   });
 
