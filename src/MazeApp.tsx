@@ -5,6 +5,7 @@ import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
+import { nextStep, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { COARSE, useMedia } from './useMedia';
 import { InkDrop } from './components/maze/InkDrop';
@@ -105,6 +106,10 @@ export function MazeApp() {
   const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   const [reveal, setReveal] = useState(false);
+  // Hints, for the word the player is in: first which letter to change, then the word to make.
+  // They're free, but counted (the win message says how many).
+  const [hint, setHint] = useState<{ room: string; level: 1 | 2; step: NextStep | null } | null>(null);
+  const [hintsUsed, setHintsUsed] = useState(0);
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
@@ -185,6 +190,8 @@ export function MazeApp() {
     setInk(0);
     setInFlight(0);
     setReveal(false);
+    setHint(null);
+    setHintsUsed(0);
     setPeek(null);
   }, [puzzle, potPlan]);
   useEffect(restart, [restart]);
@@ -280,6 +287,25 @@ export function MazeApp() {
   // Board padding, gaps between letter tiles and their own padding come off before sizing the word.
   const unit = Math.max(13, Math.min(32, (column - 36 - 30 - 48) / 16));
   const visited = new Set(trail.map((v) => v.word));
+  const shownHint = hint && hint.room === room && !won ? hint : null;
+  const askHint = () => {
+    if (!data || !puzzle || won) return;
+    const level = shownHint ? 2 : 1;
+    setHintsUsed((n) => n + 1);
+    // The search takes a moment on a phone: show the hint once it's ready, without blocking the tap.
+    window.setTimeout(() => {
+      const step = shownHint?.step ?? nextStep(data.words, room, puzzle.goal, visited);
+      setHint({ room, level, step });
+    }, 0);
+  };
+  const ordinal = (i: number) => ['1st', '2nd', '3rd', '4th'][i];
+  const hintText = shownHint?.step
+    ? shownHint.level === 1
+      ? `Hint: change the ${shownHint.step.letters.map(ordinal).join(' and ')} letter${shownHint.step.letters.length > 1 ? 's' : ''}.`
+      : `Hint: make ${shownHint.step.next} next (${shownHint.step.cost ? `${shownHint.step.cost} ${shownHint.step.cost === 1 ? 'stroke' : 'strokes'}` : 'free'}).`
+    : shownHint
+      ? 'No hint from here.'
+      : null;
   const found = roomExits.filter((x) => visited.has(x.word)).length;
   const lettersWithTile = hoverTile ? new Set(Object.keys(LETTERS).filter((ch) => recipe(ch).has(hoverTile))) : null;
   const toGoal = wordDistance(room, puzzle.goal);
@@ -399,6 +425,7 @@ export function MazeApp() {
               {won && (
                 <motion.div className="win" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                   You reached {puzzle.goal} in {spent} strokes. Lowest strokes possible: {best}.
+                  {hintsUsed > 0 && ` (${hintsUsed} ${hintsUsed === 1 ? 'hint' : 'hints'})`}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -425,6 +452,7 @@ export function MazeApp() {
               unit={unit}
               compact={compact}
               disabled={won || locked}
+              hinted={shownHint?.step?.letters}
               room={room}
               onEdit={onEdit}
               onHoverTile={setHoverTile}
@@ -449,9 +477,14 @@ export function MazeApp() {
               <button className="pill" onClick={resetStep} disabled={!history.length}>
                 Reset step
               </button>
+              <button className="pill hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
+                {shownHint ? 'Next word' : 'Hint'}
+              </button>
             </div>
-            <p className={`step-status${locked ? ' out' : justOpened ? ' opened' : ''}`}>
-              {locked
+            <p className={`step-status${hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
+              {hintText && !locked
+                ? hintText
+                : locked
                 ? 'Out of strokes for this step. Undo to try another way.'
                 : stepEdits
                   ? 'Keep going: land on a real word.'
@@ -592,6 +625,7 @@ export function MazeApp() {
           goal={theme ? puzzle.goal : data.puzzle.goal}
           theme={theme ?? themeFor(data.puzzle.start, data.puzzle.goal)!}
           strokes={won ? spent : data.puzzle.best + 1}
+          hints={won ? hintsUsed : 0}
           best={theme ? best : data.puzzle.best}
           freezeAt={celebrating.freezeAt}
           onClose={() => setCelebrating(null)}

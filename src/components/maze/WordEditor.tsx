@@ -140,6 +140,8 @@ interface Props {
   onHoverTile: (tile: TileId | null) => void;
   /** Phone layout: narrower cells sharing the row's width (the unit is then measured, not given). */
   compact?: boolean;
+  /** Letters a hint points at (indexes): their cells are outlined. */
+  hinted?: number[];
 }
 
 /** How much a formed letter is narrowed (W); on phones no letter is drawn wider than MAX_DRAWN_COMPACT. */
@@ -183,7 +185,7 @@ const TWISTS = new Set(
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
  * slot from where it was released or flies back to its tray tile.
  */
-export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, compact = false }: Props) {
+export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, compact = false, hinted }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<{ cell: number; key: string } | null>(null);
   /** A stroke flying home to its tray tile after the drag ended (removed, or not placed). */
@@ -704,7 +706,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
           const misfit = !!aim && !target;
           const red = noFit || misfit;
           return (
-            <div className={`cell${letter ? ' formed' : ''}${red ? ' red' : ''}`} key={c}>
+            <div className={`cell${letter ? ' formed' : ''}${red ? ' red' : ''}${hinted?.includes(c) ? ' hinted' : ''}`} key={c}>
               <svg
                 ref={(el) => {
                   svgs.current[c] = el;

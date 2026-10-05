@@ -11,6 +11,8 @@ interface Props {
   /** The player's strokes, and the lowest possible. */
   strokes: number;
   best: number;
+  /** Hints used on the way, if any. */
+  hints?: number;
   /** Show one moment (seconds) and hold it, instead of playing: for previews and stills. */
   freezeAt?: number;
   onClose: () => void;
@@ -103,7 +105,7 @@ function cssColor(name: string, fallback: string): [number, number, number] {
  * The win celebration: the start word bursts into wild ink and is tamed into the goal word (drawn
  * live with three.js, loaded only when it plays). Tap, click or Escape to carry on.
  */
-export function Celebration({ start, goal, theme, strokes, best, freezeAt, onClose }: Props) {
+export function Celebration({ start, goal, theme, strokes, best, hints = 0, freezeAt, onClose }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const [settled, setSettled] = useState(false);
@@ -244,6 +246,7 @@ export function Celebration({ start, goal, theme, strokes, best, freezeAt, onClo
         <p className="celebration-line">
           {start} → {goal} in {strokes} {strokes === 1 ? 'stroke' : 'strokes'}
           {strokes <= best ? ' · the lowest possible!' : ` · lowest possible ${best}`}
+          {hints > 0 && ` · ${hints} ${hints === 1 ? 'hint' : 'hints'}`}
         </p>
         <p className="celebration-hint">Tap anywhere to carry on</p>
       </div>

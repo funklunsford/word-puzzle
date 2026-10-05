@@ -1537,3 +1537,16 @@ select,
   font-size: 13px;
   color: var(--muted);
 }
+
+/* Hints: the letters a hint points at, and its line in the step panel. */
+.cell.hinted {
+  border-color: var(--gold);
+  box-shadow:
+    0 4px 0 color-mix(in srgb, var(--gold) 45%, var(--ledge)),
+    0 0 0 3px color-mix(in srgb, var(--gold) 30%, transparent);
+}
+
+.step-status.hinted {
+  color: var(--ink);
+  font-weight: 600;
+}
