@@ -404,15 +404,22 @@ export function MazeApp() {
                   <p className="help-lead">
                     Turn the start word into the goal word, one real word at a time, in as few strokes as you can.
                   </p>
+                  {/* Touch screens and mouse play differently (tap vs click, double-tap vs swipe to turn), so each gets its own. */}
                   <ul className="how">
-                    <li>Change the word into another real word, using up to 3 strokes per step.</li>
-                    <li>Drag strokes in from the tray. Tap a stroke to remove it, or drag it to move it.</li>
+                    <li>Each step, change up to 3 strokes, then land on a real word.</li>
                     {coarse ? (
-                      <li>A chevron, arc or bowl that fits a spot either way round goes in the way it's turned: double-tap it in the tray to turn it, or double-tap it in the word to turn it where it is.</li>
+                      <>
+                        <li>Drag a stroke from the tray into a letter. Tap a stroke in the word to remove it, or drag it to move it.</li>
+                        <li>To turn a stroke, double-tap it, in the tray or in the word.</li>
+                      </>
                     ) : (
-                      <li>A chevron, arc or bowl that fits a spot either way round? As you place it, swipe the way you want it to point: up turns a V into Λ, for A.</li>
+                      <>
+                        <li>Drag a stroke from the tray into a letter. Click a stroke in the word to remove it, or drag it to move it.</li>
+                        <li>Some strokes fit a spot more than one way. As you place one, swipe the way you want it to point (swipe up to turn a V upside down).</li>
+                      </>
                     )}
                     <li>Going back to a word you've already visited is free.</li>
+                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the letter to change, then again for the next word.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke that pays for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
