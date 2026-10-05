@@ -827,11 +827,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
               className={`tray-tile${taken ? ' taken' : ''}`}
               data-turn={trayTurn[t] /* how it's turned (read by tests and tools) */}
               style={{ ['--tile' as string]: `var(--t-${t})` }}
-              title={
-                TWISTS.has(t)
-                  ? `${TILES[t].name}: ${coarse ? 'double-tap to turn it' : 'where it fits a spot either way round, swipe as you place it to turn it (up turns V into Λ)'}`
-                  : TILES[t].name
-              }
+              data-tile={t /* which stroke this is (read by tests and tools) */}
+              aria-label={`${TILES[t].name} stroke`}
+              title={TWISTS.has(t) ? (coarse ? 'Drag into a letter · double-tap to turn' : 'Drag into a letter · swipe as you place it to turn') : 'Drag into a letter'}
               onPointerDown={(e) => start(e, t, trayTurn[t], { kind: 'tray' }, trayHome(t))}
               onPointerEnter={() => onHoverTile(t)}
               onPointerLeave={() => onHoverTile(null)}
