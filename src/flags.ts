@@ -3,7 +3,7 @@
 // ?flags=inkPots (on) or ?flags=-inkPots (off).
 
 export const FLAGS = {
-  inkPots: { label: 'Ink pots', on: true },
+  inkPots: { label: 'Ink pots', on: false },
 } as const;
 
 export type Flag = keyof typeof FLAGS;
