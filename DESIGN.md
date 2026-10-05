@@ -320,3 +320,37 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Swipe to turn (mouse):** circling is gone. On a spot that fits a stroke more than one way, it settles the way it's held (or the nearest way that fits), and once the cursor is on the spot (within 0.6 units) a swipe of half a unit snaps it to whichever way round points most along the swipe: the chevron's point, or the back of an arc or bowl, follows the cursor. Up turns V into Λ, down back to V; right reverses a C; down gives a bowl under a stem U's cup, right B's bowl. The approach from the tray doesn't count, so a V brought up from below stays a V. Every turn is an animated snap; the stroke never shows a way that doesn't fit, so the cell no longer goes red there.
 - **Strokes stay in the row:** once a held stroke reaches the letters' row it stays within the row's height, so a swipe up doesn't carry it off; it goes back down only when the pointer is over the tray, to put it back.
 - **The tray** shows every stroke a way it goes into letters (the arc as C), as phones already did. Phones keep double-tap to turn.
+
+## Quality of life, hints and a celebration pilot (2026-10-05, branch `qol`)
+- **How to play** is a pop-up over the game on a player's first visit (blurred backdrop; Escape, ×, "Let's play" or a click outside closes it; focus goes into it and back to ?). `?help` in the address opens it again, for testing.
+- **Tab icon:** `public/favicon.svg`, the wordmark's S drawn by the game's own ink renderer on the dark board colour (`scripts/favicon.ts`).
+- **Word filter:** a review of the whole list blocked ORGY, SMUT, LEWD, SLAG, DIKE, NIPS and MUFF (sexual, crude, or a slur in one sense). Everyday words with a slang second meaning stay (KNOB, BUST, RUMP, STUD, TOOL, KINK, LUBE, TEAT, HAGS, WINO, KILL…). The SCOWL downloads aren't kept, so the words were removed from the generated lists directly; the pool was regenerated (WILD → TAME unchanged).
+- **Hints** (`src/hints.ts`): the first tap outlines the letter(s) to change next, the second names the next word and what it costs. They follow a cheapest remaining route from the word the step started from, counting returns to visited words as free (as the game does), found by searching outward from the goal only when asked (well under half a second). Hints are free but counted; the win message says how many.
+- **Win celebration (pilot, WILD → TAME only)** (`src/celebration/`): drawn live with three.js, loaded only when it plays. Particles sampled from WILD's strokes burst into four roaming whirlpools of hot ink, the swirls unwind as the colours cool, and they settle onto TAME's strokes in the game's own stroke colours as the stormy background calms to the page's; then "Tamed!" with the score. Every particle's path is a function of time in the vertex shader, so any moment can be drawn on its own (`?celebrate=2.2` in development holds 2.2 s; Dev has "Preview celebration"). Tap, click or Escape carries on; reduced motion shows the settled frame; phones get fewer particles and a capped pixel ratio. Each puzzle's colours, words and timing are a theme (`themes.ts`), so a daily puzzle can get its own. three.js is a 187 KB (gzipped) chunk; the main bundle grew about 13 KB.
+
+## Half-built U merges (2026-10-05, branch `qol`)
+- **The problem:** a long bar with the cup to its right isn't a letter yet (U needs both bars), so no look applied and the bar ran through the cup's left tail.
+- **The rule** (`formedLooks`): a shape that isn't a letter but fits inside exactly one letter, at one alignment, is drawn with that letter's looks. One bar and the cup can only become U, so the bar stops where the cup starts, while the cup hovers and once it's dropped (the bar's tap area is then its top half, as in U). A test goes through every half-built shape of every letter: this is the only one that gains a look ("‖", a lone cup and G's lone chin stay as they are, since several letters fit them). Display only.
+
+## Double-tap on a phone never removes two strokes (2026-10-05, branch `qol`)
+- **The bug** (from the mobile playtest): a tap removed a stroke at once unless it could turn on its spot, so a double tap on, say, R's bowl removed the bowl and then whatever stroke sat under the second tap (two strokes spent).
+- **Now, on a touch screen, every tap on a placed stroke waits 400 ms** (the stroke dims; it stays tappable) before removing it. A second tap on it in that time turns it on its spot where it fits the other way round, or wiggles it where it doesn't, and removes nothing. This supersedes "only strokes that fit their spot another way wait" above.
+- **A press on anything else in that moment** lets the removal go ahead and then carries on normally (it used to be spent): edits are made against the latest cells (a ref kept up to date as edits are applied; `onEdit` reports whether the game took the edit), and a pressed stroke is found again by its key. Three quick taps on three strokes remove all three.
+- **The mouse is unchanged:** a click removes at once.
+- **Not done** (from the same playtest): turn badges (rejected before), the small chevron turning (it never needs to), hit areas picked by draw order where strokes meet.
+
+## The celebration, second pass: flora (2026-10-05, branch `qol`)
+- **Direction:** organic, with vines, ferns and flowers that are tamed (replacing the first pass's ink particles, which are in the history).
+- **The scene** (`src/celebration/flora.ts`, colours in `themes.ts`):
+  - **Holding:** WILD is drawn in vines, its strokes split into 44 pieces (30 on phones), with tiny buds.
+  - **Wild:** each piece peels off into a tendril that bends, coils at the tip and sways, or a fern whose tip unrolls, with big leaves and bright flowers bursting open at the tips, on a dark jungle green.
+  - **Taming:** the wild growth is gathered onto TAME's nearest strokes as it shrinks away, while the background calms to the page's own.
+  - **Tamed:** one neat vine grows along each stroke of TAME (stroke by stroke, about the game's stroke weight, tapering only at real ends), with leaves unfolding at even spacing, fern fronds on the bars, and at last a small flower at each stroke's tip in the game's colour for that stroke; then a gentle breeze.
+- **Drawing:** a ribbon mesh for the stems and instanced leaves, petals and flower centres, all recomputed from the time each frame (walking along each stem, never from the last frame), so any moment can be held (`?celebrate=2.9`). Phones fit the words to 88% of the width.
+
+## Strokes this step (2026-10-05, branch `qol`)
+- The three step dots stay under Undo / Reset step / Hint, labelled "Strokes this step", now as 16 px rings that fill white (the text colour, so dark in light mode) as strokes are used, with a small pop, and all turn red once the step is out of strokes. (Tried at the top right of the board, then in the score card, before settling back here.)
+- The step line no longer says "Change the word into another real word." when there's nothing new: it's hidden until a stroke is used, a word is made or a hint is shown. The definition text under the word is a little larger (16 px, 15 px on phones).
+
+## WILD → TAME ships; the pool goes behind a flag (2026-10-05)
+- **Every load plays WILD → TAME** (best 13), the puzzle with the celebration. The random pool (420 tricky puzzles averaging 9) stays in `mazes.json` behind the `freshPuzzle` flag ("New puzzle each load", off): `?flags=freshPuzzle` turns it on for a visit, and Dev can toggle it (it switches puzzle at once).
