@@ -6,6 +6,8 @@
   --line: #e4dfd5;
   --gold: #d9a520;
   --ink-pot: #34478f;
+  --ink-fill: #26357a;
+  --feather: #f4ecdc;
   --spicy: #e4572e;
   --ok: #5e8c4f;
   --ledge: #e4ddcf;
@@ -38,6 +40,8 @@
     --line: #34323d;
     --gold: #f0c04a;
     --ink-pot: #9fb2f0;
+    --ink-fill: #4a63c8;
+    --feather: #e6dfd0;
     --spicy: #ff7a4d;
     --ok: #93c27f;
     --ledge: #0e0d12;
@@ -574,6 +578,8 @@ select,
 }
 
 .score-panel {
+  flex: 0 1 200px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1018,13 +1024,89 @@ select,
 /* Ink pots (a modifier behind the inkPots flag): drops of ink, the bank, and the pots to collect. */
 .ink-drop {
   flex: none;
-  fill: var(--ink-pot);
+  fill: var(--ink-fill);
   stroke: var(--ink-pot);
   stroke-width: 0.18;
 }
 
 .ink-drop.empty {
   fill: none;
+}
+
+.ink-pot {
+  flex: none;
+  overflow: visible;
+}
+
+.ink-pot .glass {
+  fill: color-mix(in srgb, var(--ink-pot) 8%, var(--surface));
+  stroke: var(--ink-pot);
+  stroke-width: 0.1;
+}
+
+.ink-pot .glass.body {
+  stroke: none;
+}
+
+.ink-pot .ink {
+  fill: var(--ink-fill);
+}
+
+.ink-pot .quill {
+  fill: var(--feather);
+  stroke: var(--ink-pot);
+  stroke-width: 0.07;
+  stroke-linejoin: round;
+}
+
+.ink-pot .quill-shaft {
+  fill: none;
+  stroke: var(--ink-pot);
+  stroke-width: 0.08;
+  stroke-linecap: round;
+}
+
+.ink-pot .outline {
+  fill: none;
+  stroke: var(--ink-pot);
+  stroke-width: 0.1;
+}
+
+.ink-pot .shine {
+  fill: none;
+  stroke: #fff;
+  stroke-opacity: 0.45;
+  stroke-width: 0.1;
+  stroke-linecap: round;
+}
+
+.ink-pot.empty .shine {
+  stroke-opacity: 0.25;
+}
+
+.bank-drops {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.bank-drops > span {
+  display: inline-flex;
+}
+
+/* Drops of ink flying between a word and the bank (above everything, never in the way). */
+.ink-flights {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.ink-flight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: -10px 0 0 -8px;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.25));
 }
 
 .ink-bank {
@@ -1069,6 +1151,11 @@ select,
   padding: 3px 9px;
   border: 1.5px dashed color-mix(in srgb, var(--ink-pot) 60%, transparent);
   border-radius: 999px;
+}
+
+.pots li.near {
+  border-style: solid;
+  border-color: var(--ink-pot);
 }
 
 .pots li.got {

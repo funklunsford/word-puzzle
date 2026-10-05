@@ -241,3 +241,15 @@ Modifiers are prototyped behind **feature flags** (`src/flags.ts`).
 - **Placement** (`placePots`) gives each puzzle one pot that saves a stroke (on an equally cheap route, off the best path), one break-even pot, and one that tempts but costs a stroke. If no pot can save a stroke, two break-even pots stand in. WILD → TAME: **TALE** (saves), **TIME** (break-even), **WAIL** (costs); best **12** with pots, 13 without.
 - **Best score with pots** (`potRoute`): every new word is first reached by a charged step from a visited one, so the charged steps form a tree. The best is therefore a Steiner tree over the start and any subset of pots, solved exactly with Dreyfus–Wagner, minus one per pot, plus the last leg to the goal. The goal is kept out of the tree, since reaching it ends the game. The tree is walked with pot branches first and returns free, and that walk is replayed through the game's own scoring (`scoreWalk`) in tests. About 10–20 ms per puzzle, so random dev puzzles get pots too.
 - **Data:** the fixed puzzle's pots are in `mazes.json` under `inkPots`, placed with a fixed seed. `puzzle.best`/`path` stay the plain answer. "Show best route" shows the route with pots when the flag is on.
+
+### Ink pot graphics and motion (2026-10-04)
+- **Graphic:** a squat glass inkwell with a quill (`InkPot.tsx`), deep blue ink and a cream feather in both themes.
+  - The side card's pot chips show it full until collected, then its ink drains.
+  - A pot within reach gets a solid ink-blue border, and its inkwell **hops once** as it comes in range. Nothing loops (the design skill warns against slow looping motion).
+  - Pot words in Your path carry a small drained inkwell.
+- **Ink travels where it's used** (`InkFlights.tsx`; spatial consistency, causality).
+  - Reaching a pot word sends a drop arcing **up out of the word into the ink bank**. The bank counts it when it lands, with a small spring pop.
+  - Ink paying for a step **pours from the bank down into the new word**, and that step's path entry springs in its drop and count.
+  - Flights are skipped with reduced motion: the bank just updates.
+- **The bank** is a row of drops, one per free stroke banked, with a hollow drop when empty. It names the pots within reach.
+- **Wording:** "best" now reads **"lowest strokes possible"** in the score card and the win message, and the reveal button says "Show lowest-stroke route".

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, MotionConfig, motion } from 'motion/react';
+import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
 import { buildGraph, randomPuzzle, type Graph, type Puzzle } from './maze';
 import { payStep, placePots, potRoute, type InkPots } from './inkpots';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { InkDrop } from './components/maze/InkDrop';
+import { InkPot } from './components/maze/InkPot';
+import { centerOf, useInkFlights } from './components/maze/InkFlights';
 import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
 import { WordEditor } from './components/maze/WordEditor';
@@ -80,6 +82,14 @@ export function MazeApp() {
   const [flags, setFlags] = useState(loadFlags);
   /** Free strokes banked from ink pots, waiting to pay for the next steps to new words. */
   const [ink, setInk] = useState(0);
+  // Ink in flight: drops rise from a pot word into the bank, and pour from the bank into a word.
+  // The bank shows a collected drop once it lands; `bankPop` replays the landing's little spring.
+  const { launch, layer: inkFlights } = useInkFlights();
+  const [inFlight, setInFlight] = useState(0);
+  const [bankPop, setBankPop] = useState(0);
+  const boardRef = useRef<HTMLElement>(null);
+  const bankRef = useRef<HTMLSpanElement>(null);
+  const reduce = useReducedMotion();
   // How to play opens on a player's very first visit only.
   const [help, setHelp] = useState(() => !seenHelp());
   useEffect(() => markHelpSeen(), []);
@@ -137,6 +147,7 @@ export function MazeApp() {
     setSpent(0);
     setLastDoor(null);
     setInk(0);
+    setInFlight(0);
     setReveal(false);
     setPeek(null);
   }, [puzzle, potPlan]);
@@ -183,6 +194,26 @@ export function MazeApp() {
     [won, locked, room, dict, stepEdits, cells, trail, ink, potPlan],
   );
 
+  // After a step to a new word: ink paid for it pours from the bank into the word, and a pot's ink
+  // rises from the word into the bank (after the pour, when both happen).
+  useEffect(() => {
+    if (!lastDoor || lastDoor.back || (!lastDoor.used && !lastDoor.pot)) return;
+    const word = boardRef.current?.querySelector('.word-cells');
+    const bank = bankRef.current;
+    if (!word || !bank || reduce) {
+      if (lastDoor.pot) setBankPop((n) => n + 1);
+      return;
+    }
+    if (lastDoor.used) launch(centerOf(bank), centerOf(word));
+    if (lastDoor.pot) {
+      setInFlight((n) => n + 1);
+      launch(centerOf(word), centerOf(bank), lastDoor.used ? 0.35 : 0.1, () => {
+        setInFlight((n) => n - 1);
+        setBankPop((n) => n + 1);
+      });
+    }
+  }, [lastDoor, launch, reduce]);
+
   const undo = () => {
     if (!history.length) return;
     setCells(history[history.length - 1]);
@@ -206,7 +237,8 @@ export function MazeApp() {
   const lettersWithTile = hoverTile ? new Set(Object.keys(LETTERS).filter((ch) => recipe(ch).has(hoverTile))) : null;
   const toGoal = wordDistance(room, puzzle.goal);
   const potsLeft = (potPlan?.pots ?? []).filter((p) => !visited.has(p));
-  const potNear = potsLeft.find((p) => wordDistance(room, p) <= STEP_LIMIT);
+  const potsNear = won ? [] : potsLeft.filter((p) => wordDistance(room, p) <= STEP_LIMIT);
+  const banked = Math.max(0, ink - inFlight);
   const used = spent + stepEdits;
 
   // The step after a door opens, until the next stroke: confirm it (completion feedback).
@@ -232,17 +264,32 @@ export function MazeApp() {
                 <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
               </div>
               <div className="score-sub">
-                <span>best {best}</span>
+                <span>lowest strokes possible: {best}</span>
                 <span>
                   {roomExits.length} {roomExits.length === 1 ? 'word' : 'words'} within reach
                   {found ? ` (${found} visited)` : ''}
                 </span>
               </div>
               {potPlan && (
-                <div className={`ink-bank${ink ? ' full' : ''}`} aria-live="polite">
-                  <InkDrop filled={!!ink} />
-                  {ink ? `${ink} free ${ink === 1 ? 'stroke' : 'strokes'} banked` : 'no ink banked'}
-                  {!won && potNear && <span className="pot-near"> · ink pot within reach</span>}
+                <div className={`ink-bank${banked ? ' full' : ''}`} aria-live="polite">
+                  <span className="bank-drops" ref={bankRef}>
+                    {banked ? (
+                      Array.from({ length: banked }, (_, i) => (
+                        <motion.span
+                          key={i === banked - 1 ? `${i}-${bankPop}` : i}
+                          initial={i === banked - 1 ? { scale: 1.6 } : false}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', bounce: 0.5, duration: 0.45 }}
+                        >
+                          <InkDrop size={13} />
+                        </motion.span>
+                      ))
+                    ) : (
+                      <InkDrop filled={false} size={13} />
+                    )}
+                  </span>
+                  {banked ? `${banked} free ${banked === 1 ? 'stroke' : 'strokes'} banked` : 'no ink banked'}
+                  {potsNear.length > 0 && <span className="pot-near"> · ink pot within reach: {potsNear.join(', ')}</span>}
                 </div>
               )}
             </div>
@@ -266,11 +313,11 @@ export function MazeApp() {
             </section>
           )}
 
-          <section className="board">
+          <section className="board" ref={boardRef}>
             <AnimatePresence>
               {won && (
                 <motion.div className="win" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  You reached {puzzle.goal} in {spent} strokes. Best possible: {best}.
+                  You reached {puzzle.goal} in {spent} strokes. Lowest strokes possible: {best}.
                 </motion.div>
               )}
             </AnimatePresence>
@@ -359,13 +406,19 @@ export function MazeApp() {
                   >
                     {i > 0 && <span className="cost">+{v.cost}</span>}
                     {!!v.used && (
-                      <span className="ink-used" aria-label={`${v.used} paid in ink`}>
+                      <motion.span
+                        className="ink-used"
+                        aria-label={`${v.used} paid in ink`}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', bounce: 0.4, duration: 0.4, delay: 0.5 }}
+                      >
                         <InkDrop size={9} />
                         {v.used}
-                      </span>
+                      </motion.span>
                     )}
                     <GlyphWord word={v.word} size={14} />
-                    {potPlan?.pots.includes(v.word) && <InkDrop size={10} />}
+                    {potPlan?.pots.includes(v.word) && <InkPot full={false} size={13} />}
                     {isHere && <span className="meta">{won ? 'goal' : 'here'}</span>}
                   </button>
                 </motion.li>
@@ -382,12 +435,16 @@ export function MazeApp() {
             <div className="pots" aria-label="Ink pots">
               <span className="label">Ink pots</span>
               <ul>
-                {potPlan.pots.map((p) => (
-                  <li key={p} className={visited.has(p) ? 'got' : ''} aria-label={`${p}${visited.has(p) ? ' (collected)' : ''}`}>
-                    <InkDrop filled={visited.has(p)} size={10} />
-                    <GlyphWord word={p} size={13} />
-                  </li>
-                ))}
+                {potPlan.pots.map((p) => {
+                  const got = visited.has(p);
+                  const near = potsNear.includes(p);
+                  return (
+                    <li key={p} className={got ? 'got' : near ? 'near' : ''} aria-label={`${p}${got ? ' (collected)' : near ? ' (within reach)' : ''}`}>
+                      <InkPot full={!got} near={near} size={18} />
+                      <GlyphWord word={p} size={13} />
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -401,7 +458,7 @@ export function MazeApp() {
               Restart
             </button>
             <button className="pill quiet" onClick={() => setReveal((r) => !r)}>
-              {reveal ? 'Hide' : 'Show'} best route
+              {reveal ? 'Hide' : 'Show'} lowest-stroke route
             </button>
           </div>
           {import.meta.env.DEV && (
@@ -431,6 +488,7 @@ export function MazeApp() {
           )}
         </aside>
       </div>
+      {inkFlights}
     </MotionConfig>
   );
 }
