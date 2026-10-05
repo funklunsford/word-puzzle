@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
-import { PUZZLE_SHAPE, buildGraph, randomPuzzle, solve } from './maze';
+import { ONE_STROKE, POOL_MIX, PUZZLE_SHAPE, buildGraph, classifyNeed, hubStep, isObvious, randomPuzzle, solve, steppingStone, type Need } from './maze';
 import { STEP_LIMIT, wordDistance } from './strokes';
 
 const { words, puzzle } = mazeJson as { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] } };
@@ -71,3 +71,61 @@ describe('maze graph', () => {
     }
   });
 });
+
+describe('the puzzle pool', () => {
+  const pool = (mazeJson as unknown as { puzzles: { puzzle: { start: string; goal: string; best: number; path: string[] }; need: Need; tricky: boolean }[] }).puzzles;
+
+  it('treats C, I and V, the one-stroke letters, as the hubs', () => {
+    expect([...ONE_STROKE].sort()).toEqual(['C', 'I', 'V']);
+  });
+
+  it('centres on 9 strokes, evenly across 8, 9 and 10', () => {
+    expect(pool.length).toBeGreaterThanOrEqual(300);
+    const [lo, hi] = PUZZLE_SHAPE.best;
+    for (const { puzzle } of pool) expect(puzzle.best).toBeGreaterThanOrEqual(lo), expect(puzzle.best).toBeLessThanOrEqual(hi);
+    const mean = pool.reduce((t, x) => t + x.puzzle.best, 0) / pool.length;
+    expect(mean).toBeCloseTo((lo + hi) / 2, 1);
+    const per = (b: number) => pool.filter((x) => x.puzzle.best === b).length;
+    for (let b = lo; b <= hi; b++) expect(per(b)).toBe(pool.length / (hi - lo + 1));
+  });
+
+  it('mixes what puzzles need from C, I and V as planned, so not every maze needs them', () => {
+    for (const need of ['none', 'letter', 'stone'] as Need[]) {
+      expect(pool.filter((x) => x.need === need).length / pool.length, need).toBeCloseTo(POOL_MIX.need[need], 2);
+    }
+  });
+
+  it('tags each puzzle truly, and stores a shortest route that shows it', () => {
+    for (const { puzzle: p, need } of pool) {
+      const label = `${p.start} → ${p.goal}`;
+      expect(classifyNeed(words, adj, p.start, p.goal, p.best).need, label).toBe(need);
+      expect([p.path[0], p.path.at(-1)], label).toEqual([p.start, p.goal]);
+      expect(p.path.slice(1).reduce((t, w, i) => t + wordDistance(p.path[i], w), 0), label).toBe(p.best);
+      const steps = p.path.slice(1).map((w, i) => [p.path[i], w]);
+      if (need === 'none') expect(steps.some(([a, b]) => hubStep(a, b)), label).toBe(false);
+      if (need === 'letter') expect(p.path.slice(1, -1).some((w) => steppingStone(w, p.start, p.goal)), label).toBe(false);
+    }
+  });
+
+  it('has no obvious puzzles: the straightforward approach never makes par', () => {
+    for (const { puzzle: p, tricky } of pool) expect(isObvious(words, adj, p.start, p.goal, p.best), `${p.start} → ${p.goal}`).toBe(!tricky);
+    expect(pool.filter((x) => x.tricky).length / pool.length).toBeCloseTo(POOL_MIX.tricky, 2);
+  });
+});
+
+describe('isObvious', () => {
+  it('calls a puzzle obvious when moving straight towards the goal makes par, and tricky otherwise', () => {
+    // Every step of this route changes a letter into the goal's: anyone would find it.
+    const plain = randomPuzzleWhere((p) => p.path.every((w, i) => i === 0 || [...w].filter((ch, k) => ch !== p.goal[k]).length < [...p.path[i - 1]].filter((ch, k) => ch !== p.goal[k]).length));
+    expect(isObvious(words, adj, plain.start, plain.goal, plain.best)).toBe(true);
+  });
+});
+
+/** The first random puzzle (from a fixed seed) that satisfies `test`. */
+function randomPuzzleWhere(test: (p: ReturnType<typeof randomPuzzle>) => boolean) {
+  const random = mulberry32(3);
+  for (;;) {
+    const p = randomPuzzle(words, adj, random);
+    if (test(p)) return p;
+  }
+}

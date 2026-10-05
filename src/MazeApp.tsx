@@ -3,7 +3,7 @@ import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
 import { dataUrl } from './data';
-import type { Puzzle } from './maze';
+import type { Need, Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { COARSE, useMedia } from './useMedia';
@@ -22,7 +22,17 @@ type PotPlan = Omit<InkPots, 'bound'>;
 interface Pick {
   puzzle: Puzzle;
   inkPots: PotPlan;
+  /** Pool puzzles: what its shortest routes need from C, I and V, and whether the obvious approach misses par (shown in Dev). */
+  need?: Need;
+  tricky?: boolean;
 }
+
+/** How Dev describes a pool puzzle's need (see classifyNeed in src/maze.ts). */
+const NEEDS: Record<Need, string> = {
+  none: 'needs no C, I or V',
+  letter: 'changes a C, I or V the start or goal has',
+  stone: 'needs a stepping stone through C, I or V',
+};
 
 interface MazeData extends Pick {
   words: string[];
@@ -490,6 +500,11 @@ export function MazeApp() {
           {import.meta.env.DEV && (
             <div className="dev-tools">
               <span className="label">Dev</span>
+              {current?.need && (
+                <span className="maze-kind">
+                  This maze: {current.tricky ? 'tricky' : 'obvious'}, {NEEDS[current.need]}
+                </span>
+              )}
               <button className="pill quiet" onClick={() => setCurrent(pickPuzzle(data, puzzle))}>
                 New start & goal
               </button>
