@@ -131,8 +131,18 @@ export function MazeApp() {
   const [hardcore, setHardcore] = useState(loadHardcore);
   /** A word hardcore just turned away (off the lowest-stroke route), for the step line. */
   const [refused, setRefused] = useState<string | null>(null);
-  /** Said in the step line until the next stroke (switching hardcore on or off). */
+  /** Said in the step line until the next stroke or hint (switching hardcore on or off). */
   const [notice, setNotice] = useState<string | null>(null);
+  /** Hardcore asked for once with progress on the board: a second tap within a few seconds starts over in it. */
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const t = window.setTimeout(() => {
+      setArmed(false);
+      setNotice(null);
+    }, 5000);
+    return () => window.clearTimeout(t);
+  }, [armed]);
   /** Free strokes banked from ink pots, waiting to pay for the next steps to new words. */
   const [ink, setInk] = useState(0);
   // Ink in flight: drops rise from a pot word into the bank, and pour from the bank into a word.
@@ -225,8 +235,20 @@ export function MazeApp() {
   useEffect(restart, [restart]);
 
   /** Hardcore on starts the puzzle over (the way so far may be off the route); off carries on. */
+  /**
+   * Hardcore on starts the puzzle over (the way so far may be off the route), so with progress on
+   * the board it asks for a second tap first. Off just carries on.
+   */
   const toggleHardcore = () => {
     const next = !hardcore;
+    const progress = spent > 0 || history.length > 0 || trail.length > 1;
+    setRefused(null);
+    if (next && progress && !armed) {
+      setArmed(true);
+      setNotice(`Hardcore starts over. ${coarse ? 'Tap' : 'Click'} the flame again to go.`);
+      return;
+    }
+    setArmed(false);
     try {
       localStorage.setItem(HARDCORE_KEY, next ? '1' : '0');
     } catch {
@@ -234,7 +256,7 @@ export function MazeApp() {
     }
     setHardcore(next);
     if (next) restart();
-    setNotice(next ? 'Hardcore on: only words on a lowest-stroke route open. Started over.' : 'Hardcore off: any real word opens.');
+    setNotice(next ? 'Hardcore on: only lowest-stroke words count.' : 'Hardcore off.');
   };
 
   const roomExits = useMemo(() => (data && room ? exits(room, data.words) : []), [data, room]);
@@ -269,17 +291,18 @@ export function MazeApp() {
         return true;
       }
       if (word && dict.has(word)) {
-        // Hardcore: the word must be on a lowest-stroke route, reached on par (never back, never off it).
+        // Hardcore: a new word must be on a lowest-stroke route, reached on par. Going back to a word
+        // already visited is free, as always (every word visited is on the route).
         if (hardcore && current?.onRoute) {
           const back = trail.some((v) => v.word === word);
-          const after = back ? spent : spent + payStep(stepEdits + 1, ink).paid;
-          if (current.onRoute[word] !== after) {
+          if (!back && current.onRoute[word] !== spent + payStep(stepEdits + 1, ink).paid) {
             setRefused(word);
             return false;
           }
         }
         setRefused(null);
         setNotice(null);
+        setArmed(false);
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
@@ -299,6 +322,7 @@ export function MazeApp() {
       }
       setRefused(null);
       setNotice(null);
+      setArmed(false);
       setHistory((h) => [...h, cells]);
       setCells(next);
       return true;
@@ -348,6 +372,10 @@ export function MazeApp() {
   const shownHint = hint && hint.room === room && !won ? hint : null;
   const askHint = () => {
     if (!data || !puzzle || won) return;
+    // The latest thing asked for wins the step line.
+    setRefused(null);
+    setNotice(null);
+    setArmed(false);
     const level = shownHint ? 2 : 1;
     setHintsUsed((n) => n + 1);
     // The search takes a moment on a phone: show the hint once it's ready, without blocking the tap.
@@ -364,7 +392,9 @@ export function MazeApp() {
     : shownHint
       ? 'No hint from here.'
       : null;
-  const found = roomExits.filter((x) => visited.has(x.word)).length;
+  // In hardcore, only the words that would open: visited ones (free) and the route's next on par.
+  const reach = hardcore && current?.onRoute ? roomExits.filter((x) => visited.has(x.word) || current.onRoute![x.word] === spent + x.cost) : roomExits;
+  const found = reach.filter((x) => visited.has(x.word)).length;
   const lettersWithTile = hoverTile ? new Set(Object.keys(LETTERS).filter((ch) => recipe(ch).has(hoverTile))) : null;
   const potsLeft = (potPlan?.pots ?? []).filter((p) => !visited.has(p));
   const potsNear = won ? [] : potsLeft.filter((p) => wordDistance(room, p) <= STEP_LIMIT);
@@ -400,12 +430,13 @@ export function MazeApp() {
             <div className="score-panel">
               <div className="score-big">
                 <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
+                {hardcore && <span className="hardcore-tag">Hardcore</span>}
               </div>
               <div className="score-sub">
                 <span>lowest strokes possible: {best}</span>
-                {hardcore && <span className="hardcore-tag">Hardcore</span>}
                 <span>
-                  {roomExits.length} {roomExits.length === 1 ? 'word' : 'words'} within reach
+                  {reach.length} {hardcore ? 'route ' : ''}
+                  {reach.length === 1 ? 'word' : 'words'} within reach
                   {found ? <span className="nowrap"> ({found} visited)</span> : null}
                 </span>
               </div>
@@ -494,7 +525,7 @@ export function MazeApp() {
               )}
             </AnimatePresence>
             <button
-              className={`hardcore-btn${hardcore ? ' on' : ''}`}
+              className={`hardcore-btn${hardcore ? ' on' : ''}${armed ? ' armed' : ''}`}
               aria-pressed={hardcore}
               aria-label="Hardcore mode"
               title={hardcore ? 'Hardcore is on: only words on a lowest-stroke route open' : 'Hardcore: only words on a lowest-stroke route open (starts the puzzle over)'}
@@ -559,7 +590,7 @@ export function MazeApp() {
             </div>
             <p className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
               {refused
-                ? `Hardcore: ${refused} isn't on a lowest-stroke route. Try another word.`
+                ? `Hardcore: ${refused} is off the lowest-stroke route.`
                 : notice
                 ? notice
                 : hintText && !locked
