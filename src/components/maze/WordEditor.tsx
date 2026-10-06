@@ -315,7 +315,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   const gr = useMotionValue(0);
   // Where the stroke was grabbed (it keeps that point under a mouse; under a finger it's held
   // `lift` px above the fingertip instead, so the finger doesn't hide it or where it's going).
-  const grip = useRef({ dx: 0, dy: 0, lift: 0, scale0: 1, snapped: false, scaleTo: 1, flightId: 0 });
+  const grip = useRef({ dx: 0, dy: 0, lift: 0, liftLater: 0, scale0: 1, snapped: false, scaleTo: 1, flightId: 0 });
   const samples = useRef<{ t: number; x: number; y: number }[]>([]);
 
   const offsets = useMemo(() => cells.map(centerOffset), [cells]);
@@ -681,10 +681,13 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     samples.current = [{ t: performance.now(), x: e.clientX, y: e.clientY }];
 
     const slots = cellsRef.current.map((_, c) => slotsFor(without(c, source), tile));
-    // With a mouse, a stroke lifted from a spot that fits it more than one way (a lone V, which can
-    // be Λ) is already on that spot: a swipe from wherever it was pressed turns it there.
+    // A stroke lifted from a spot that fits it more than one way (a lone V, which can be Λ) is
+    // already on that spot: a swipe from wherever it was pressed turns it there. Under a finger it
+    // stays on its spot (not lifted above the fingertip) until the finger leaves it, so a swipe to
+    // turn it never carries it out of its letter.
     let aim: Aim | null = null;
-    if (!touch && source.kind === 'cell' && TILES[tile].rotates) {
+    g.liftLater = 0;
+    if (source.kind === 'cell' && TILES[tile].rotates) {
       const own = cellsRef.current[source.cell][source.index];
       const level = slots[source.cell].filter((s) => s.placement.y === own.y);
       const spot = level.length ? level.reduce((a, b) => (Math.abs(b.placement.x - own.x) < Math.abs(a.placement.x - own.x) ? b : a)).placement : null;
@@ -692,6 +695,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
       if (spot && m && level.filter((s) => s.placement.x === spot.x).length > 1) {
         const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
         aim = { cell: source.cell, x: spot.x, y: spot.y, armed: true, settled: true, ax: p.x - offsets[source.cell], ay: p.y };
+        if (touch) [g.liftLater, g.lift] = [g.lift, 0];
       }
     }
     const d0: Drag = {
@@ -723,6 +727,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
       // Where the stroke is aimed: the cursor, or the point held above a fingertip. Once it has
       // reached the letters' row it stays within the row's height (a swipe up to turn it doesn't
       // carry it off), until the pointer goes down over the tray to put it back.
+      // A finger that has carried a stroke off its own spot: now the stroke rises above it.
+      const gr0 = grip.current;
+      if (gr0.liftLater && Math.hypot(ev.clientX - d.startX, ev.clientY - d.startY) > RELEASE * u) {
+        [gr0.lift, gr0.liftLater, gr0.snapped] = [gr0.liftLater, 0, true];
+      }
       const rawY = ev.clientY - grip.current.lift;
       const row = rowBand();
       const entered = d.entered || (!!row && rawY >= row.top && rawY <= row.bottom);
