@@ -399,3 +399,17 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 ## Deploying on every merge (2026-10-06, branch `oct-6`)
 - **Every push to `main` deploys.** `.github/workflows/deploy.yml` runs the tests, builds, and publishes with `scripts/deploy.sh` to the `funklunsford/strokes` Pages site. Pull requests are tested and built, not published.
 - **Credentials:** the workflow pushes with an SSH deploy key that can write to `funklunsford/strokes`, kept as the `STROKES_DEPLOY_KEY` secret. `scripts/setup-deploy-key.sh` creates both, run once by the owner. Until it's set, runs on main pass with a warning instead of publishing. The site repo stays separate, so the source repo can go private without changing the site's address.
+
+## Practice in How to play, a redder hover, GitHub Pages only (2026-10-06, branch `misc`)
+- **How to play now has a "Try it" practice in place of the looping demo:** the game's own editor with one letter cell and a three-stroke tray (long bar, bar, chevron). There are four moves, each making a letter:
+  - **add:** a bar onto I makes T;
+  - **move:** that bar down to the foot makes L;
+  - **turn:** V turned over, then a bar across it, makes A (double-tap on a touch screen; with a mouse, drag it up a little);
+  - **remove:** E's bottom bar makes F.
+
+  A ghost shows each move over the practice letter: a fingertip on touch screens (the stroke riding above it, as in play) or a cursor. It loops until the player touches the practice, and comes back after 2.5 s left alone. Each made letter glows and ticks a dot, and the next step follows. A wrong turn says "Not quite" with "Start over". With reduced motion the ghost is a still, faint stroke where the move puts it.
+- **The rules are tested** (`src/tutorial.ts`, `src/tutorial.test.ts`): doing each step's shown move reaches its letter under the game's rules. The two gesture bullets are now one line, since the practice teaches them.
+- **Turning a placed stroke with a mouse:** a stroke lifted from a spot that fits it more than one way (a lone V) is now armed there at once, so a swipe from wherever it was pressed turns it. Before, the cursor had to come within 0.6 units of the spot's centre first, which a press on a V's arm often wasn't.
+- **The phone layout's editor rules** (`.maze.compact …`) now reach only the board's editor, so the practice keeps its size on phones. It fits a 375×812 screen without scrolling.
+- **Hover red:** the stroke a click would remove is now clearly red, `--remove` #e5484d light and #ff6b6b dark (was a pale #e8907f / #f2a49a). "Doesn't fit" keeps the orange-red `--spicy`.
+- **GitHub Pages only:** the repo no longer mentions Netlify (the `.netlify/` ignore and the local CLI folder are gone). The site is served only from https://funklunsford.github.io/strokes/.

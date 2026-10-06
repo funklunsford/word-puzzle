@@ -9,8 +9,8 @@
   --ink-fill: #26357a;
   --feather: #f4ecdc;
   --spicy: #e4572e;
-  /* A placed stroke under the mouse: pale red, as a click removes it (full red is for "doesn't fit"). */
-  --remove: #e8907f;
+  /* A placed stroke under the mouse: red, as a click removes it (orange-red --spicy is "doesn't fit"). */
+  --remove: #e5484d;
   --ok: #5e8c4f;
   --ledge: #e4ddcf;
   --pastel-1: #ffc95c;
@@ -45,7 +45,7 @@
     --ink-fill: #4a63c8;
     --feather: #e6dfd0;
     --spicy: #ff7a4d;
-    --remove: #f2a49a;
+    --remove: #ff6b6b;
     --ok: #93c27f;
     --ledge: #0e0d12;
     --pastel-1: #f5c45e;
@@ -705,42 +705,114 @@ select,
   line-height: 1.4;
 }
 
-/* The tiny demo in How to play: a bar carried from a tray tile into an I, which becomes L. */
-.how-demo {
-  display: block;
-  width: min(260px, 72%);
-  margin: 10px auto 2px;
-  overflow: visible;
+/* How to play's practice (HowToTry): a letter cell and a few tray strokes, with a ghost showing each move. */
+.how-try {
+  margin: 12px 0 8px;
+  padding: 10px 12px 12px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
 }
 
-.how-demo-box {
-  fill: color-mix(in srgb, var(--ink) 5%, transparent);
-  stroke: var(--line);
-  stroke-width: 0.05;
+.how-try-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.how-demo-tile {
-  fill: color-mix(in srgb, var(--t-H) 14%, var(--surface));
-  stroke: color-mix(in srgb, var(--t-H) 35%, var(--line));
-  stroke-width: 0.05;
-}
-
-.how-demo-label {
-  font-size: 0.5px;
+.how-try-label {
+  font-size: 12px;
   font-weight: 700;
-  text-anchor: middle;
-  fill: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
-.how-demo-pointer {
+.how-try-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.how-try-dots span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--muted) 70%, transparent);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.how-try-dots span.now {
+  border-color: var(--ink);
+}
+
+.how-try-dots span.done {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+.how-try-say {
+  margin: 6px 0 10px;
+  min-height: 2.9em;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.how-try-say.done {
+  font-weight: 700;
+}
+
+.how-try-again {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.how-try-box {
+  position: relative;
+}
+
+.how-try .editor {
+  gap: 10px;
+}
+
+.how-try .tray {
+  min-height: 0;
+}
+
+.how-try .tray-tile {
+  flex: 0 0 46px;
+}
+
+/* The ghost doing the move: drawn over the cell and tray, never in the way. */
+.how-try-ghost {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.how-try-finger {
+  fill: color-mix(in srgb, var(--ink) 28%, transparent);
+  stroke: color-mix(in srgb, var(--ink) 65%, transparent);
+  stroke-width: 1.5;
+}
+
+.how-try-ring {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 70%, transparent);
+  stroke-width: 2;
+}
+
+.how-try-cursor {
   fill: var(--ink);
   stroke: var(--bg);
   stroke-width: 0.06;
-}
-
-.how-demo-pointer circle {
-  fill: color-mix(in srgb, var(--ink) 35%, transparent);
-  stroke: color-mix(in srgb, var(--ink) 70%, transparent);
 }
 
 .help-go {
@@ -865,8 +937,8 @@ select,
   cursor: default;
 }
 
-/* A placed stroke under the mouse turns pale red and lifts a little (a click removes it); full
-   red is kept for "doesn't fit". */
+/* A placed stroke under the mouse turns red and lifts a little: a click removes it. (The orange-red
+   --spicy is kept for "doesn't fit".) */
 .placed.hovered {
   filter: drop-shadow(0 0.06px 0.08px color-mix(in srgb, var(--ink) 45%, transparent));
 }
@@ -1498,15 +1570,15 @@ select,
   font-size: 15px;
 }
 
-.maze.compact .editor {
+.maze.compact .board .editor {
   gap: 10px;
 }
 
-.maze.compact .word-cells {
+.maze.compact .board .word-cells {
   gap: 4px;
 }
 
-.maze.compact .cell {
+.maze.compact .board .cell {
   flex: 1 1 0;
   min-width: 0;
   padding: 2px 1px;
@@ -1514,12 +1586,12 @@ select,
   box-shadow: 0 3px 0 var(--ledge);
 }
 
-.maze.compact .cell svg {
+.maze.compact .board .cell svg {
   width: 100%;
   height: auto;
 }
 
-.maze.compact .cell-letter {
+.maze.compact .board .cell-letter {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1527,11 +1599,11 @@ select,
   font-size: 10px;
 }
 
-.maze.compact .tray {
+.maze.compact .board .tray {
   gap: 6px;
 }
 
-.maze.compact .tray-tile {
+.maze.compact .board .tray-tile {
   flex: 1 1 56px;
   min-width: 46px;
   max-width: 72px;

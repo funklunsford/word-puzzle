@@ -13,7 +13,7 @@ import { InkPot } from './components/maze/InkPot';
 import { centerOf, useInkFlights } from './components/maze/InkFlights';
 import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
-import { HowToDemo } from './components/maze/HowToDemo';
+import { HowToTry } from './components/maze/HowToTry';
 import { Celebration } from './celebration/Celebration';
 import { DAYS, celebrationFor, dayFor, dayNumber, loadDaily, localDate } from './daily/daily';
 import { WordEditor } from './components/maze/WordEditor';
@@ -422,20 +422,14 @@ export function MazeApp() {
                   <p className="help-lead">
                     Turn <strong>{puzzle.start}</strong> into <strong>{puzzle.goal}</strong>, one real word at a time, in as few strokes as you can.
                   </p>
-                  <HowToDemo touch={coarse} />
+                  <HowToTry touch={coarse} />
                   {/* Touch screens and mouse play differently (tap vs click, double-tap vs swipe to turn), so each gets its own. */}
                   <ul className="how">
                     <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
-                      <>
-                        <li>Drag strokes from the tray into the letters. Tap one to remove it, or drag it to move it.</li>
-                        <li>Double-tap a stroke to turn it.</li>
-                      </>
+                      <li>Drag strokes in from the tray. Tap one to remove it, double-tap it to turn it, or drag it to move it.</li>
                     ) : (
-                      <>
-                        <li>Drag strokes from the tray into the letters. Click one to remove it, or drag it to move it.</li>
-                        <li>To turn a stroke, swipe as you place it: swiping up flips a V.</li>
-                      </>
+                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, swipe as you place it.</li>
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
