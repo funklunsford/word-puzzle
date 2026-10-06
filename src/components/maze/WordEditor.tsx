@@ -290,6 +290,8 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   // second tap turns it on its spot if it fits the other way round there, or wiggles it if it
   // doesn't, and removes nothing. Then a double tap can never remove two strokes.
   const pendingTap = useRef<{ cell: number; key: string; timer: number; remove: () => void } | null>(null);
+  /** The last stroke removed at once (it couldn't turn), so a quick second tap there is ignored. */
+  const lastRemoved = useRef<{ cell: number; x: number; y: number; at: number } | null>(null);
   const [pendingStroke, setPendingStroke] = useState<string | null>(null);
   const settleTap = (run: boolean) => {
     const pt = pendingTap.current;
@@ -532,11 +534,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     const at = from ? base[from.cell].findIndex((q) => slotKey(q) === from.key) : -1;
     if (from && at < 0) return; // the stroke's gone (the word changed under the press)
     const original = from ? base[from.cell][at] : null;
-    const remove = () => {
-      if (!from) return;
-      next[from.cell].splice(at, 1);
-      apply(next);
-    };
     if (!d.moved) {
       // Double-tapping (or double-clicking) a stroke in the tray turns it (if it ever needs turning).
       if (d.source.kind === 'tray') {
@@ -565,6 +562,20 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
           } else setWiggle((w) => ({ id: `${from.cell}|${from.key}`, n: w.n + 1 }));
           return;
         }
+        // A stroke that can't turn where it sits has nothing to wait for: it goes at once (its
+        // flight home starts where it sat), and a second tap right there is ignored rather than
+        // taking the stroke now nearest (see start).
+        if (!turnedInPlace(d, from.cell, original)) {
+          [gx, gy, gs, gr].forEach((v) => v.stop());
+          gx.set(d.home.x);
+          gy.set(d.home.y);
+          gs.set(1);
+          gr.set(0);
+          next[from.cell].splice(at, 1);
+          if (apply(next)) flyHome(d);
+          lastRemoved.current = { cell: from.cell, x: d.startX, y: d.startY, at: performance.now() };
+          return;
+        }
         const timer = window.setTimeout(() => settleTap(true), DOUBLE_TAP);
         pendingTap.current = {
           cell: from.cell,
@@ -588,8 +599,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
         setPendingStroke(`${from.cell}|${from.key}`);
         return;
       }
-      // A tap removes a placed stroke; a tray stroke that was only pressed goes back.
-      remove();
+      // A tray stroke that was only pressed goes back.
       flyHome(d);
       return;
     }
@@ -619,6 +629,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     // A press while a tapped stroke waits to be removed: on that same stroke it may be the second
     // tap; on anything else the removal goes ahead first, and this press carries on against the
     // word as it is now (its stroke found again by key).
+    // The second tap of a double tap on a stroke that went at once (it couldn't turn): ignored.
+    const lr = lastRemoved.current;
+    if (source.kind === 'cell' && lr && lr.cell === source.cell && performance.now() - lr.at < DOUBLE_TAP && Math.hypot(e.clientX - lr.x, e.clientY - lr.y) < 24) return;
     const pt = pendingTap.current;
     const again = !!pt && source.kind === 'cell' && source.cell === pt.cell && source.key === pt.key;
     if (pt) settleTap(!again);
