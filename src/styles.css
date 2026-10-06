@@ -651,6 +651,20 @@ select,
   box-shadow: 0 3px 0 var(--ledge);
 }
 
+/* In hardcore the Hint button gives way to this note, in the same space. */
+.no-hints {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 124px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--spicy);
+}
+
 /* The Hint button keeps one width as its label changes (Hint, Next word, Hint used). */
 .hint-btn {
   min-width: 124px;

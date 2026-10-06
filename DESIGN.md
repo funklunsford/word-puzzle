@@ -484,8 +484,8 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - the celebration line keeps "· 3 hints" together;
   - a short screen (a phone on its side) gets the slim wordmark, so the score card starts at about 105 px, not 245;
   - a puzzle swap can no longer look like a win (the path must start at this puzzle's start).
+- **No hints in hardcore** (the owner's call): the Hint button gives way to a "No hints" note in the same space, switching hardcore on clears any hint shown, and How to play and the notice say so. Playtest reports stay local (`reports/` is in .gitignore).
 - **Left open, for decisions:**
-  - whether hints should rule out Perfect;
   - the tray wrapping onto two rows on phones;
   - a full landscape layout;
   - the shortest phones (375×667), where the controls fall below the fold.

@@ -276,7 +276,7 @@ export function MazeApp() {
     }
     setHardcore(next);
     if (next) restart();
-    setNotice(next ? 'Hardcore on: only lowest-stroke words count.' : 'Hardcore off.');
+    setNotice(next ? 'Hardcore on: only lowest-stroke words count, and no hints.' : 'Hardcore off.');
   };
 
   // The maze's doors, shipped with it (worked out from the words only if they're missing).
@@ -451,7 +451,8 @@ export function MazeApp() {
   const visited = new Set(trail.map((v) => v.word));
   const shownHint = hint && hint.room === room && !won ? hint : null;
   const askHint = () => {
-    if (!data || !puzzle || won) return;
+    // No hints in hardcore.
+    if (!data || !puzzle || won || hardcore) return;
     // The latest thing asked for wins the step line.
     setRefused(null);
     setNotice(null);
@@ -585,7 +586,7 @@ export function MazeApp() {
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
-                    <li>Want a challenge? {coarse ? 'Tap' : 'Click'} the flame for hardcore: only words on a lowest-stroke route count.</li>
+                    <li>Want a challenge? {coarse ? 'Tap' : 'Click'} the flame for hardcore: only words on a lowest-stroke route count, and there are no hints.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
@@ -691,9 +692,14 @@ export function MazeApp() {
               <button className="pill" onClick={resetStep} disabled={!history.length}>
                 Reset step
               </button>
-              <button className="pill hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
-                {!shownHint ? 'Hint' : shownHint.level === 1 ? 'Next word' : 'Hint used'}
-              </button>
+              {/* No hints in hardcore: the button gives way to a quiet note. */}
+              {hardcore ? (
+                <span className="no-hints">No hints</span>
+              ) : (
+                <button className="pill hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
+                  {!shownHint ? 'Hint' : shownHint.level === 1 ? 'Next word' : 'Hint used'}
+                </button>
+              )}
             </div>
             <p aria-live="polite" className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
               {refused
