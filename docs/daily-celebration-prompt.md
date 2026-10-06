@@ -16,7 +16,8 @@ four seconds, then it holds until they tap.
 
 ## 0. Get ready
 
-- Start from an up-to-date `main` with a clean working tree, and make a branch `daily/{DATE}`.
+- Start from an up-to-date `main` with no uncommitted changes to tracked files (leave untracked
+  files alone), and make a branch `daily/{DATE}`.
 - **The date:** the one you were given, or else the day after the latest file in
   `src/daily/days/`. Never replace a date that already has a puzzle.
 
