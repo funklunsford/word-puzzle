@@ -869,7 +869,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                               : `translate(${x} ${p.y})${squeeze !== 1 ? ` scale(${squeeze} 1)` : ''}${p.rot ? ` rotate(${p.rot})` : ''}`
                           }
                         >
-                          <title>{coarse ? 'Tap to remove · double-tap to turn · drag to move' : 'Tap to remove · drag to move'}</title>
+                          <title>{coarse ? 'Tap to remove · double-tap to turn · drag to move' : 'Click to remove · drag to move'}</title>
                         </path>
                       </motion.g>
                     );

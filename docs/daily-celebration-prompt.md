@@ -3,6 +3,15 @@
 This is what Claude would be given each time a new daily puzzle is checked in. `{…}` fields are
 filled in by the daily script.
 
+**Not runnable yet.** The prompt relies on pieces that still need building:
+- **A scene loader:** `Celebration.tsx` picks a scene by date from `src/celebration/days/{DATE}.ts`,
+  loading each day's code only when it plays. Today it always plays the WILD → TAME flora scene.
+- **A general `CelebrationTheme`:** today its colour palette is specific to the flora scene.
+- **Daily puzzle files and a `?day=` preview parameter.**
+- **Contract tests in `src/celebration`:** the same `t` gives the same frame, the final frame lies
+  on the goal word's strokes, and the scene stays within the budgets.
+- **`src/celebration/days/LOG.md`.**
+
 ---
 
 You're making today's win celebration for **Strokes**, a word puzzle. Players turn **{START}** into
