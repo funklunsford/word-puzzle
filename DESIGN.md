@@ -442,3 +442,18 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - At the owner's request, today's puzzle was regenerated with `/daily` and replaced WILD → TAME. WILD → TAME is still the reference puzzle in `public/mazes.json`, and its vine scene is in git history.
 - **PINK → DUNE** is lowest 8 (PINK → PINT → PINE → DUNE). It was the clearest picture of change among the ten candidates.
 - **The celebration, "Windswept!":** PINK in pink sand is stripped left to right by the wind into a swirling cloud of grains with streaks of wind, turning sand-coloured as it flies. The grains settle stroke by stroke into DUNE, ochre grains with a few pink flecks over two-tone ridges.
+
+## Confetti for Perfect, puzzles at 10, hardcore, a shorter phone swipe (2026-10-06, branch `core-and-perfect`)
+- **Perfect is confetti and sparkles, before the day's scene** (`src/celebration/confetti.ts`). This replaces the gold PERFECT in ten languages.
+  - Confetti fires from both bottom corners, tumbling and drifting down, with sparkles twinkling over it. It sits over the start word, drawn as the scene's first frame.
+  - The day's scene starts at 1.7 s, as the confetti falls away, and the confetti has gone by 3.2 s.
+  - It's drawn over the whole screen, in its own layer, and narrow screens fire it less far across.
+  - A tap during the confetti skips to the scene; then a tap carries on. Reduced motion shows the scene's finished frame.
+  - A pool puzzle (no scene) gets the confetti on a dark stage, titled "Perfect!".
+  - `?perfect` previews it, and `?perfect=1.0` holds it at 1 s.
+- **Puzzles average 10 strokes:** `PUZZLE_SHAPE.best` is now 9–11, picked evenly, over 3–8 words. The pool was rebuilt with the same mix (420 tricky puzzles averaging 10.00). The daily rhythm moves up one: Monday and Tuesday 9, Wednesday, Thursday and Sunday 10, Friday and Saturday 11.
+- **Hardcore** (a toggle by Restart, remembered in this browser): only words on a lowest-stroke route open, and only when reached on par.
+  - Each puzzle stores those words with their strokes from the start (`routeWords` in `src/maze.ts`; `onRoute` in the pool and the daily files, checked by the daily tests). A word opens only if its strokes from the start equal the player's strokes so far plus this step's.
+  - Anything else is turned away: the stroke goes back where it came from, and the step line says "Hardcore: LINK isn't on a lowest-stroke route." Going back to a visited word counts as off the route.
+  - Turning hardcore on starts the puzzle over. The score line shows "· hardcore".
+- **The phone swipe to turn is shorter:** half a unit, the same as a mouse (was 0.8, about 24 px; now about 15 px). To keep a stroke carried onto its spot from counting as a swipe, swipes now count from where the pointer stopped coming in (its closest point to the spot), not from where it first came near. Checked with a finger: carried straight onto its spot with a wobble, a V stays a V; carry on 17 px further, and it turns to Λ.

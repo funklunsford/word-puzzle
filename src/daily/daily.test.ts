@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../../public/mazes.json';
 import { potRoute } from '../inkpots';
-import { PUZZLE_SHAPE, buildGraph, classifyNeed, isObvious, solve } from '../maze';
+import { PUZZLE_SHAPE, buildGraph, classifyNeed, isObvious, routeWords, solve } from '../maze';
 import { STEP_LIMIT, wordDistance } from '../strokes';
 import { DAYS, LAUNCH, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
 
@@ -58,6 +58,12 @@ describe('the daily puzzles', () => {
           cost += step;
         }
         expect(cost).toBe(best);
+      });
+
+      it('lists the words on its lowest-stroke routes, for hardcore', () => {
+        expect(day.onRoute).toEqual(routeWords(words, adj, start, goal));
+        for (const w of path) expect(day.onRoute[w], w).toBeDefined();
+        expect(day.onRoute[goal]).toBe(best);
       });
 
       it('has ink pots that still give the best it says', () => {

@@ -7,7 +7,7 @@
 // Candidates come from the puzzle pool (public/mazes.json, see scripts/mazes.ts), so every one is
 // tricky, starts and ends on everyday words, and fits the pool's rules. The script cycles through
 // it: never a pair already used (either way round), no start or goal word from the last 30 days,
-// the day's difficulty from a weekly rhythm (lowest strokes 8 early in the week, 10 by the
+// the day's difficulty from a weekly rhythm (lowest strokes 9 early in the week, 11 by the
 // weekend), and the kind of route (see classifyNeed in src/maze.ts) the last week has had least
 // of. The same date and history always give the same candidates.
 //
@@ -16,7 +16,7 @@
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { placePots, potRoute } from '../src/inkpots';
-import { POOL_MIX, buildGraph, classifyNeed, isObvious, seededRandom, solve, type Need, type Puzzle } from '../src/maze';
+import { POOL_MIX, buildGraph, classifyNeed, isObvious, routeWords, seededRandom, solve, type Need, type Puzzle } from '../src/maze';
 import type { DailyPuzzle } from '../src/daily/daily';
 import { dayNumber } from '../src/daily/daily';
 
@@ -26,7 +26,7 @@ const CANDIDATES = 10;
 /** Start and goal words rest this long before they come back. */
 const REST_DAYS = 30;
 /** Lowest strokes by weekday, Sunday first: easier early in the week, hardest by the weekend. */
-const RHYTHM = [9, 8, 8, 9, 9, 10, 10];
+const RHYTHM = [10, 9, 9, 10, 10, 11, 11];
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const NEED_TEXT: Record<Need, string> = {
   none: 'needs no C, I or V',
@@ -34,13 +34,8 @@ const NEED_TEXT: Record<Need, string> = {
   stone: 'needs a stepping stone through C, I or V',
 };
 
-interface PoolEntry {
-  puzzle: Puzzle;
-  need: Need;
-  tricky: boolean;
-  inkPots: DailyPuzzle['inkPots'];
-}
-const data: { words: string[]; puzzle: Puzzle; inkPots: DailyPuzzle['inkPots']; puzzles: PoolEntry[] } = JSON.parse(
+type PoolEntry = Omit<DailyPuzzle, 'date'>;
+const data: { words: string[]; puzzle: Puzzle; inkPots: DailyPuzzle['inkPots']; onRoute: DailyPuzzle['onRoute']; puzzles: PoolEntry[] } = JSON.parse(
   readFileSync(new URL('../public/mazes.json', import.meta.url), 'utf8'),
 );
 const definitions: Record<string, [string, string]> = JSON.parse(readFileSync(new URL('../public/definitions.json', import.meta.url), 'utf8'));
@@ -106,7 +101,7 @@ if (!start) {
   if (!entry && S === data.puzzle.start && G === data.puzzle.goal) {
     // The original puzzle (WILD → TAME), kept with its route and ink pots as the game has always had them.
     const { need, tricky } = needOf(data.words, buildGraph(data.words), data.puzzle);
-    entry = { puzzle: data.puzzle, inkPots: data.inkPots, need, tricky };
+    entry = { puzzle: data.puzzle, inkPots: data.inkPots, need, tricky, onRoute: data.onRoute };
   }
   if (!entry) {
     if (!any) throw new Error(`${S} → ${G} isn't in the pool; pick a candidate, or pass --any to check in a pair by hand`);
@@ -117,7 +112,7 @@ if (!start) {
     const { need, tricky, path } = needOf(words, adj, solved);
     const pots = placePots(words, adj, S, G, solved.best, path, seededRandom(hash(date)));
     const { bound: _bound, ...inkPots } = potRoute(words, adj, S, G, pots);
-    entry = { puzzle: { ...solved, path }, need, tricky, inkPots };
+    entry = { puzzle: { ...solved, path }, need, tricky, inkPots, onRoute: routeWords(words, adj, S, G) };
   }
 
   const day: DailyPuzzle = { date, ...entry };

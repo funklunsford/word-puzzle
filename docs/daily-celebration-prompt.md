@@ -121,8 +121,8 @@ exports two things:
     - halfway through resolving;
     - `settled + 0.6`.
   - Check each at 1280×800 and at 375×812, in dark and in light mode.
-  - `&perfect` adds the Perfect encore that follows a lowest-strokes solve. Check that the hand-off
-    to it is clean, e.g. `/?day={DATE}&perfect=0.1`.
+  - `&perfect` adds the confetti that plays first after a lowest-strokes solve, over {START}; the
+    scene starts as it falls away. Check that {START} reads under it, e.g. `/?day={DATE}&perfect=1.0`.
 - **Fix anything that doesn't read:** a muddled change, an illegible {GOAL}, colours lost on either
   background, or anything that jumps.
 

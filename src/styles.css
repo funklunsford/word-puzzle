@@ -809,6 +809,17 @@ select,
   stroke-width: 0.06;
 }
 
+.pill.toggle.on {
+  color: var(--bg);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.hardcore-tag {
+  font-weight: 700;
+  color: var(--spicy);
+}
+
 .help-go {
   display: block;
   margin: 16px auto 0;
@@ -1718,52 +1729,6 @@ select,
   margin: 14px 0 0;
   font-size: 13px;
   color: var(--muted);
-}
-
-.celebration-title.gone {
-  opacity: 0;
-  transition: opacity 0.4s;
-}
-
-/* The Perfect encore plays on a dark stage, in light mode too: its words are light. */
-.celebration.stage .celebration-text {
-  color: #f3eee4;
-}
-
-.celebration.stage .celebration-hint {
-  color: #a9a2b6;
-}
-
-/* The language of each "perfect", just under the word (placed by the scene's framing). */
-.celebration-caption {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  text-align: center;
-  pointer-events: none;
-}
-
-.celebration-language {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #e8c877;
-  animation: language-in 0.5s ease-out;
-}
-
-@keyframes language-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .celebration-language {
-    animation: none;
-  }
 }
 
 /* Hints: the letters a hint points at, and its line in the step panel. */

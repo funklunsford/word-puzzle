@@ -17,7 +17,7 @@
     "pots": [
       "DINE",
       "RINK",
-      "LINT"
+      "TUNE"
     ],
     "best": 8,
     "walk": [
@@ -26,5 +26,11 @@
       "PINE",
       "DUNE"
     ]
+  },
+  "onRoute": {
+    "DUNE": 8,
+    "PINE": 5,
+    "PINK": 0,
+    "PINT": 2
   }
 }

@@ -46,8 +46,8 @@ const LIFT = 1.08;
 const ARM = 0.6;
 const RELEASE = 1.6;
 const SWIPE = 0.5;
-/** A finger wobbles, and carries the stroke above it: its swipe to turn a stroke is a little longer. */
-const SWIPE_TOUCH = 0.8;
+/** A finger's swipe to turn a stroke: as short as a mouse's (a stroke carried onto its spot never counts as one, see Aim.settled). */
+const SWIPE_TOUCH = 0.5;
 
 const norm = (deg: number) => ((deg % 360) + 360) % 360;
 /** Shortest signed angle from one direction to another, in degrees. */
@@ -86,6 +86,8 @@ interface Aim {
   y: number;
   /** The cursor has been brought onto the spot, so a swipe now turns the stroke. */
   armed: boolean;
+  /** It has stopped coming in: until then the anchor follows it, so carrying a stroke onto its spot is never a swipe. */
+  settled: boolean;
   /** Where the cursor was when the stroke last settled here (armed or turned): swipes are measured from it. */
   ax: number;
   ay: number;
@@ -276,8 +278,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   // the next draw (a tap can let a waiting removal go ahead and then carry on with its own press).
   const cellsRef = useRef(cells);
   cellsRef.current = cells;
+  /** Make an edit, unless the game refuses it (out of strokes, won, or hardcore's off-route word): whether it was made. */
   const apply = (next: Placement[][]) => {
-    if (onEdit(next) !== false) cellsRef.current = next;
+    if (onEdit(next) === false) return false;
+    cellsRef.current = next;
+    return true;
   };
   // On a touch screen a tap on a placed stroke waits a moment before removing it (it dims): a
   // second tap turns it on its spot if it fits the other way round there, or wiggles it if it
@@ -407,11 +412,18 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     // finger's, a finger's a little longer):
     // whichever way round points most along the swipe (up turns V into Λ; left and right turn an arc
     // or a bowl). Swipes count from where the cursor came onto the spot, or last turned it.
-    let aim: Aim = held ? d.aim! : { cell: overCell, x: at.x, y: at.y, armed: false, ax: lx, ay: ly };
+    let aim: Aim = held ? d.aim! : { cell: overCell, x: at.x, y: at.y, armed: false, settled: false, ax: lx, ay: ly };
     const rawLocal = toCell(overCell, raw.x, raw.y) ?? local;
     const closest = (turn: number) => ways.reduce((a, b) => (Math.abs(wrap((b.placement.rot ?? 0) - turn)) < Math.abs(wrap((a.placement.rot ?? 0) - turn)) ? b : a));
     let way = closest(d.turn);
     if (!aim.armed && dist(aim) < ARM) aim = { ...aim, armed: true, ax: rawLocal.lx, ay: rawLocal.ly };
+    // While it's still coming in towards the spot, swipes count from wherever it has got to; once it
+    // stops getting closer, they count from its closest point.
+    if (aim.armed && !aim.settled) {
+      const near = (px: number, py: number) => Math.hypot(px - aim.x, py - aim.y);
+      if (near(rawLocal.lx, rawLocal.ly) <= near(aim.ax, aim.ay)) aim = { ...aim, ax: rawLocal.lx, ay: rawLocal.ly };
+      else if (near(rawLocal.lx, rawLocal.ly) > near(aim.ax, aim.ay) + 0.05) aim = { ...aim, settled: true };
+    }
     if (aim.armed) {
       const dx = rawLocal.lx - aim.ax;
       const dy = rawLocal.ly - aim.ay;
@@ -563,8 +575,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
             gy.set(d.home.y);
             gs.set(1);
             gr.set(0);
-            apply(now);
-            flyHome(d);
+            if (apply(now)) flyHome(d);
           },
         };
         setPendingStroke(`${from.cell}|${from.key}`);
@@ -581,7 +592,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       if (from && from.cell === d.target.cell && slotKey(original!) === slotKey(p)) return; // dropped where it was
       if (from) next[from.cell].splice(at, 1);
       next[d.target.cell].push(p);
-      apply(next);
+      // Refused: it goes back where it came from, to its spot or to the tray.
+      if (!apply(next)) {
+        if (from && original) land(from.cell, original, d.turn, base[from.cell]);
+        else flyHome(d);
+      }
       return;
     }
     // Nowhere to go: a placed stroke springs back to its slot, a tray stroke back to the tray.
@@ -648,7 +663,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       const m = svgs.current[source.cell]?.getScreenCTM();
       if (spot && m && level.filter((s) => s.placement.x === spot.x).length > 1) {
         const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
-        aim = { cell: source.cell, x: spot.x, y: spot.y, armed: true, ax: p.x - offsets[source.cell], ay: p.y };
+        aim = { cell: source.cell, x: spot.x, y: spot.y, armed: true, settled: true, ax: p.x - offsets[source.cell], ay: p.y };
       }
     }
     const d0: Drag = {
