@@ -861,7 +861,28 @@ select,
   box-shadow: 0 4px 0 color-mix(in srgb, var(--tile) 35%, var(--ledge));
   cursor: grab;
   touch-action: none;
-  transition: transform 0.1s ease-out, border-color 0.15s, background 0.15s;
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, border-color 0.15s, background 0.15s;
+}
+
+/* A tray stroke under the mouse invites a grab: its tile rises on its ledge and brightens, and the
+   stroke grows a touch; pressed, the tile sinks onto the ledge. Mouse only (a finger has no hover). */
+@media (hover: hover) and (pointer: fine) {
+  .editor:not(.disabled) .tray-tile:not(.taken):hover {
+    transform: translateY(-2px);
+    background: color-mix(in srgb, var(--tile) 20%, var(--surface));
+    border-color: color-mix(in srgb, var(--tile) 65%, var(--line));
+    box-shadow: 0 6px 0 color-mix(in srgb, var(--tile) 45%, var(--ledge));
+  }
+
+  .editor:not(.disabled) .tray-tile:not(.taken):hover svg {
+    transform: scale(1.1);
+  }
+
+  .editor:not(.disabled) .tray-tile:not(.taken):active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 color-mix(in srgb, var(--tile) 45%, var(--ledge));
+    cursor: grabbing;
+  }
 }
 
 /* Its stroke is out of the tile (held, or flying home). */
@@ -879,7 +900,9 @@ select,
   height: 100%;
   overflow: visible;
   pointer-events: none;
-  transition: opacity 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.15s ease-out;
 }
 
 .editor.disabled .tray-tile {
@@ -1308,6 +1331,7 @@ select,
 @media (prefers-reduced-motion: reduce) {
   .tray-tile,
   .tray-tile.taken,
+  .tray-tile svg,
   .pill,
   .key,
   .tile,
