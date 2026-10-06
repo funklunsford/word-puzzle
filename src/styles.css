@@ -634,12 +634,6 @@ select,
   white-space: nowrap;
 }
 
-.score-hint {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ok);
-}
-
 .help-btn {
   position: absolute;
   top: 14px;
