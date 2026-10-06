@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { LETTERS, TILE_IDS, recipe, type Placement } from './glyphs';
-import { EMPTY_CELL_X, formedLooks, letterDiff, recognize, slotKey, slotsFor, wordDistance } from './strokes';
+import { LETTERS, TILE_IDS, recipe, xExtent, type Placement } from './glyphs';
+import { strokeCenterline } from './ink';
+import { EMPTY_CELL_X, formedLooks, letterDiff, onlyFit, recognize, slotKey, slotsFor, wordDistance } from './strokes';
 
 const glyph = (ch: string, dx = 0) => LETTERS[ch].parts.map((p) => ({ ...p, x: p.x + dx }));
 
@@ -194,6 +195,20 @@ describe('formedLooks', () => {
     expect(chevron.map((s) => s.toward)).toEqual([['M']]);
     expect(recognize([...bars, chevron[0].placement])).toBe('M');
     expect(wordDistance('M', 'H')).toBe(2); // swap the crossbar for the chevron
+  });
+
+  it("draws a half-built M (a bar with the chevron on top) spread as M is, so the chevron's end sits on its bar", () => {
+    const bar = { tile: 'LV' as const, x: 0, y: 1, rot: 0 };
+    const chevron = slotsFor([bar], 'SC').find((s) => s.toward.includes('M'))!.placement;
+    const half = [bar, chevron];
+    expect(recognize(half)).toBeNull();
+    expect(onlyFit(half)?.ch).toBe('M'); // it can only become M, so it's drawn as M is
+    expect(onlyFit([bar, { ...bar, x: 1 }])).toBeNull(); // "||" could still be H, M, N or U: drawn as it is
+    // The editor spreads a shape's positions about its middle by its letter's spread (see across in WordEditor).
+    const [lo, hi] = xExtent(half);
+    const at = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * LETTERS.M.spread!;
+    const leftEnd = at(chevron.x) + Math.min(...strokeCenterline('SC', 0).map(([x]) => x));
+    expect(leftEnd).toBeCloseTo(at(bar.x)); // without the spread it overhung the bar by half a unit
   });
 
   it('never offers a stroke with a look: slots are always plain strokes', () => {
