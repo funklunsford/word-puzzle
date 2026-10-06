@@ -46,8 +46,10 @@ const LIFT = 1.08;
 const ARM = 0.6;
 const RELEASE = 1.6;
 const SWIPE = 0.5;
-/** A finger wobbles, and carries the stroke above it: its swipe to turn a stroke is a little longer. */
-const SWIPE_TOUCH = 0.8;
+/** A finger's swipe to turn a stroke: as short as a mouse's (a stroke carried onto its spot never counts as one, see Aim.settled). */
+const SWIPE_TOUCH = 0.5;
+/** Slower than this (letter units a second), a pointer is resting or creeping, not swiping. */
+const CREEP = 1.5;
 
 const norm = (deg: number) => ((deg % 360) + 360) % 360;
 /** Shortest signed angle from one direction to another, in degrees. */
@@ -86,6 +88,8 @@ interface Aim {
   y: number;
   /** The cursor has been brought onto the spot, so a swipe now turns the stroke. */
   armed: boolean;
+  /** It has stopped coming in: until then the anchor follows it, so carrying a stroke onto its spot is never a swipe. */
+  settled: boolean;
   /** Where the cursor was when the stroke last settled here (armed or turned): swipes are measured from it. */
   ax: number;
   ay: number;
@@ -139,6 +143,8 @@ interface Props {
   /** Apply an edit; returns false when the game refuses it (the step is out of strokes, or won). */
   onEdit: (next: Placement[][]) => boolean | void;
   onHoverTile: (tile: TileId | null) => void;
+  /** A stroke let go over a letter it doesn't fit (or not the way it was turned): for a word of explanation. */
+  onMiss?: (why: 'nofit' | 'turn') => void;
   /** Phone layout: narrower cells sharing the row's width (the unit is then measured, not given). */
   compact?: boolean;
   /** Letters a hint points at (indexes): their cells are outlined. */
@@ -228,7 +234,7 @@ const TWISTS = new Set(
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
  * slot from where it was released or flies back to its tray tile.
  */
-export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, compact = false, hinted, tray = TILE_IDS }: Props) {
+export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<{ cell: number; key: string } | null>(null);
   /** A stroke flying home to its tray tile after the drag ended (removed, or not placed). */
@@ -276,13 +282,18 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   // the next draw (a tap can let a waiting removal go ahead and then carry on with its own press).
   const cellsRef = useRef(cells);
   cellsRef.current = cells;
+  /** Make an edit, unless the game refuses it (out of strokes, won, or hardcore's off-route word): whether it was made. */
   const apply = (next: Placement[][]) => {
-    if (onEdit(next) !== false) cellsRef.current = next;
+    if (onEdit(next) === false) return false;
+    cellsRef.current = next;
+    return true;
   };
   // On a touch screen a tap on a placed stroke waits a moment before removing it (it dims): a
   // second tap turns it on its spot if it fits the other way round there, or wiggles it if it
   // doesn't, and removes nothing. Then a double tap can never remove two strokes.
   const pendingTap = useRef<{ cell: number; key: string; timer: number; remove: () => void } | null>(null);
+  /** The last stroke removed at once (it couldn't turn), so a quick second tap there is ignored. */
+  const lastRemoved = useRef<{ cell: number; x: number; y: number; at: number } | null>(null);
   const [pendingStroke, setPendingStroke] = useState<string | null>(null);
   const settleTap = (run: boolean) => {
     const pt = pendingTap.current;
@@ -355,7 +366,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   };
 
   /** Where the held stroke is over the word: the cell, the spot it's locked onto, its twist, and the drop. */
-  const locate = (d: Drag, x: number, y: number, raw = { x, y }): Pick<Drag, 'target' | 'aim' | 'turn' | 'overCell'> => {
+  const locate = (d: Drag, x: number, y: number, raw = { x, y }, creeping = false, rest: { x: number; y: number } | null = null): Pick<Drag, 'target' | 'aim' | 'turn' | 'overCell'> => {
     const inside = (el: Element | null | undefined) => {
       const r = el?.getBoundingClientRect();
       return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
@@ -407,11 +418,23 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     // finger's, a finger's a little longer):
     // whichever way round points most along the swipe (up turns V into Λ; left and right turn an arc
     // or a bowl). Swipes count from where the cursor came onto the spot, or last turned it.
-    let aim: Aim = held ? d.aim! : { cell: overCell, x: at.x, y: at.y, armed: false, ax: lx, ay: ly };
+    let aim: Aim = held ? d.aim! : { cell: overCell, x: at.x, y: at.y, armed: false, settled: false, ax: lx, ay: ly };
     const rawLocal = toCell(overCell, raw.x, raw.y) ?? local;
     const closest = (turn: number) => ways.reduce((a, b) => (Math.abs(wrap((b.placement.rot ?? 0) - turn)) < Math.abs(wrap((a.placement.rot ?? 0) - turn)) ? b : a));
     let way = closest(d.turn);
     if (!aim.armed && dist(aim) < ARM) aim = { ...aim, armed: true, ax: rawLocal.lx, ay: rawLocal.ly };
+    // While it's still coming in towards the spot, swipes count from wherever it has got to; once it
+    // stops getting closer, they count from its closest point.
+    if (aim.armed && !aim.settled) {
+      const near = (px: number, py: number) => Math.hypot(px - aim.x, py - aim.y);
+      if (near(rawLocal.lx, rawLocal.ly) <= near(aim.ax, aim.ay)) aim = { ...aim, ax: rawLocal.lx, ay: rawLocal.ly };
+      else if (near(rawLocal.lx, rawLocal.ly) > near(aim.ax, aim.ay) + 0.05) aim = { ...aim, settled: true };
+    }
+    // A pointer resting or creeping (lining the stroke up, or drifting) carries the start of a swipe
+    // with it: only a deliberate, quick move turns the stroke. After a pause, it starts where it rested.
+    const restLocal = rest && toCell(overCell, rest.x, rest.y);
+    if (aim.armed && restLocal) aim = { ...aim, settled: true, ax: restLocal.lx, ay: restLocal.ly };
+    else if (aim.armed && creeping) aim = { ...aim, ax: rawLocal.lx, ay: rawLocal.ly };
     if (aim.armed) {
       const dx = rawLocal.lx - aim.ax;
       const dy = rawLocal.ly - aim.ay;
@@ -513,11 +536,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     const at = from ? base[from.cell].findIndex((q) => slotKey(q) === from.key) : -1;
     if (from && at < 0) return; // the stroke's gone (the word changed under the press)
     const original = from ? base[from.cell][at] : null;
-    const remove = () => {
-      if (!from) return;
-      next[from.cell].splice(at, 1);
-      apply(next);
-    };
     if (!d.moved) {
       // Double-tapping (or double-clicking) a stroke in the tray turns it (if it ever needs turning).
       if (d.source.kind === 'tray') {
@@ -546,6 +564,20 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
           } else setWiggle((w) => ({ id: `${from.cell}|${from.key}`, n: w.n + 1 }));
           return;
         }
+        // A stroke that can't turn where it sits has nothing to wait for: it goes at once (its
+        // flight home starts where it sat), and a second tap right there is ignored rather than
+        // taking the stroke now nearest (see start).
+        if (!turnedInPlace(d, from.cell, original)) {
+          [gx, gy, gs, gr].forEach((v) => v.stop());
+          gx.set(d.home.x);
+          gy.set(d.home.y);
+          gs.set(1);
+          gr.set(0);
+          next[from.cell].splice(at, 1);
+          if (apply(next)) flyHome(d);
+          lastRemoved.current = { cell: from.cell, x: d.startX, y: d.startY, at: performance.now() };
+          return;
+        }
         const timer = window.setTimeout(() => settleTap(true), DOUBLE_TAP);
         pendingTap.current = {
           cell: from.cell,
@@ -563,15 +595,13 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
             gy.set(d.home.y);
             gs.set(1);
             gr.set(0);
-            apply(now);
-            flyHome(d);
+            if (apply(now)) flyHome(d);
           },
         };
         setPendingStroke(`${from.cell}|${from.key}`);
         return;
       }
-      // A tap removes a placed stroke; a tray stroke that was only pressed goes back.
-      remove();
+      // A tray stroke that was only pressed goes back.
       flyHome(d);
       return;
     }
@@ -581,12 +611,18 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       if (from && from.cell === d.target.cell && slotKey(original!) === slotKey(p)) return; // dropped where it was
       if (from) next[from.cell].splice(at, 1);
       next[d.target.cell].push(p);
-      apply(next);
+      // Refused: it goes back where it came from, to its spot or to the tray.
+      if (!apply(next)) {
+        if (from && original) land(from.cell, original, d.turn, base[from.cell]);
+        else flyHome(d);
+      }
       return;
     }
-    // Nowhere to go: a placed stroke springs back to its slot, a tray stroke back to the tray.
+    // Nowhere to go: a placed stroke springs back to its slot, a tray stroke back to the tray. Let
+    // go over a letter, it says why.
     if (from && original) land(from.cell, original, d.turn, base[from.cell]);
     else flyHome(d);
+    if (d.overCell !== null && !(from && from.cell === d.overCell)) onMiss?.(d.aim ? 'turn' : 'nofit');
   };
 
   // Listeners are attached synchronously on pointer-down (not in an effect) so a quick flick
@@ -597,6 +633,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     // A press while a tapped stroke waits to be removed: on that same stroke it may be the second
     // tap; on anything else the removal goes ahead first, and this press carries on against the
     // word as it is now (its stroke found again by key).
+    // The second tap of a double tap on a stroke that went at once (it couldn't turn): ignored.
+    const lr = lastRemoved.current;
+    if (source.kind === 'cell' && lr && lr.cell === source.cell && performance.now() - lr.at < DOUBLE_TAP && Math.hypot(e.clientX - lr.x, e.clientY - lr.y) < 24) return;
     const pt = pendingTap.current;
     const again = !!pt && source.kind === 'cell' && source.cell === pt.cell && source.key === pt.key;
     if (pt) settleTap(!again);
@@ -648,7 +687,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       const m = svgs.current[source.cell]?.getScreenCTM();
       if (spot && m && level.filter((s) => s.placement.x === spot.x).length > 1) {
         const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
-        aim = { cell: source.cell, x: spot.x, y: spot.y, armed: true, ax: p.x - offsets[source.cell], ay: p.y };
+        aim = { cell: source.cell, x: spot.x, y: spot.y, armed: true, settled: true, ax: p.x - offsets[source.cell], ay: p.y };
       }
     }
     const d0: Drag = {
@@ -685,7 +724,14 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       const entered = d.entered || (!!row && rawY >= row.top && rawY <= row.bottom);
       const overTray = ev.clientY >= (rootRef.current?.querySelector('.tray')?.getBoundingClientRect().top ?? Infinity);
       const ay = entered && row && !overTray ? Math.min(row.bottom, Math.max(row.top, rawY)) : rawY;
-      const nd = { ...d, moved, entered, ...(moved ? locate(d, ev.clientX, ay, { x: ev.clientX, y: rawY }) : {}) };
+      // (The first move after a rest has no speed yet: it starts the swipe, it isn't creeping.)
+      const v = velocity();
+      const last = samples.current[samples.current.length - 1];
+      const moving = samples.current.filter((p) => last.t - p.t <= 100).length >= 2;
+      const creeping = moving && Math.hypot(v.x, v.y) / u < CREEP;
+      const prev = samples.current[samples.current.length - 2];
+      const rest = prev && last.t - prev.t > 100 ? { x: prev.x, y: prev.y - grip.current.lift } : null;
+      const nd = { ...d, moved, entered, ...(moved ? locate(d, ev.clientX, ay, { x: ev.clientX, y: rawY }, creeping, rest) : {}) };
       dragRef.current = nd;
       // Turns snap: the stroke springs round to its new way.
       if (nd.turn !== d.turn && !reduce) {
@@ -898,7 +944,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? 'swipe to turn' : noFit ? 'no fit' : (letter ?? '·')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? 'swipe to turn' : noFit ? 'no fit' : (letter ?? 'no letter')}
               </span>
             </div>
           );

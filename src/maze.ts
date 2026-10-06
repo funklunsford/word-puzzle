@@ -70,10 +70,26 @@ export function solve(words: string[], adj: Graph, start: string, goal: string):
 }
 
 /**
- * How far a random puzzle's goal is: 8–10 strokes at best (9 on average, picked evenly), over at
+ * The words on some lowest-stroke route from start to goal, each with its strokes from the start:
+ * every word W where (start → W) + (W → goal) is the puzzle's best. Hardcore mode lets a player
+ * step only onto these, and only when it keeps them on par.
+ */
+export function routeWords(words: string[], adj: Graph, start: string, goal: string): Record<string, number> {
+  const fromStart = dijkstra(adj, words.indexOf(start)).dist;
+  const toGoal = dijkstra(adj, words.indexOf(goal)).dist;
+  const best = fromStart[words.indexOf(goal)];
+  const out: Record<string, number> = {};
+  words.forEach((w, i) => {
+    if (fromStart[i] + toGoal[i] === best) out[w] = fromStart[i];
+  });
+  return out;
+}
+
+/**
+ * How far a random puzzle's goal is: 9–11 strokes at best (10 on average, picked evenly), over at
  * least 3 words, so there's a real route to find (never a single swap) without it being a slog.
  */
-export const PUZZLE_SHAPE = { best: [8, 10], steps: [3, 7] } as const;
+export const PUZZLE_SHAPE = { best: [9, 11], steps: [3, 8] } as const;
 
 /**
  * A random puzzle: a start with a few doors, and a goal PUZZLE_SHAPE away. `endpoint` limits which

@@ -13,6 +13,15 @@ export interface NextStep {
   letters: number[];
 }
 
+/** A word's doors: the words one step (at most STEP_LIMIT strokes) away, with each step's cost. */
+export type Doors = (word: string) => [string, number][];
+
+/** Doors worked out from the word list (each step's cost searched; see wordDistance). The game uses the maze's own, shipped with it. */
+export const doorsFrom =
+  (words: string[]): Doors =>
+  (word) =>
+    doors(word, words);
+
 /** Words one step (at most STEP_LIMIT strokes) from `word`, with the step's cost. A cheap letter count rules most out first. */
 function doors(word: string, words: string[]): [string, number][] {
   const out: [string, number][] = [];
@@ -32,7 +41,7 @@ function doors(word: string, words: string[]): [string, number][] {
  * game. Searches outward from the goal (steps cost the same both ways) until it reaches the room,
  * so it only looks at words at most as far from the goal as the room is.
  */
-export function nextStep(words: string[], room: string, goal: string, visited: Set<string>): NextStep | null {
+export function nextStep(doorsOf: Doors, room: string, goal: string, visited: Set<string>): NextStep | null {
   if (room === goal) return null;
   const enter = (w: string, c: number) => (visited.has(w) && w !== goal ? 0 : c);
   const dist = new Map<string, number>([[goal, 0]]);
@@ -45,7 +54,7 @@ export function nextStep(words: string[], room: string, goal: string, visited: S
     if (done.has(v)) continue;
     done.add(v);
     if (v === room) break;
-    for (const [u, c] of doors(v, words)) {
+    for (const [u, c] of doorsOf(v)) {
       if (done.has(u)) continue;
       const du = d + enter(v, c); // the player steps u → v
       if (du < (dist.get(u) ?? Infinity)) {
@@ -57,7 +66,7 @@ export function nextStep(words: string[], room: string, goal: string, visited: S
   const best = dist.get(room);
   if (best === undefined || !done.has(room)) return null;
   // The room's doors that lie on a cheapest route; prefer new words over going back.
-  const options = doors(room, words)
+  const options = doorsOf(room)
     .map(([w, c]) => ({ w, cost: enter(w, c), after: dist.get(w) }))
     .filter((o) => done.has(o.w) && o.after !== undefined && o.cost + o.after === best)
     .sort((a, b) => Number(visited.has(a.w)) - Number(visited.has(b.w)) || a.cost - b.cost);

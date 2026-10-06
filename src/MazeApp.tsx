@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
-import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
+import { STEP_LIMIT, recognize, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
-import { nextStep, type NextStep } from './hints';
+import { doorsFrom, nextStep, type Doors, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { COARSE, useMedia } from './useMedia';
 import { InkDrop } from './components/maze/InkDrop';
@@ -28,6 +28,8 @@ interface Pick {
   inkPots: PotPlan;
   /** A daily's date (pool puzzles have none). */
   date?: string;
+  /** Words on a lowest-stroke route, with their strokes from the start (hardcore keeps to them). */
+  onRoute?: Record<string, number>;
   /** Pool puzzles: what its shortest routes need from C, I and V, and whether the obvious approach misses par (shown in Dev). */
   need?: Need;
   tricky?: boolean;
@@ -42,13 +44,15 @@ const NEEDS: Record<Need, string> = {
 
 interface MazeData extends Pick {
   words: string[];
+  /** Each word's doors, as [to, cost, to, cost, ...] by word index (see scripts/mazes.ts). */
+  doors?: number[][];
   /** The pool a puzzle is picked from on each load (see scripts/mazes.ts). */
   puzzles: Pick[];
 }
 
 /** A random puzzle from the pool, other than the one being played (WILD → TAME if there's no pool). */
 function pickPuzzle(data: MazeData, current?: Puzzle): Pick {
-  const pool = data.puzzles?.length ? data.puzzles : [{ puzzle: data.puzzle, inkPots: data.inkPots }];
+  const pool = data.puzzles?.length ? data.puzzles : [{ puzzle: data.puzzle, inkPots: data.inkPots, onRoute: data.onRoute }];
   const options = pool.length > 1 ? pool.filter((p) => p.puzzle.start !== current?.start || p.puzzle.goal !== current?.goal) : pool;
   return options[Math.floor(Math.random() * options.length)];
 }
@@ -69,6 +73,33 @@ const SIDE_MIN = 1000;
 const COMPACT_MAX = 600;
 
 const HELP_KEY = 'strokes:seen-help';
+/** A daily's result, kept in this browser so a return visit shows it. */
+interface Result {
+  strokes: number;
+  best: number;
+  hints: number;
+  hardcore: boolean;
+  /** Strokes per step, for the share line. */
+  steps: number[];
+}
+const resultKey = (date: string) => `strokes:result:${date}`;
+const loadResult = (date: string): Result | null => {
+  try {
+    return JSON.parse(localStorage.getItem(resultKey(date)) ?? 'null');
+  } catch {
+    return null;
+  }
+};
+
+/** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par. */
+const HARDCORE_KEY = 'strokes:hardcore';
+const loadHardcore = () => {
+  try {
+    return localStorage.getItem(HARDCORE_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
 /** Storage can be missing or blocked (private windows); then help just opens every time. */
 const seenHelp = () => {
   try {
@@ -87,14 +118,14 @@ const markHelpSeen = () => {
 
 const cellsFor = (word: string): Placement[][] => [...word].map((ch) => LETTERS[ch].parts.map((p) => ({ ...p })));
 
-function useWidth() {
-  const [w, setW] = useState(() => window.innerWidth);
+function useWindowSize() {
+  const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
   useEffect(() => {
-    const on = () => setW(window.innerWidth);
+    const on = () => setSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', on);
     return () => window.removeEventListener('resize', on);
   }, []);
-  return w;
+  return size;
 }
 
 export function MazeApp() {
@@ -117,6 +148,21 @@ export function MazeApp() {
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
   const [flags, setFlags] = useState(loadFlags);
+  const [hardcore, setHardcore] = useState(loadHardcore);
+  /** A word hardcore just turned away (off the lowest-stroke route), for the step line. */
+  const [refused, setRefused] = useState<string | null>(null);
+  /** Said in the step line until the next stroke or hint (switching hardcore on or off). */
+  const [notice, setNotice] = useState<string | null>(null);
+  /** Hardcore asked for once with progress on the board: a second tap within a few seconds starts over in it. */
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const t = window.setTimeout(() => {
+      setArmed(false);
+      setNotice(null);
+    }, 5000);
+    return () => window.clearTimeout(t);
+  }, [armed]);
   /** Free strokes banked from ink pots, waiting to pay for the next steps to new words. */
   const [ink, setInk] = useState(0);
   // Ink in flight: drops rise from a pot word into the bank, and pour from the bank into a word.
@@ -143,7 +189,7 @@ export function MazeApp() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [help, closeHelp]);
-  const width = useWidth();
+  const { w: width, h: height } = useWindowSize();
   const compact = width < COMPACT_MAX;
   const coarse = useMedia(COARSE);
 
@@ -158,7 +204,7 @@ export function MazeApp() {
     const date = asked && DAYS.includes(asked) && (import.meta.env.DEV || asked <= today) ? asked : dayFor(today);
     Promise.all([fetch(dataUrl('mazes.json')).then((r) => r.json() as Promise<MazeData>), loadDaily(date)]).then(([d, day]) => {
       if (!live) return;
-      const pick: Pick = { puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date };
+      const pick: Pick = { puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date, onRoute: day.onRoute };
       setData(d);
       setDaily(pick);
       setCurrent(flags.freshPuzzle ? pickPuzzle(d) : pick);
@@ -203,26 +249,112 @@ export function MazeApp() {
     setHint(null);
     setHintsUsed(0);
     setPeek(null);
+    setRefused(null);
+    setNotice(null);
   }, [puzzle, potPlan]);
   useEffect(restart, [restart]);
 
-  const roomExits = useMemo(() => (data && room ? exits(room, data.words) : []), [data, room]);
+  /** Hardcore on starts the puzzle over (the way so far may be off the route); off carries on. */
+  /**
+   * Hardcore on starts the puzzle over (the way so far may be off the route), so with progress on
+   * the board it asks for a second tap first. Off just carries on.
+   */
+  const toggleHardcore = () => {
+    const next = !hardcore;
+    const progress = spent > 0 || history.length > 0 || trail.length > 1;
+    setRefused(null);
+    if (next && progress && !armed) {
+      setArmed(true);
+      setNotice(`Hardcore starts over. ${coarse ? 'Tap' : 'Click'} the flame again to go.`);
+      return;
+    }
+    setArmed(false);
+    try {
+      localStorage.setItem(HARDCORE_KEY, next ? '1' : '0');
+    } catch {
+      // storage blocked: on for this visit only
+    }
+    setHardcore(next);
+    if (next) restart();
+    setNotice(next ? 'Hardcore on: only lowest-stroke words count, and no hints.' : 'Hardcore off.');
+  };
 
-  const won = !!puzzle && room === puzzle.goal;
-  // Reaching the goal celebrates: a daily with its own scene, and the Perfect encore for a solve in
-  // the lowest possible strokes (alone, for a pool puzzle). In development, ?celebrate opens it at
-  // once (?celebrate=2.2 holds it at 2.2 seconds), and ?perfect adds the encore (?perfect=1.6 holds
-  // the encore at 1.6 seconds).
+  // The maze's doors, shipped with it (worked out from the words only if they're missing).
+  const doorsOf = useMemo<Doors | null>(() => {
+    if (!data) return null;
+    if (!data.doors) return doorsFrom(data.words);
+    const index = new Map(data.words.map((w, i) => [w, i]));
+    const doors = data.doors;
+    return (w) => {
+      const flat = doors[index.get(w) ?? -1] ?? [];
+      return Array.from({ length: flat.length / 2 }, (_, k): [string, number] => [data.words[flat[2 * k]], flat[2 * k + 1]]);
+    };
+  }, [data]);
+  const roomExits = useMemo(() => (doorsOf && room ? doorsOf(room).map(([word, cost]) => ({ word, cost })) : []), [doorsOf, room]);
+
+  // (A path that started from this puzzle's start: while a new puzzle swaps in, the old word can
+  // equal the new goal for a moment, which isn't a win.)
+  const won = !!puzzle && room === puzzle.goal && trail[0]?.word === puzzle.start;
+  // Reaching the goal celebrates: confetti for a solve in the lowest possible strokes, then the
+  // daily's own scene. In development, ?celebrate opens it at once (?celebrate=2.2 holds it at 2.2
+  // seconds), and ?perfect adds the confetti (?perfect=1.2 holds the whole thing at 1.2 seconds).
   const scene = current?.date ? celebrationFor(current.date) : undefined;
   const perfect = won && spent <= best;
-  const [celebrating, setCelebrating] = useState<{ perfect: boolean; freezeAt?: number; freezeEncoreAt?: number } | null>(null);
+  const [celebrating, setCelebrating] = useState<{ perfect: boolean; freezeAt?: number } | null>(null);
   useEffect(() => {
-    if (won && (scene || perfect)) setCelebrating({ perfect });
+    if (!won) return;
+    if (scene || perfect) setCelebrating({ perfect });
+    // A daily's result is kept, so coming back today shows it (the best one, if played again).
+    const date = current?.date;
+    if (!date) return;
+    const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: trail.slice(1).map((v) => v.cost) };
+    const before = loadResult(date);
+    if (!before || result.strokes < before.strokes || (result.strokes === before.strokes && result.hints < before.hints)) {
+      try {
+        localStorage.setItem(resultKey(date), JSON.stringify(result));
+      } catch {
+        // storage blocked: shown this visit only
+      }
+      setSaved(result);
+    }
   }, [won]);
+  /** Today's result from an earlier visit (or this one), if any. */
+  const [saved, setSaved] = useState<Result | null>(null);
+  useEffect(() => setSaved(current?.date ? loadResult(current.date) : null), [current?.date]);
+  const [copied, setCopied] = useState(false);
+  /** The share line, shown to copy by hand when neither sharing nor the clipboard works here. */
+  const [shareText, setShareText] = useState<string | null>(null);
+  const share = async () => {
+    if (!puzzle) return;
+    const r = won ? { strokes: spent, best, hints: hintsUsed, hardcore, steps: trail.slice(1).map((v) => v.cost) } : saved;
+    if (!r) return;
+    const text = [
+      `Strokes${current?.date ? ` No. ${dayNumber(current.date)}` : ''} · ${puzzle.start} → ${puzzle.goal}`,
+      `${r.strokes} strokes (lowest ${r.best})${r.strokes <= r.best ? ' ⭐' : ''}${r.hardcore ? ' · hardcore' : ''}${r.hints ? ` · ${r.hints} ${r.hints === 1 ? 'hint' : 'hints'}` : ''}`,
+      r.steps.map((n) => '●'.repeat(n) || '○').join(' '),
+      `${location.origin}${location.pathname}`,
+    ].join('\n');
+    const copy = async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      } catch {
+        setShareText(text); // no clipboard either: show it, to copy by hand
+      }
+    };
+    if (!navigator.share) return copy();
+    try {
+      await navigator.share({ text });
+    } catch (e) {
+      // Cancelled is the player's choice; anything else (no share target here) falls back to copying.
+      if ((e as Error)?.name !== 'AbortError') await copy();
+    }
+  };
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     const at = (key: string) => (q.get(key) ? Number(q.get(key)) : undefined);
-    if (import.meta.env.DEV && (q.has('celebrate') || q.has('perfect'))) setCelebrating({ perfect: q.has('perfect'), freezeAt: at('celebrate'), freezeEncoreAt: at('perfect') });
+    if (import.meta.env.DEV && (q.has('celebrate') || q.has('perfect'))) setCelebrating({ perfect: q.has('perfect'), freezeAt: at('celebrate') ?? at('perfect') });
   }, []);
   const stepEdits = history.length;
   const locked = stepEdits >= STEP_LIMIT;
@@ -239,6 +371,18 @@ export function MazeApp() {
         return true;
       }
       if (word && dict.has(word)) {
+        // Hardcore: a new word must be on a lowest-stroke route, reached on par. Going back to a word
+        // already visited is free, as always (every word visited is on the route).
+        if (hardcore && current?.onRoute) {
+          const back = trail.some((v) => v.word === word);
+          if (!back && current.onRoute[word] !== spent + payStep(stepEdits + 1, ink).paid) {
+            setRefused(word);
+            return false;
+          }
+        }
+        setRefused(null);
+        setNotice(null);
+        setArmed(false);
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
@@ -256,11 +400,14 @@ export function MazeApp() {
         setLastDoor({ word, cost: paid, used, back: false, pot });
         return true;
       }
+      setRefused(null);
+      setNotice(null);
+      setArmed(false);
       setHistory((h) => [...h, cells]);
       setCells(next);
       return true;
     },
-    [won, locked, room, dict, stepEdits, cells, trail, ink, potPlan],
+    [won, locked, room, dict, stepEdits, cells, trail, ink, potPlan, hardcore, current, spent],
   );
 
   // After a step to a new word: ink paid for it pours from the bank into the word, and a pot's ink
@@ -304,12 +451,17 @@ export function MazeApp() {
   const visited = new Set(trail.map((v) => v.word));
   const shownHint = hint && hint.room === room && !won ? hint : null;
   const askHint = () => {
-    if (!data || !puzzle || won) return;
+    // No hints in hardcore.
+    if (!data || !puzzle || won || hardcore) return;
+    // The latest thing asked for wins the step line.
+    setRefused(null);
+    setNotice(null);
+    setArmed(false);
     const level = shownHint ? 2 : 1;
     setHintsUsed((n) => n + 1);
     // The search takes a moment on a phone: show the hint once it's ready, without blocking the tap.
     window.setTimeout(() => {
-      const step = shownHint?.step ?? nextStep(data.words, room, puzzle.goal, visited);
+      const step = shownHint?.step ?? nextStep(doorsOf!, room, puzzle.goal, visited);
       setHint({ room, level, step });
     }, 0);
   };
@@ -321,7 +473,9 @@ export function MazeApp() {
     : shownHint
       ? 'No hint from here.'
       : null;
-  const found = roomExits.filter((x) => visited.has(x.word)).length;
+  // In hardcore, only the words that would open: visited ones (free) and the route's next on par.
+  const reach = hardcore && current?.onRoute ? roomExits.filter((x) => visited.has(x.word) || current.onRoute![x.word] === spent + x.cost) : roomExits;
+  const found = reach.filter((x) => visited.has(x.word)).length;
   const lettersWithTile = hoverTile ? new Set(Object.keys(LETTERS).filter((ch) => recipe(ch).has(hoverTile))) : null;
   const potsLeft = (potPlan?.pots ?? []).filter((p) => !visited.has(p));
   const potsNear = won ? [] : potsLeft.filter((p) => wordDistance(room, p) <= STEP_LIMIT);
@@ -338,7 +492,8 @@ export function MazeApp() {
         style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}
       >
         <Masthead
-          compact={compact}
+          // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
+          compact={compact || height < 500}
           dateline={
             current?.date &&
             `No. ${dayNumber(current.date)} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
@@ -357,11 +512,13 @@ export function MazeApp() {
             <div className="score-panel">
               <div className="score-big">
                 <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
+                {hardcore && <span className="hardcore-tag">Hardcore</span>}
               </div>
               <div className="score-sub">
                 <span>lowest strokes possible: {best}</span>
                 <span>
-                  {roomExits.length} {roomExits.length === 1 ? 'word' : 'words'} within reach
+                  {reach.length} {hardcore ? 'route ' : ''}
+                  {reach.length === 1 ? 'word' : 'words'} within reach
                   {found ? <span className="nowrap"> ({found} visited)</span> : null}
                 </span>
               </div>
@@ -429,6 +586,7 @@ export function MazeApp() {
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
+                    <li>Want a challenge? {coarse ? 'Tap' : 'Click'} the flame for hardcore: only words on a lowest-stroke route count, and there are no hints.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
@@ -440,14 +598,18 @@ export function MazeApp() {
           </AnimatePresence>
 
           <section className="board" ref={boardRef}>
-            <AnimatePresence>
-              {won && (
-                <motion.div className="win" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  You reached {puzzle.goal} in {spent} strokes. Lowest strokes possible: {best}.
-                  {hintsUsed > 0 && ` (${hintsUsed} ${hintsUsed === 1 ? 'hint' : 'hints'})`}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <button
+              className={`hardcore-btn${hardcore ? ' on' : ''}${armed ? ' armed' : ''}`}
+              aria-pressed={hardcore}
+              aria-label="Hardcore mode"
+              title={hardcore ? 'Hardcore is on: only words on a lowest-stroke route open' : 'Hardcore: only words on a lowest-stroke route open (starts the puzzle over)'}
+              onClick={toggleHardcore}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path className="flame" d="M12 2.8c.9 3.4 5.6 5.6 5.6 10.6a5.6 5.6 0 0 1-11.2 0c0-2.6 1.6-4.3 2.6-5.6.3 1.8 1.2 3 2.3 3.6-.5-3 .1-6 .7-8.6Z" />
+                <path className="core" d="M12 13.2c1.3 1.3 2.3 2.4 2.1 3.9a2.1 2.1 0 0 1-4.2 0c0-1.4 1-2.5 2.1-3.9Z" />
+              </svg>
+            </button>
             <div className="board-head">
               <span className="label">You are in</span>
               {/* The word's meaning sits right above it, and changes as each new word is made. */}
@@ -475,6 +637,9 @@ export function MazeApp() {
               room={room}
               onEdit={onEdit}
               onHoverTile={setHoverTile}
+              onMiss={(why) =>
+                setNotice(why === 'turn' ? 'That fits there turned the other way: swipe as you drop it.' : "That stroke doesn't fit in that letter.")
+              }
             />
             <div className="letters" aria-label="Letters by stroke">
               {Object.keys(LETTERS).map((ch) => (
@@ -488,7 +653,38 @@ export function MazeApp() {
             </div>
           </section>
 
+          {won ? (
+            <section className="controls result" aria-label="Result" aria-live="polite">
+              <p className="result-line">
+                <strong>
+                  {puzzle.goal} in {spent} {spent === 1 ? 'stroke' : 'strokes'}
+                </strong>
+                <span className="nowrap"> · lowest possible {best}</span>
+                {spent <= best && <span className="nowrap"> · perfect ⭐</span>}
+                {hardcore && <span className="nowrap"> · hardcore</span>}
+                {hintsUsed > 0 && <span className="nowrap"> · {hintsUsed} {hintsUsed === 1 ? 'hint' : 'hints'}</span>}
+              </p>
+              <div className="pill-row">
+                <button className="pill" onClick={share}>
+                  {copied ? 'Copied!' : 'Share'}
+                </button>
+                {(scene || spent <= best) && (
+                  <button className="pill quiet" onClick={() => setCelebrating({ perfect: spent <= best })}>
+                    Watch again
+                  </button>
+                )}
+              </div>
+              {shareText && <p className="share-text">{shareText}</p>}
+              {current?.date && <p className="result-next">A new puzzle comes at midnight.</p>}
+            </section>
+          ) : (
           <section className="controls" aria-label="This step">
+            {saved && stepEdits === 0 && trail.length === 1 && (
+              <p className="solved-before">
+                Solved today in {saved.strokes}
+                {saved.strokes <= saved.best ? ' · perfect ⭐' : ''}. Play it again any time.
+              </p>
+            )}
             <div className="pill-row">
               <button className="pill" onClick={undo} disabled={!history.length}>
                 Undo
@@ -496,12 +692,21 @@ export function MazeApp() {
               <button className="pill" onClick={resetStep} disabled={!history.length}>
                 Reset step
               </button>
-              <button className="pill hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
-                {shownHint ? 'Next word' : 'Hint'}
-              </button>
+              {/* No hints in hardcore: the button gives way to a quiet note. */}
+              {hardcore ? (
+                <span className="no-hints">No hints</span>
+              ) : (
+                <button className="pill hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
+                  {!shownHint ? 'Hint' : shownHint.level === 1 ? 'Next word' : 'Hint used'}
+                </button>
+              )}
             </div>
-            <p className={`step-status${hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
-              {hintText && !locked
+            <p aria-live="polite" className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
+              {refused
+                ? `Hardcore: ${refused} is off the lowest-stroke route.`
+                : notice
+                ? notice
+                : hintText && !locked
                 ? hintText
                 : locked
                 ? 'Out of strokes for this step. Undo to try another way.'
@@ -525,6 +730,7 @@ export function MazeApp() {
               </span>
             </div>
           </section>
+          )}
         </main>
 
         <aside className="side-card">
@@ -654,7 +860,6 @@ export function MazeApp() {
           hints={won ? hintsUsed : 0}
           best={best}
           freezeAt={celebrating.freezeAt}
-          freezeEncoreAt={celebrating.freezeEncoreAt}
           onClose={() => setCelebrating(null)}
         />
       )}

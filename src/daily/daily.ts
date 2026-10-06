@@ -14,6 +14,8 @@ export interface DailyPuzzle {
   inkPots: { pots: string[]; best: number; walk: string[] };
   need: Need;
   tricky: boolean;
+  /** Words on a lowest-stroke route, with their strokes from the start (see routeWords): hardcore mode keeps to them. */
+  onRoute: Record<string, number>;
 }
 
 const puzzles = import.meta.glob<DailyPuzzle>('./days/*.json', { import: 'default' });

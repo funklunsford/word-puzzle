@@ -442,3 +442,50 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - At the owner's request, today's puzzle was regenerated with `/daily` and replaced WILD → TAME. WILD → TAME is still the reference puzzle in `public/mazes.json`, and its vine scene is in git history.
 - **PINK → DUNE** is lowest 8 (PINK → PINT → PINE → DUNE). It was the clearest picture of change among the ten candidates.
 - **The celebration, "Windswept!":** PINK in pink sand is stripped left to right by the wind into a swirling cloud of grains with streaks of wind, turning sand-coloured as it flies. The grains settle stroke by stroke into DUNE, ochre grains with a few pink flecks over two-tone ridges.
+
+## Confetti for Perfect, puzzles at 10, hardcore, a shorter phone swipe (2026-10-06, branch `core-and-perfect`)
+- **Perfect is confetti and sparkles, before the day's scene** (`src/celebration/confetti.ts`). This replaces the gold PERFECT in ten languages.
+  - Confetti fires from both bottom corners, tumbling and drifting down, with sparkles twinkling over it. It sits over the start word, drawn as the scene's first frame.
+  - The day's scene starts at 1.7 s, as the confetti falls away, and the confetti has gone by 3.2 s.
+  - It's drawn over the whole screen, in its own layer, and narrow screens fire it less far across.
+  - A tap during the confetti skips to the scene; then a tap carries on. Reduced motion shows the scene's finished frame.
+  - A pool puzzle (no scene) gets the confetti on a dark stage, titled "Perfect!".
+  - `?perfect` previews it, and `?perfect=1.0` holds it at 1 s.
+- **Puzzles average 10 strokes:** `PUZZLE_SHAPE.best` is now 9–11, picked evenly, over 3–8 words. The pool was rebuilt with the same mix (420 tricky puzzles averaging 10.00). The daily rhythm moves up one: Monday and Tuesday 9, Wednesday, Thursday and Sunday 10, Friday and Saturday 11.
+- **Hardcore** (the flame button, remembered in this browser): only words on a lowest-stroke route open, and only when reached on par.
+  - The flame sits in the top-right corner of the word box (the definition and win banner keep clear of it). Unlit, it's an outline; lit, it burns white and gold on the spicy colour, with a little ignite pop. It's kept away from Undo, Reset step and Hint, which are tapped mid-step, because turning it on starts the puzzle over.
+  - Switching it says what it does in the step line ("Hardcore on: only words on a lowest-stroke route open. Started over."), a "HARDCORE" label sits by the lowest-strokes line, and How to play mentions the flame.
+  - Each puzzle stores those words with their strokes from the start (`routeWords` in `src/maze.ts`; `onRoute` in the pool and the daily files, checked by the daily tests). A word opens only if its strokes from the start equal the player's strokes so far plus this step's.
+  - Anything else is turned away: the stroke goes back where it came from, and the step line says "Hardcore: LINK isn't on a lowest-stroke route." Going back to a visited word counts as off the route.
+  - Turning hardcore on starts the puzzle over.
+- **The phone swipe to turn is shorter:** half a unit, the same as a mouse (was 0.8, about 24 px; now about 15 px). To keep a stroke carried onto its spot from counting as a swipe, swipes now count from where the pointer stopped coming in (its closest point to the spot), not from where it first came near. Checked with a finger: carried straight onto its spot with a wobble, a V stays a V; carry on 17 px further, and it turns to Λ.
+
+## Fixes from the second phone playtest (2026-10-06, branch `core-and-perfect`)
+- **Swipe to turn** flipped after 6–8 px, not about 15. A swipe counted from the stroke's closest approach to its spot, so an overshoot then a nudge turned it.
+  - Now a pause restarts the swipe where the pointer rested, and a pointer slower than 1.5 letter units a second (creeping or lining up) carries the swipe's start along with it.
+  - Checked: carried straight on, a V stays a V; a quick 12 px swipe stays a V; a quick 18 px swipe turns; overshoot, rest, then 12 px stays a V; a slow 30 px creep never turns; mouse swipes still turn.
+- **Hardcore:**
+  - Going back to a visited word is free here too, as How to play says (every visited word is on the route).
+  - The refusal reads "Hardcore: RINK is off the lowest-stroke route."
+  - The latest action wins the step line, so a hint clears a refusal or notice.
+  - With progress on the board, the flame asks first ("Hardcore starts over. Tap the flame again to go.", glowing); a second tap within 5 s starts over.
+  - The HARDCORE label sits by the stroke count; notices fit on one line; "within reach" counts only words that would open ("1 route word within reach").
+- **Tapping to remove:** a stroke that can't turn where it sits goes at once. Only turnable strokes wait the 0.4 s for a second tap. A quick second tap where one just went is ignored, so a double tap still removes one stroke.
+- **After a win:** the result replaces Undo, Reset step and Hint ("DUNE in 8 strokes · lowest possible 8 · perfect ⭐"), with Share and Watch again, and "A new puzzle comes at midnight." The banner no longer pushes the board down.
+  - A daily's best result is kept in this browser (`strokes:result:{DATE}`), and a return visit says "Solved today in 8 · perfect ⭐. Play it again any time."
+  - Share uses the phone's share sheet, else copies a spoiler-free line: the puzzle, strokes and par, a star for perfect, and dots for the strokes in each step. If there's no clipboard either, the line appears under the buttons, to copy by hand.
+- **Hints are instant:** the maze's graph ships in `mazes.json` (each word's doors and costs), so hints and "within reach" look them up. A first hint takes about 5 ms (was 0.6–1 s on desktop since the exact step cost). `mazes.json` is 58 KB compressed (+28 KB).
+- **Smaller fixes:**
+  - a stroke let go over a letter it doesn't fit says so ("That stroke doesn't fit in that letter.", or that it fits turned the other way);
+  - a shape that isn't a letter is labelled "no letter" (was "·");
+  - path pills take taps over the whole pill and half the gap round it (a little taller, 8 px apart, never a neighbour's area); ?, the flame and the practice's Start over take 44 px taps without looking bigger, and practice tray tiles are 54 px;
+  - the Hint button keeps one width (Hint, Next word, Hint used);
+  - the step line is announced to screen readers;
+  - the celebration line keeps "· 3 hints" together;
+  - a short screen (a phone on its side) gets the slim wordmark, so the score card starts at about 105 px, not 245;
+  - a puzzle swap can no longer look like a win (the path must start at this puzzle's start).
+- **No hints in hardcore** (the owner's call): the Hint button gives way to a "No hints" note in the same space, switching hardcore on clears any hint shown, and How to play and the notice say so. Playtest reports stay local (`reports/` is in .gitignore).
+- **Left open, for decisions:**
+  - the tray wrapping onto two rows on phones;
+  - a full landscape layout;
+  - the shortest phones (375×667), where the controls fall below the fold.

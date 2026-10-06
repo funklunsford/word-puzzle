@@ -1,12 +1,12 @@
 // The contract every celebration scene keeps (see scene.ts and docs/daily-celebration-prompt.md):
-// each day's scene in src/daily/days, and the Perfect encore. Three.js builds and updates scenes
+// each day's scene in src/daily/days, and the Perfect confetti. Three.js builds and updates scenes
 // without a screen, so frames can be compared, measured and checked here.
 
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import type { DailyPuzzle } from '../daily/daily';
 import type { Pt } from '../ink';
-import { PERFECT_STILL, PERFECT_WORDS, perfectScene } from './perfect';
+import { CONFETTI, confettiScene } from './confetti';
 import type { CelebrationModule, Scene } from './scene';
 import { wordStrokes } from './wordPoints';
 
@@ -258,42 +258,45 @@ describe('daily celebrations', () => {
   }
 });
 
-describe('the Perfect encore', () => {
-  const make = (goal = 'TAME', small = false) => perfectScene(THREE, { goal, small });
+describe('the Perfect confetti', () => {
+  const make = (small = false) => confettiScene(THREE, { small, cssColor });
+  const asScene = (c: ReturnType<typeof make>, aspect: number): Scene => ({ objects: c.objects, margin: 0, update: (t) => c.update(t, aspect), dispose: c.dispose });
 
   it('draws the same frame for the same moment, in any order and from a fresh start', () => {
-    const times = [0, 0.3, 0.9, 1.5, PERFECT_STILL, 3.6, 4.4, 30.5];
-    const a = make();
-    const first = times.map((t) => (a.update(t), snapshot(a)));
-    const again = [...times].reverse().map((t) => (a.update(t), snapshot(a))).reverse();
-    const b = make();
-    const fresh = times.map((t) => (b.update(t), snapshot(b)));
-    times.forEach((t, i) => {
-      expect(again[i], `u = ${t}, played backwards`).toBe(first[i]);
-      expect(fresh[i], `u = ${t}, a second copy`).toBe(first[i]);
-    });
-  });
-
-  it('starts on the goal word, and spells each "perfect" in turn', () => {
-    for (const goal of ['TAME', 'BRAT', 'WAXY', 'MOMS']) {
-      const s = make(goal);
-      s.update(0.15);
-      expect(coverage(s, goal), goal).toBeGreaterThan(0.9);
+    const times = [0, 0.1, 0.6, 1.3, CONFETTI.handoff, 2.5, CONFETTI.length + 1];
+    for (const aspect of [1.6, 0.46]) {
+      const a = asScene(make(), aspect);
+      const first = times.map((t) => (a.update(t), snapshot(a)));
+      const again = [...times].reverse().map((t) => (a.update(t), snapshot(a))).reverse();
+      const b = asScene(make(), aspect);
+      times.forEach((t, i) => {
+        expect(again[i], `t = ${t}, played backwards`).toBe(first[i]);
+        expect((b.update(t), snapshot(b)), `t = ${t}, a second copy`).toBe(first[i]);
+      });
     }
-    const s = make();
-    s.update(PERFECT_STILL);
-    expect(coverage(s, 'PERFECT')).toBeGreaterThan(0.9);
-    PERFECT_WORDS.forEach(({ word }, k) => {
-      s.update(PERFECT_STILL + k * 2.4);
-      expect(coverage(s, word), word).toBeGreaterThan(0.9);
-    });
   });
 
-  it('keeps to the budget, and frees everything it made', () => {
-    const size = measure(make());
-    expect(size.meshes).toBeLessThanOrEqual(BUDGET.meshes);
-    expect(size.vertices).toBeLessThanOrEqual(BUDGET.vertices);
-    expect(size.instances).toBeLessThanOrEqual(BUDGET.instances);
-    expect(disposesAll(make())).toBe(true);
+  it('fills the screen while it flies, stays on a phone screen, and is gone by its end', () => {
+    for (const aspect of [1.6, 0.46]) {
+      const s = asScene(make(), aspect);
+      s.update(1.0);
+      const { tris } = drawn(s);
+      expect(tris.length).toBeGreaterThan(100);
+      const xs = tris.flat().map((p) => p[0]);
+      // Mostly on screen across the width (a little flies past the edges).
+      expect(xs.filter((x) => Math.abs(x) <= aspect + 0.1).length / xs.length).toBeGreaterThan(0.9);
+      s.update(CONFETTI.length);
+      expect(drawn(s).tris.length).toBe(0);
+    }
+  });
+
+  it('keeps to the budget, draws less on a phone, and frees everything it made', () => {
+    const big = measure(asScene(make(), 1.6));
+    const small = measure(asScene(make(true), 0.46));
+    expect(big.meshes).toBeLessThanOrEqual(BUDGET.meshes);
+    expect(big.vertices).toBeLessThanOrEqual(BUDGET.vertices);
+    expect(big.instances).toBeLessThanOrEqual(BUDGET.instances);
+    expect(small.instances).toBeLessThan(0.7 * big.instances);
+    expect(disposesAll(asScene(make(), 1.6))).toBe(true);
   });
 });

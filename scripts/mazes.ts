@@ -9,7 +9,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { placePots, potRoute, potValues } from '../src/inkpots';
-import { POOL_MIX, PUZZLE_SHAPE, buildGraph, classifyNeed, isObvious, randomPuzzle, seededRandom, solve, type Need } from '../src/maze';
+import { POOL_MIX, PUZZLE_SHAPE, buildGraph, classifyNeed, isObvious, randomPuzzle, routeWords, seededRandom, solve, type Need } from '../src/maze';
 import { parseWordList } from '../src/wordlist';
 
 // Opposites make a nice maze: 14 strokes over 5 rooms, all everyday words.
@@ -41,7 +41,7 @@ const inkPots = { pots, best: ink.best, walk: ink.walk };
 // The pool the game picks a puzzle from on each load. Starts and goals are everyday base words
 // (in data/everyday-4.txt, defined as a noun, verb or adjective rather than a plural, past tense,
 // pronoun or archaic form), so a puzzle never opens on HAST, SOPS or SENT; the words between are any.
-// Its mix is set by quota (POOL_MIX in src/maze.ts), evenly across the best totals (8, 9 and 10).
+// Its mix is set by quota (POOL_MIX in src/maze.ts), evenly across the best totals (9, 10 and 11).
 const POOL = 420;
 const { tricky: TRICKY, need: NEED } = POOL_MIX;
 const everyday = new Set(parseWordList(readFileSync(new URL('../data/everyday-4.txt', import.meta.url), 'utf8')));
@@ -86,7 +86,7 @@ while (puzzles.length < target) {
   const puzzle = { ...p, path };
   const potWords = placePots(words, adj, p.start, p.goal, p.best, path, random);
   const { bound: _bound, ...plan } = potRoute(words, adj, p.start, p.goal, potWords);
-  puzzles.push({ puzzle, need, tricky: kind === 'tricky', inkPots: plan });
+  puzzles.push({ puzzle, need, tricky: kind === 'tricky', inkPots: plan, onRoute: routeWords(words, adj, p.start, p.goal) });
 }
 console.timeEnd('pool');
 const mean = puzzles.reduce((t, x) => t + x.puzzle.best, 0) / puzzles.length;
@@ -95,4 +95,7 @@ console.log(`pool: ${puzzles.length} puzzles from ${attempts} candidates, best $
 console.log(`candidates seen per cell: ${[...tries].sort().map(([k, n]) => `${k} ${n}`).join(', ')}`);
 console.log(`e.g. ${puzzles.slice(0, 8).map((x) => `${x.puzzle.start} → ${x.puzzle.goal} (${x.puzzle.best}, ${x.need})`).join(', ')}`);
 
-writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, puzzle, inkPots, puzzles }));
+// The graph itself goes along too: each word's doors as [to, cost, to, cost, ...] (word indexes),
+// so the game never has to search a step's cost (hints, words within reach, hardcore).
+const doors = adj.map((a) => a.flatMap((e) => [e.to, e.cost]));
+writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, doors, puzzle, inkPots, onRoute: routeWords(words, adj, START, GOAL), puzzles }));

@@ -651,8 +651,138 @@ select,
   box-shadow: 0 3px 0 var(--ledge);
 }
 
+/* In hardcore the Hint button gives way to this note, in the same space. */
+.no-hints {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 124px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--spicy);
+}
+
+/* The Hint button keeps one width as its label changes (Hint, Next word, Hint used). */
+.hint-btn {
+  min-width: 124px;
+}
+
+/* The ? and the flame look 36px, and take a 44px tap. */
+.help-btn::after,
+.hardcore-btn::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+}
+
 .help-btn[aria-expanded='true'] {
   border-color: var(--ink);
+}
+
+/* Hardcore: a flame in the word box's top-right corner. Unlit, an outline; lit, it burns on the
+   spicy colour (only words on a lowest-stroke route open). */
+.hardcore-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--ledge);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.hardcore-btn svg {
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+
+.hardcore-btn .flame {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  transition:
+    fill 0.2s,
+    stroke 0.2s;
+}
+
+.hardcore-btn .core {
+  fill: transparent;
+  transition: fill 0.2s;
+}
+
+.hardcore-btn.on {
+  background: var(--spicy);
+  border-color: color-mix(in srgb, var(--spicy) 70%, var(--ink));
+  box-shadow:
+    0 3px 0 color-mix(in srgb, var(--spicy) 55%, var(--ledge)),
+    0 0 0 4px color-mix(in srgb, var(--spicy) 22%, transparent);
+  animation: ignite 0.45s ease-out;
+}
+
+.hardcore-btn.on .flame {
+  fill: #fff5e6;
+  stroke: #fff5e6;
+}
+
+.hardcore-btn.on .core {
+  fill: var(--gold);
+}
+
+/* Asked once with progress on the board: it glows, waiting for the second tap. */
+.hardcore-btn.armed {
+  border-color: var(--spicy);
+  box-shadow:
+    0 3px 0 var(--ledge),
+    0 0 0 4px color-mix(in srgb, var(--spicy) 30%, transparent);
+}
+
+.hardcore-btn.armed .flame {
+  stroke: var(--spicy);
+}
+
+@keyframes ignite {
+  0% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hardcore-btn:hover {
+    border-color: var(--spicy);
+  }
+
+  .hardcore-btn:not(.on):hover .flame {
+    stroke: var(--spicy);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hardcore-btn.on {
+    animation: none;
+  }
 }
 
 /* How to play: a pop-up over the game (first visit, or the ? button). */
@@ -756,8 +886,8 @@ select,
 }
 
 .how-try-again {
-  margin-left: 8px;
-  padding: 0;
+  margin: -12px 0 -12px 4px;
+  padding: 12px 6px;
   border: 0;
   background: none;
   font: inherit;
@@ -780,7 +910,7 @@ select,
 }
 
 .how-try .tray-tile {
-  flex: 0 0 46px;
+  flex: 0 0 54px;
 }
 
 /* The ghost doing the move: drawn over the cell and tray, never in the way. */
@@ -807,6 +937,19 @@ select,
   fill: var(--ink);
   stroke: var(--bg);
   stroke-width: 0.06;
+}
+
+.hardcore-tag {
+  margin-left: 8px;
+  vertical-align: 0.35em;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--spicy);
+  background: color-mix(in srgb, var(--spicy) 12%, transparent);
 }
 
 .help-go {
@@ -837,10 +980,17 @@ select,
 }
 
 /* "You are in" and the current word's definition, right above the word. */
+.board {
+  position: relative;
+}
+
+
 .board-head {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  /* Clear of the hardcore flame in the corner. */
+  padding-right: 44px;
 }
 
 .definition {
@@ -1167,13 +1317,30 @@ select,
   margin-top: 4px;
 }
 
-.win {
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--ink);
-  color: var(--bg);
-  font-weight: 700;
-  text-align: center;
+/* After a win the step controls give way to the result: the score, Share, and Watch again. */
+.result-line {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.share-text {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  white-space: pre-line;
+  text-align: left;
+  user-select: text;
+}
+
+.result-next,
+.solved-before {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 /* Side card: the path so far, and game controls. */
@@ -1191,7 +1358,7 @@ select,
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -1204,7 +1371,7 @@ select,
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 6px 10px;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -1221,6 +1388,17 @@ select,
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+/* A pill's word takes a tap over the whole pill and half the gap round it (never a neighbour's). */
+.trail li {
+  position: relative;
+}
+
+.trail-word::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
 }
 
 .trail li:has(.trail-word[aria-pressed='true']) {
@@ -1519,9 +1697,14 @@ select,
   font-size: 34px;
 }
 
+.maze.compact .hardcore-btn {
+  top: 8px;
+  right: 8px;
+}
+
 .maze.compact .help-btn {
   order: 2;
-  position: static;
+  position: relative;
   flex: none;
   width: 36px;
   height: 36px;
@@ -1553,7 +1736,7 @@ select,
 }
 
 .maze.compact .board-head {
-  padding: 0 5px;
+  padding: 0 44px 0 5px;
 }
 
 .maze.compact .definition {
@@ -1718,52 +1901,6 @@ select,
   margin: 14px 0 0;
   font-size: 13px;
   color: var(--muted);
-}
-
-.celebration-title.gone {
-  opacity: 0;
-  transition: opacity 0.4s;
-}
-
-/* The Perfect encore plays on a dark stage, in light mode too: its words are light. */
-.celebration.stage .celebration-text {
-  color: #f3eee4;
-}
-
-.celebration.stage .celebration-hint {
-  color: #a9a2b6;
-}
-
-/* The language of each "perfect", just under the word (placed by the scene's framing). */
-.celebration-caption {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  text-align: center;
-  pointer-events: none;
-}
-
-.celebration-language {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #e8c877;
-  animation: language-in 0.5s ease-out;
-}
-
-@keyframes language-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .celebration-language {
-    animation: none;
-  }
 }
 
 /* Hints: the letters a hint points at, and its line in the step panel. */
