@@ -1,64 +1,42 @@
-// The flora celebration: the start word, drawn in vines, bursts into wild growth (curling tendrils,
-// unfurling ferns, big blooms); then the wild growth is gathered into the goal word's strokes and
-// shrinks away while a neat, trained garden grows along them: a leafy vine on each stroke, fern
-// fronds on the bars, and a small flower at each stroke's tip in the game's colour for it.
+// Daily #1, WILD → TAME: "Tamed!"
+//
+// The start word, drawn in vines, bursts into wild growth (curling tendrils, unfurling ferns, big
+// blooms); then the wild growth is gathered into the goal word's strokes and shrinks away while a
+// neat, trained garden grows along them: a leafy vine on each stroke, fern fronds on the bars, and
+// a small flower at each stroke's tip in the game's colour for it.
 //
 // Everything is a function of time `t` (seconds), worked out afresh for each frame, so any moment
 // can be drawn on its own (for stills and previews).
 
 import type * as THREE_NS from 'three';
-import type { TileId } from '../glyphs';
-import type { Pt } from '../ink';
-import { seededRandom } from '../maze';
-import type { CelebrationTheme } from './themes';
-import { wordStrokes } from './wordPoints';
+import type { TileId } from '../../glyphs';
+import { seededRandom } from '../../maze';
+import { along, clamp01, mix, smooth, toLine } from '../../celebration/kit';
+import type { CelebrationTheme, Scene, SceneOptions, Three } from '../../celebration/scene';
+import { wordStrokes } from '../../celebration/wordPoints';
 
-type Three = typeof THREE_NS;
+export const theme: CelebrationTheme = {
+  title: 'Tamed!',
+  stormBg: '#0c1a10',
+  timing: { burst: 0.45, calm: 2.0, settled: 3.7 },
+};
+
+/** Wild growth, then the trained garden. */
+const flora = {
+  wildStems: ['#2f6b3a', '#3e7f45', '#285c33', '#4a8a3f'],
+  wildLeaves: ['#2f8f46', '#4caf50', '#3a7d44', '#6cc05f', '#1f6f3a', '#5aa83c'],
+  wildFern: '#3f9a52',
+  wildFlowers: ['#ff4f8b', '#ff8a3d', '#ffd23f', '#b061ff', '#ff5e5b', '#ff77c8'],
+  wildCentre: '#ffe08a',
+  tameStem: '#6f9e68',
+  tameLeaves: ['#8cc084', '#7fb878', '#97c98c'],
+  tameCentre: '#f6e7b8',
+};
 
 /** Points along each stem's ribbon. */
 const K = 40;
 
-const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
-/** 0 before a, 1 after b, smooth between. */
-const smooth = (a: number, b: number, x: number) => {
-  const t = clamp01((x - a) / (b - a));
-  return t * t * (3 - 2 * t);
-};
-const mix = (a: number, b: number, k: number) => a + (b - a) * k;
-
-/** A polyline with its running length, for walking along it. */
-interface Line {
-  pts: Pt[];
-  cum: number[];
-  length: number;
-}
-const toLine = (pts: Pt[]): Line => {
-  const cum = [0];
-  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-  return { pts, cum, length: cum[cum.length - 1] };
-};
-/** The point and the unit tangent `d` along a line. */
-function along(l: Line, d: number): { x: number; y: number; tx: number; ty: number } {
-  const dd = Math.min(l.length, Math.max(0, d));
-  let i = 1;
-  while (i < l.cum.length - 1 && l.cum[i] < dd) i++;
-  const [a, b] = [l.pts[i - 1], l.pts[i]];
-  const seg = l.cum[i] - l.cum[i - 1] || 1;
-  const f = (dd - l.cum[i - 1]) / seg;
-  return { x: a[0] + (b[0] - a[0]) * f, y: a[1] + (b[1] - a[1]) * f, tx: (b[0] - a[0]) / seg, ty: (b[1] - a[1]) / seg };
-}
-
-interface Options {
-  start: string;
-  goal: string;
-  theme: CelebrationTheme;
-  small: boolean;
-  /** A theme-aware colour from the page (CSS custom property), as sRGB 0–1. */
-  cssColor: (name: string, fallback: string) => [number, number, number];
-}
-
-export function floraScene(THREE: Three, { start, goal, theme, small, cssColor }: Options) {
-  const flora = theme.flora!;
+export function scene(THREE: Three, { start, goal, theme, small, cssColor }: SceneOptions): Scene {
   const { burst, calm, settled } = theme.timing;
   const random = seededRandom(23);
   const pick = <T,>(xs: T[]) => xs[Math.floor(random() * xs.length)];

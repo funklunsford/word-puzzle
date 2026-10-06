@@ -515,6 +515,21 @@ select,
   overflow: visible;
 }
 
+/* The daily's number and date, under the wordmark. */
+.dateline {
+  margin: -4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.maze.compact .dateline {
+  margin-top: -6px;
+  font-size: 11px;
+}
+
 /* The parts row: each stroke type on a tile tinted in its colour, like the tray. */
 .part-tile {
   fill: color-mix(in srgb, var(--tile) 12%, var(--surface));
@@ -1637,6 +1652,52 @@ select,
   margin: 14px 0 0;
   font-size: 13px;
   color: var(--muted);
+}
+
+.celebration-title.gone {
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+/* The Perfect encore plays on a dark stage, in light mode too: its words are light. */
+.celebration.stage .celebration-text {
+  color: #f3eee4;
+}
+
+.celebration.stage .celebration-hint {
+  color: #a9a2b6;
+}
+
+/* The language of each "perfect", just under the word (placed by the scene's framing). */
+.celebration-caption {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.celebration-language {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #e8c877;
+  animation: language-in 0.5s ease-out;
+}
+
+@keyframes language-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration-language {
+    animation: none;
+  }
 }
 
 /* Hints: the letters a hint points at, and its line in the step panel. */

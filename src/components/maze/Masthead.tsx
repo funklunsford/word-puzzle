@@ -60,7 +60,8 @@ const PAD = 0.5;
  * On phones (`compact`) only the wordmark is shown, its strokes flying in from above, to leave
  * the screen to the game.
  */
-export function Masthead({ compact = false }: { compact?: boolean }) {
+/** The wordmark, with an optional line under it (the daily's number and date). */
+export function Masthead({ compact = false, dateline }: { compact?: boolean; dateline?: string }) {
   const top = compact ? -PAD : PART_Y - PART / 2 - PAD;
   return (
     <header className="masthead">
@@ -93,6 +94,7 @@ export function Masthead({ compact = false }: { compact?: boolean }) {
           </g>
         ))}
       </svg>
+      {dateline && <p className="dateline">{dateline}</p>}
     </header>
   );
 }
