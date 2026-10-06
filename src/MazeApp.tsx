@@ -425,7 +425,7 @@ export function MazeApp() {
                     {coarse ? (
                       <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it, or swipe as you place it.</li>
                     ) : (
-                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, swipe as you place it.</li>
+                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, double-click it, or swipe as you place it.</li>
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>

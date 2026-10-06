@@ -135,16 +135,6 @@ export function HowToTry({ touch }: { touch: boolean }) {
   );
 }
 
-/** Which way a stroke points when turned to `rot` (its corner, or the back of its curve): a mouse swipe that way turns it so. */
-function pointsTo(tile: TileId, rot: number) {
-  const pts = strokeCenterline(tile, rot);
-  const [a, b] = [pts[0], pts[pts.length - 1]];
-  const x = pts.reduce((t, p) => t + p[0], 0) / pts.length - (a[0] + b[0]) / 2;
-  const y = pts.reduce((t, p) => t + p[1], 0) / pts.length - (a[1] + b[1]) / 2;
-  const n = Math.hypot(x, y) || 1;
-  return { x: x / n, y: y / n };
-}
-
 /** A point on a stroke to press: the middle of a bar, partway along a chevron's arm. */
 function grabPoint(p: Placement) {
   const pts = strokeCenterline(p.tile, p.rot ?? 0);
@@ -214,20 +204,11 @@ function GhostMove({ plan, content, geo, touch, still }: { plan: Ghost; content:
     const p = at(g.x, g.y);
     const rot = plan.at.rot ?? 0;
     duration = 2.6;
-    if (touch) {
-      // Two taps, and it turns over.
-      times = [0, 0.1, 0.2, 0.28, 0.36, 0.44, 0.7, 0.86, 1];
-      pointer = { x: hold(9, p.x), y: hold(9, p.y), opacity: [0, 1, 1, 1, 1, 1, 1, 0, 0], scale: [1, 1, 0.85, 1, 0.85, 1, 1, 1, 1] };
-      ring = [0, 0, 0.7, 0, 0.7, 0, 0, 0, 0];
-      copy = { tile: plan.at.tile, rot, seed: inkSeed(plan.at), x: hold(9, spot.x), y: hold(9, spot.y), opacity: [0, 0, 0, 0, 0, 0.8, 0.8, 0, 0], scale: hold(9, 1), rotate: [0, 0, 0, 0, 0, 0, 180, 180, 180] };
-    } else {
-      // Press, swipe a little the way it will point (up for a V, right for a C) so it turns on its spot, let go.
-      times = [0, 0.1, 0.2, 0.45, 0.55, 0.62, 0.85, 1];
-      const dir = pointsTo(plan.at.tile, rot + 180);
-      const to = { x: p.x + dir.x * 0.8 * k, y: p.y + dir.y * 0.8 * k };
-      pointer = { x: [p.x, p.x, p.x, to.x, to.x, to.x, to.x, to.x], y: [p.y, p.y, p.y, to.y, to.y, to.y, to.y, to.y], opacity: [0, 1, 1, 1, 1, 1, 0, 0], scale: [1, 1, 0.85, 0.85, 1, 1, 1, 1] };
-      copy = { tile: plan.at.tile, rot, seed: inkSeed(plan.at), x: hold(8, spot.x), y: hold(8, spot.y), opacity: [0, 0, 0.8, 0.8, 0.8, 0.8, 0, 0], scale: [1, 1, 1.08, 1.08, 1, 1, 1, 1], rotate: [0, 0, 0, 180, 180, 180, 180, 180] };
-    }
+    // Two taps or clicks, and it turns over.
+    times = [0, 0.1, 0.2, 0.28, 0.36, 0.44, 0.7, 0.86, 1];
+    pointer = { x: hold(9, p.x), y: hold(9, p.y), opacity: [0, 1, 1, 1, 1, 1, 1, 0, 0], scale: [1, 1, 0.85, 1, 0.85, 1, 1, 1, 1] };
+    ring = [0, 0, 0.7, 0, 0.7, 0, 0, 0, 0];
+    copy = { tile: plan.at.tile, rot, seed: inkSeed(plan.at), x: hold(9, spot.x), y: hold(9, spot.y), opacity: [0, 0, 0, 0, 0, 0.8, 0.8, 0, 0], scale: hold(9, 1), rotate: [0, 0, 0, 0, 0, 0, 180, 180, 180] };
   } else {
     // Point at the bar, tap or click (with a mouse it reddens first, as hovering does), and it goes.
     const spot = at(plan.at.x, plan.at.y);
