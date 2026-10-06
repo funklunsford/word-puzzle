@@ -14,6 +14,8 @@ import { centerOf, useInkFlights } from './components/maze/InkFlights';
 import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
 import { HowToTry } from './components/maze/HowToTry';
+import { GearIcon, Settings } from './components/maze/Settings';
+import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
 import { Celebration } from './celebration/Celebration';
 import { DAYS, celebrationFor, dayFor, dayNumber, loadDaily, localDate } from './daily/daily';
 import { WordEditor } from './components/maze/WordEditor';
@@ -149,6 +151,21 @@ export function MazeApp() {
   const [peek, setPeek] = useState<string | null>(null);
   const [flags, setFlags] = useState(loadFlags);
   const [hardcore, setHardcore] = useState(loadHardcore);
+  // Settings (the gear): light or dark, the player's choice or the device's.
+  const [settings, setSettings] = useState(false);
+  const gearBtn = useRef<HTMLButtonElement>(null);
+  const [theme, setTheme] = useState<ThemeChoice>(loadTheme);
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+  useEffect(() => followSystemTheme(() => themeRef.current), []);
+  const chooseTheme = (choice: ThemeChoice) => {
+    setTheme(choice);
+    saveTheme(choice);
+  };
+  const closeSettings = useCallback(() => {
+    setSettings(false);
+    gearBtn.current?.focus();
+  }, []);
   /** A word hardcore just turned away (off the lowest-stroke route), for the step line. */
   const [refused, setRefused] = useState<string | null>(null);
   /** Said in the step line until the next stroke or hint (switching hardcore on or off). */
@@ -494,6 +511,11 @@ export function MazeApp() {
         <Masthead
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
           compact={compact || height < 500}
+          actions={
+            <button ref={gearBtn} className="gear-btn" aria-label="Settings" aria-haspopup="dialog" aria-expanded={settings} onClick={() => setSettings(true)}>
+              <GearIcon />
+            </button>
+          }
           dateline={
             current?.date &&
             `No. ${dayNumber(current.date)} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
@@ -849,6 +871,7 @@ export function MazeApp() {
           )}
         </aside>
       </div>
+      <AnimatePresence>{settings && <Settings theme={theme} onTheme={chooseTheme} onClose={closeSettings} />}</AnimatePresence>
       {inkFlights}
       {celebrating && (
         <Celebration

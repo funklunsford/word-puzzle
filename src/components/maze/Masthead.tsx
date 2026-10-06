@@ -60,8 +60,8 @@ const PAD = 0.5;
  * On phones (`compact`) only the wordmark is shown, its strokes flying in from above, to leave
  * the screen to the game.
  */
-/** The wordmark, with an optional line under it (the daily's number and date). */
-export function Masthead({ compact = false, dateline }: { compact?: boolean; dateline?: string }) {
+/** The wordmark, with an optional line under it (the daily's number and date), and buttons in its corner (the gear). */
+export function Masthead({ compact = false, dateline, actions }: { compact?: boolean; dateline?: string; actions?: React.ReactNode }) {
   const top = compact ? -PAD : PART_Y - PART / 2 - PAD;
   return (
     <header className="masthead">
@@ -95,6 +95,7 @@ export function Masthead({ compact = false, dateline }: { compact?: boolean; dat
         ))}
       </svg>
       {dateline && <p className="dateline">{dateline}</p>}
+      {actions && <div className="masthead-actions">{actions}</div>}
     </header>
   );
 }

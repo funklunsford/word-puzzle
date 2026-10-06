@@ -33,38 +33,37 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #17161c;
-    --surface: #212029;
-    --ink: #ece9f1;
-    --muted: #8e8a99;
-    --line: #34323d;
-    --gold: #f0c04a;
-    --ink-pot: #9fb2f0;
-    --ink-fill: #4a63c8;
-    --feather: #e6dfd0;
-    --spicy: #ff7a4d;
-    --remove: #ff6b6b;
-    --ok: #93c27f;
-    --ledge: #0e0d12;
-    --pastel-1: #f5c45e;
-    --pastel-2: #c8a8ea;
-    --pastel-3: #9fcfb3;
-    --pastel-4: #a9b9ec;
+/* Dark: the player's choice in Settings, or the device's (data-theme is set in index.html; see src/theme.ts). */
+:root[data-theme='dark'] {
+  --bg: #17161c;
+  --surface: #212029;
+  --ink: #ece9f1;
+  --muted: #8e8a99;
+  --line: #34323d;
+  --gold: #f0c04a;
+  --ink-pot: #9fb2f0;
+  --ink-fill: #4a63c8;
+  --feather: #e6dfd0;
+  --spicy: #ff7a4d;
+  --remove: #ff6b6b;
+  --ok: #93c27f;
+  --ledge: #0e0d12;
+  --pastel-1: #f5c45e;
+  --pastel-2: #c8a8ea;
+  --pastel-3: #9fcfb3;
+  --pastel-4: #a9b9ec;
 
-    --t-LV: #8fa6bf;
-    --t-H: #d98a68;
-    --t-LD: #a9bf8e;
-    --t-LB: #7f9c6a;
-    --t-SB: #6fb0a3;
-    --t-BV: #dcb064;
-    --t-SC: #c18aa8;
-    --t-C: #a596c4;
-    --t-P: #d6908f;
+  --t-LV: #8fa6bf;
+  --t-H: #d98a68;
+  --t-LD: #a9bf8e;
+  --t-LB: #7f9c6a;
+  --t-SB: #6fb0a3;
+  --t-BV: #dcb064;
+  --t-SC: #c18aa8;
+  --t-C: #a596c4;
+  --t-P: #d6908f;
 
-    color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 
 * {
@@ -507,6 +506,105 @@ select,
   align-items: center;
   gap: 10px;
   text-align: center;
+}
+
+.masthead {
+  position: relative;
+}
+
+/* The gear, in the header's top-right corner. */
+.masthead-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.gear-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--ledge);
+  cursor: pointer;
+}
+
+.gear-btn::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+}
+
+.gear-btn[aria-expanded='true'] {
+  border-color: var(--ink);
+}
+
+.gear-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gear-btn:hover .gear-icon {
+    stroke: var(--ink);
+  }
+}
+
+/* Settings: a setting's name, its choices side by side, and a line of explanation. */
+.setting {
+  margin: 14px 0 4px;
+}
+
+.setting-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.segmented {
+  display: flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.segmented button {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.segmented button.on {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 2px 0 var(--ledge);
+}
+
+.setting-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .masthead-art {
