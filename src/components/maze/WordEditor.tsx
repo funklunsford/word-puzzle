@@ -48,6 +48,8 @@ const RELEASE = 1.6;
 const SWIPE = 0.5;
 /** A finger's swipe to turn a stroke: as short as a mouse's (a stroke carried onto its spot never counts as one, see Aim.settled). */
 const SWIPE_TOUCH = 0.5;
+/** Slower than this (letter units a second), a pointer is resting or creeping, not swiping. */
+const CREEP = 1.5;
 
 const norm = (deg: number) => ((deg % 360) + 360) % 360;
 /** Shortest signed angle from one direction to another, in degrees. */
@@ -360,7 +362,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   };
 
   /** Where the held stroke is over the word: the cell, the spot it's locked onto, its twist, and the drop. */
-  const locate = (d: Drag, x: number, y: number, raw = { x, y }): Pick<Drag, 'target' | 'aim' | 'turn' | 'overCell'> => {
+  const locate = (d: Drag, x: number, y: number, raw = { x, y }, creeping = false, rest: { x: number; y: number } | null = null): Pick<Drag, 'target' | 'aim' | 'turn' | 'overCell'> => {
     const inside = (el: Element | null | undefined) => {
       const r = el?.getBoundingClientRect();
       return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
@@ -424,6 +426,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       if (near(rawLocal.lx, rawLocal.ly) <= near(aim.ax, aim.ay)) aim = { ...aim, ax: rawLocal.lx, ay: rawLocal.ly };
       else if (near(rawLocal.lx, rawLocal.ly) > near(aim.ax, aim.ay) + 0.05) aim = { ...aim, settled: true };
     }
+    // A pointer resting or creeping (lining the stroke up, or drifting) carries the start of a swipe
+    // with it: only a deliberate, quick move turns the stroke. After a pause, it starts where it rested.
+    const restLocal = rest && toCell(overCell, rest.x, rest.y);
+    if (aim.armed && restLocal) aim = { ...aim, settled: true, ax: restLocal.lx, ay: restLocal.ly };
+    else if (aim.armed && creeping) aim = { ...aim, ax: rawLocal.lx, ay: rawLocal.ly };
     if (aim.armed) {
       const dx = rawLocal.lx - aim.ax;
       const dy = rawLocal.ly - aim.ay;
@@ -700,7 +707,14 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       const entered = d.entered || (!!row && rawY >= row.top && rawY <= row.bottom);
       const overTray = ev.clientY >= (rootRef.current?.querySelector('.tray')?.getBoundingClientRect().top ?? Infinity);
       const ay = entered && row && !overTray ? Math.min(row.bottom, Math.max(row.top, rawY)) : rawY;
-      const nd = { ...d, moved, entered, ...(moved ? locate(d, ev.clientX, ay, { x: ev.clientX, y: rawY }) : {}) };
+      // (The first move after a rest has no speed yet: it starts the swipe, it isn't creeping.)
+      const v = velocity();
+      const last = samples.current[samples.current.length - 1];
+      const moving = samples.current.filter((p) => last.t - p.t <= 100).length >= 2;
+      const creeping = moving && Math.hypot(v.x, v.y) / u < CREEP;
+      const prev = samples.current[samples.current.length - 2];
+      const rest = prev && last.t - prev.t > 100 ? { x: prev.x, y: prev.y - grip.current.lift } : null;
+      const nd = { ...d, moved, entered, ...(moved ? locate(d, ev.clientX, ay, { x: ev.clientX, y: rawY }, creeping, rest) : {}) };
       dragRef.current = nd;
       // Turns snap: the stroke springs round to its new way.
       if (nd.turn !== d.turn && !reduce) {
