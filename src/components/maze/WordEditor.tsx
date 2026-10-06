@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, xExtent, type Placement, type TileId } from '../../glyphs';
-import { inkSeed, lookCenterline, strokeCenterline, type Pt } from '../../ink';
+import { inkSeed, lookCenterline, opticalOffset, strokeCenterline, type Pt } from '../../ink';
 import { EMPTY_CELL_X, formedLooks, onlyFit, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
 import { MorphStroke, centerlinePath } from './MorphStroke';
@@ -352,7 +352,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   /** Where a tray tile's stroke sits on screen, and its size relative to the word's strokes. */
   const trayHome = (tile: TileId) => {
     const r = trayEls.current.get(tile)?.querySelector('svg')?.getBoundingClientRect();
-    return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2, scale: r.width / 2.4 / u } : null;
+    if (!r) return null;
+    // Where the stroke is drawn in its tile: centred by eye (see opticalOffset), not by its middle.
+    const [ox, oy] = trayCentring(tile, trayTurn[tile]);
+    const k = r.width / 2.4;
+    return { x: r.left + r.width / 2 + ox * k, y: r.top + r.height / 2 + oy * k, scale: k / u };
   };
 
   /** Pointer velocity (px/s) over the last tenth of a second. */
@@ -1000,6 +1004,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   );
 }
 
+/** How far a stroke is shifted in its tray tile to look centred (tray units). */
+export const trayCentring = (tile: TileId, turn: number) => opticalOffset(tile, norm(turn), minHalfWidthAt(TRAY_PX_PER_UNIT));
+
 /**
  * A stroke in its tray tile, turning (forwards, with a spring) when it's turned in the tray, and
  * wiggling when it's tapped once (`nudge` counts the taps), a hint that a second tap turns it.
@@ -1018,7 +1025,10 @@ function TrayStroke({ tile, turn, nudge }: { tile: TileId; turn: number; nudge: 
       animate={wiggle ? { rotate: [0, 14, -6, 0] } : { rotate: 0 }}
       transition={wiggle ? WIGGLE : SETTLE}
     >
-      <TileStroke tile={tile} rot={turn} minHalfWidth={minHalfWidthAt(TRAY_PX_PER_UNIT)} />
+      {/* Centred by eye (an arc's weight is in its back), inside the turn so a turn carries it round. */}
+      <g transform={`translate(${trayCentring(tile, turn).join(' ')})`}>
+        <TileStroke tile={tile} rot={turn} minHalfWidth={minHalfWidthAt(TRAY_PX_PER_UNIT)} />
+      </g>
     </motion.g>
   );
 }

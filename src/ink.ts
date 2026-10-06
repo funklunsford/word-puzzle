@@ -202,3 +202,25 @@ export function inkSeed(p: Placement): number {
   for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) % 997;
   return h / 10;
 }
+
+const opticalCache = new Map<string, [number, number]>();
+/**
+ * How far to shift a lone stroke so it looks centred in a square tile (a tray tile): an arc's
+ * weight sits in its curved back, so centring its outline still leaves it looking off to that
+ * side. Halfway between the outline's middle and the centre line's balance point looks right.
+ */
+export function opticalOffset(tile: TileId, rot = 0, minHalfWidth = 0): [number, number] {
+  const key = `${tile}|${rot}|${minHalfWidth.toFixed(3)}`;
+  const hit = opticalCache.get(key);
+  if (hit) return hit;
+  const nums = inkOutline(tile, rot, inkSeed({ tile, x: 0, y: 0, rot }), minHalfWidth).match(/-?\d*\.?\d+(?:e-?\d+)?/g)!.map(Number);
+  const xs = nums.filter((_, i) => i % 2 === 0);
+  const ys = nums.filter((_, i) => i % 2 === 1);
+  const line = strokeCenterline(tile, rot);
+  const cx = line.reduce((t, p) => t + p[0], 0) / line.length;
+  const cy = line.reduce((t, p) => t + p[1], 0) / line.length;
+  const out: [number, number] = [-((Math.min(...xs) + Math.max(...xs)) / 2 + cx) / 2, -((Math.min(...ys) + Math.max(...ys)) / 2 + cy) / 2];
+  opticalCache.set(key, out);
+  return out;
+}
+

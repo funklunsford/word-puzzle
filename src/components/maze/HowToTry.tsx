@@ -5,7 +5,7 @@ import { inkSeed, strokeCenterline } from '../../ink';
 import { recognize, slotKey } from '../../strokes';
 import { TUTORIAL as STEPS, type Ghost } from '../../tutorial';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
-import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift } from './WordEditor';
+import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift, trayCentring } from './WordEditor';
 
 /** The practice tray: a long bar, a bar, a chevron and an arc (every stroke the steps use). */
 const TRAY: TileId[] = ['LV', 'H', 'BV', 'C'];
@@ -60,7 +60,9 @@ export function HowToTry({ touch }: { touch: boolean }) {
       const tray: Geo['tray'] = {};
       for (const t of TRAY) {
         const b = el.querySelector(`[data-tile="${t}"] svg`)?.getBoundingClientRect();
-        if (b) tray[t] = { x: (b.left - r.left + b.width / 2) / scale, y: (b.top - r.top + b.height / 2) / scale };
+        // Where the tile's stroke is drawn (centred by eye, see trayCentring).
+        const [ox, oy] = trayCentring(t, 0);
+        if (b) tray[t] = { x: (b.left - r.left + b.width / 2 + (ox * b.width) / 2.4) / scale, y: (b.top - r.top + b.height / 2 + (oy * b.width) / 2.4) / scale };
       }
       setGeo({ ox: (s.left - r.left) / scale + (CELL_W / 2) * k, oy: (s.top - r.top) / scale - CELL_TOP * k, k, tray, w: el.offsetWidth, h: el.offsetHeight });
     };
