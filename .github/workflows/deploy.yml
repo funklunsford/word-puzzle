@@ -1,0 +1,48 @@
+# Every push to main (a merged pull request) is tested, built and published to the site,
+# https://funklunsford.github.io/strokes/ (GitHub Pages on the funklunsford/strokes repo).
+# Pull requests are tested and built, but not published.
+#
+# Publishing needs the STROKES_DEPLOY_KEY secret: an SSH key that can push to funklunsford/strokes.
+# scripts/setup-deploy-key.sh adds it. Until then, runs on main pass with a warning instead.
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push replaces a run still in progress on the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build
+        if: github.ref != 'refs/heads/main'
+        run: npm run build
+      - name: Publish to the site
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          DEPLOY_KEY: ${{ secrets.STROKES_DEPLOY_KEY }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "::warning::Not published: the STROKES_DEPLOY_KEY secret isn't set yet (run scripts/setup-deploy-key.sh)."
+            npm run build
+            exit 0
+          fi
+          bash scripts/deploy.sh
