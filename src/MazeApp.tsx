@@ -13,6 +13,7 @@ import { InkPot } from './components/maze/InkPot';
 import { centerOf, useInkFlights } from './components/maze/InkFlights';
 import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
+import { HowToDemo } from './components/maze/HowToDemo';
 import { Celebration } from './celebration/Celebration';
 import { themeFor } from './celebration/themes';
 import { WordEditor } from './components/maze/WordEditor';
@@ -402,25 +403,26 @@ export function MazeApp() {
                     </button>
                   </div>
                   <p className="help-lead">
-                    Turn the start word into the goal word, one real word at a time, in as few strokes as you can.
+                    Turn <strong>{puzzle.start}</strong> into <strong>{puzzle.goal}</strong>, one real word at a time, in as few strokes as you can.
                   </p>
+                  <HowToDemo touch={coarse} />
                   {/* Touch screens and mouse play differently (tap vs click, double-tap vs swipe to turn), so each gets its own. */}
                   <ul className="how">
-                    <li>Each step, change up to 3 strokes, then land on a real word.</li>
+                    <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
                       <>
-                        <li>Drag a stroke from the tray into a letter. Tap a stroke in the word to remove it, or drag it to move it.</li>
-                        <li>To turn a stroke, double-tap it, in the tray or in the word.</li>
+                        <li>Drag strokes from the tray into the letters. Tap one to remove it, or drag it to move it.</li>
+                        <li>Double-tap a stroke to turn it.</li>
                       </>
                     ) : (
                       <>
-                        <li>Drag a stroke from the tray into a letter. Click a stroke in the word to remove it, or drag it to move it.</li>
-                        <li>Some strokes fit a spot more than one way. As you place one, swipe the way you want it to point (swipe up to turn a V upside down).</li>
+                        <li>Drag strokes from the tray into the letters. Click one to remove it, or drag it to move it.</li>
+                        <li>To turn a stroke, swipe as you place it: swiping up flips a V.</li>
                       </>
                     )}
-                    <li>Going back to a word you've already visited is free.</li>
-                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the letter to change, then again for the next word.</li>
-                    {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke that pays for a later step.</li>}
+                    <li>Going back to a word you've visited is free.</li>
+                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
+                    {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
                     Let's play
