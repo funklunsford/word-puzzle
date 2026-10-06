@@ -9,6 +9,8 @@
   --ink-fill: #26357a;
   --feather: #f4ecdc;
   --spicy: #e4572e;
+  /* A placed stroke under the mouse: pale red, as a click removes it (full red is for "doesn't fit"). */
+  --remove: #e8907f;
   --ok: #5e8c4f;
   --ledge: #e4ddcf;
   --pastel-1: #ffc95c;
@@ -43,6 +45,7 @@
     --ink-fill: #4a63c8;
     --feather: #e6dfd0;
     --spicy: #ff7a4d;
+    --remove: #f2a49a;
     --ok: #93c27f;
     --ledge: #0e0d12;
     --pastel-1: #f5c45e;
@@ -809,7 +812,8 @@ select,
   cursor: default;
 }
 
-/* A hovered placed stroke lifts (tapping removes it); red is kept for "doesn't fit". */
+/* A placed stroke under the mouse turns pale red and lifts a little (a click removes it); full
+   red is kept for "doesn't fit". */
 .placed.hovered {
   filter: drop-shadow(0 0.06px 0.08px color-mix(in srgb, var(--ink) 45%, transparent));
 }
