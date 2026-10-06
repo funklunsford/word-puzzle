@@ -13,8 +13,9 @@ import { InkPot } from './components/maze/InkPot';
 import { centerOf, useInkFlights } from './components/maze/InkFlights';
 import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
+import { HowToDemo } from './components/maze/HowToDemo';
 import { Celebration } from './celebration/Celebration';
-import { themeFor } from './celebration/themes';
+import { DAYS, celebrationFor, dayFor, dayNumber, loadDaily, localDate } from './daily/daily';
 import { WordEditor } from './components/maze/WordEditor';
 import { Glyph, GlyphWord } from './components/Glyph';
 
@@ -25,6 +26,8 @@ type PotPlan = Omit<InkPots, 'bound'>;
 interface Pick {
   puzzle: Puzzle;
   inkPots: PotPlan;
+  /** A daily's date (pool puzzles have none). */
+  date?: string;
   /** Pool puzzles: what its shortest routes need from C, I and V, and whether the obvious approach misses par (shown in Dev). */
   need?: Need;
   tricky?: boolean;
@@ -145,17 +148,21 @@ export function MazeApp() {
   const coarse = useMedia(COARSE);
 
   useEffect(() => {
-    // The puzzle is picked before the first render: WILD → TAME, or with the freshPuzzle flag a
-    // random one from the pool. (`live` drops a load that was superseded, e.g. by StrictMode
+    // The puzzle is picked before the first render: the day's puzzle for the player's own date, or
+    // with the freshPuzzle flag a random one from the pool. ?day=YYYY-MM-DD plays an earlier day's
+    // (any day's, in development). (`live` drops a load that was superseded, e.g. by StrictMode
     // running this effect twice in development.)
     let live = true;
-    fetch(dataUrl('mazes.json'))
-      .then((r) => r.json())
-      .then((d: MazeData) => {
-        if (!live) return;
-        setData(d);
-        setCurrent(flags.freshPuzzle ? pickPuzzle(d) : { puzzle: d.puzzle, inkPots: d.inkPots });
-      });
+    const today = localDate();
+    const asked = new URLSearchParams(location.search).get('day');
+    const date = asked && DAYS.includes(asked) && (import.meta.env.DEV || asked <= today) ? asked : dayFor(today);
+    Promise.all([fetch(dataUrl('mazes.json')).then((r) => r.json() as Promise<MazeData>), loadDaily(date)]).then(([d, day]) => {
+      if (!live) return;
+      const pick: Pick = { puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date };
+      setData(d);
+      setDaily(pick);
+      setCurrent(flags.freshPuzzle ? pickPuzzle(d) : pick);
+    });
     // Definitions are a nicety: the game plays without them if they don't load.
     fetch(dataUrl('definitions.json'))
       .then((r) => r.json())
@@ -166,8 +173,9 @@ export function MazeApp() {
     };
   }, []);
 
-  /** The puzzle being played: WILD → TAME, or a random one from the pool (see the freshPuzzle flag; dev can switch). */
+  /** The puzzle being played: the day's, or a random one from the pool (see the freshPuzzle flag; dev can switch). */
   const [current, setCurrent] = useState<Pick | null>(null);
+  const [daily, setDaily] = useState<Pick | null>(null);
   const puzzle = current?.puzzle;
   /** The puzzle's ink pots, when that modifier is on. */
   const potPlan = flags.inkPots ? (current?.inkPots ?? null) : null;
@@ -178,7 +186,7 @@ export function MazeApp() {
     const next = { ...flags, [flag]: !flags[flag] };
     saveFlags(next);
     setFlags(next); // the puzzle restarts, so ink and the best score never mix across settings
-    if (flag === 'freshPuzzle' && data) setCurrent(next.freshPuzzle ? pickPuzzle(data, puzzle) : { puzzle: data.puzzle, inkPots: data.inkPots });
+    if (flag === 'freshPuzzle' && data) setCurrent(next.freshPuzzle ? pickPuzzle(data, puzzle) : daily);
   };
 
   const restart = useCallback(() => {
@@ -201,16 +209,20 @@ export function MazeApp() {
   const roomExits = useMemo(() => (data && room ? exits(room, data.words) : []), [data, room]);
 
   const won = !!puzzle && room === puzzle.goal;
-  // Reaching the goal celebrates, for puzzles that have a celebration (the pilot: WILD → TAME). In
-  // development, ?celebrate opens it at once, and ?celebrate=2.2 holds it at 2.2 seconds.
-  const theme = puzzle ? themeFor(puzzle.start, puzzle.goal) : undefined;
-  const [celebrating, setCelebrating] = useState<{ freezeAt?: number } | null>(null);
+  // Reaching the goal celebrates: a daily with its own scene, and the Perfect encore for a solve in
+  // the lowest possible strokes (alone, for a pool puzzle). In development, ?celebrate opens it at
+  // once (?celebrate=2.2 holds it at 2.2 seconds), and ?perfect adds the encore (?perfect=1.6 holds
+  // the encore at 1.6 seconds).
+  const scene = current?.date ? celebrationFor(current.date) : undefined;
+  const perfect = won && spent <= best;
+  const [celebrating, setCelebrating] = useState<{ perfect: boolean; freezeAt?: number; freezeEncoreAt?: number } | null>(null);
   useEffect(() => {
-    if (won && theme) setCelebrating({});
-  }, [won, theme]);
+    if (won && (scene || perfect)) setCelebrating({ perfect });
+  }, [won]);
   useEffect(() => {
-    const q = new URLSearchParams(location.search).get('celebrate');
-    if (import.meta.env.DEV && q !== null) setCelebrating({ freezeAt: q ? Number(q) : undefined });
+    const q = new URLSearchParams(location.search);
+    const at = (key: string) => (q.get(key) ? Number(q.get(key)) : undefined);
+    if (import.meta.env.DEV && (q.has('celebrate') || q.has('perfect'))) setCelebrating({ perfect: q.has('perfect'), freezeAt: at('celebrate'), freezeEncoreAt: at('perfect') });
   }, []);
   const stepEdits = history.length;
   const locked = stepEdits >= STEP_LIMIT;
@@ -326,7 +338,13 @@ export function MazeApp() {
         className={`maze${side ? ' side' : ''}${compact ? ' compact' : ''}`}
         style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}
       >
-        <Masthead compact={compact} />
+        <Masthead
+          compact={compact}
+          dateline={
+            current?.date &&
+            `No. ${dayNumber(current.date)} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
+          }
+        />
 
         <main className="column">
           <section className="scorecard">
@@ -402,25 +420,26 @@ export function MazeApp() {
                     </button>
                   </div>
                   <p className="help-lead">
-                    Turn the start word into the goal word, one real word at a time, in as few strokes as you can.
+                    Turn <strong>{puzzle.start}</strong> into <strong>{puzzle.goal}</strong>, one real word at a time, in as few strokes as you can.
                   </p>
+                  <HowToDemo touch={coarse} />
                   {/* Touch screens and mouse play differently (tap vs click, double-tap vs swipe to turn), so each gets its own. */}
                   <ul className="how">
-                    <li>Each step, change up to 3 strokes, then land on a real word.</li>
+                    <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
                       <>
-                        <li>Drag a stroke from the tray into a letter. Tap a stroke in the word to remove it, or drag it to move it.</li>
-                        <li>To turn a stroke, double-tap it, in the tray or in the word.</li>
+                        <li>Drag strokes from the tray into the letters. Tap one to remove it, or drag it to move it.</li>
+                        <li>Double-tap a stroke to turn it.</li>
                       </>
                     ) : (
                       <>
-                        <li>Drag a stroke from the tray into a letter. Click a stroke in the word to remove it, or drag it to move it.</li>
-                        <li>Some strokes fit a spot more than one way. As you place one, swipe the way you want it to point (swipe up to turn a V upside down).</li>
+                        <li>Drag strokes from the tray into the letters. Click one to remove it, or drag it to move it.</li>
+                        <li>To turn a stroke, swipe as you place it: swiping up flips a V.</li>
                       </>
                     )}
-                    <li>Going back to a word you've already visited is free.</li>
-                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the letter to change, then again for the next word.</li>
-                    {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke that pays for a later step.</li>}
+                    <li>Going back to a word you've visited is free.</li>
+                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
+                    {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
                     Let's play
@@ -605,13 +624,18 @@ export function MazeApp() {
               <button className="pill quiet" onClick={() => setCurrent(pickPuzzle(data, puzzle))}>
                 New start & goal
               </button>
-              {puzzle.start !== data.puzzle.start || puzzle.goal !== data.puzzle.goal ? (
-                <button className="pill quiet" onClick={() => setCurrent({ puzzle: data.puzzle, inkPots: data.inkPots })}>
-                  Play {data.puzzle.start} → {data.puzzle.goal}
+              {daily && current !== daily ? (
+                <button className="pill quiet" onClick={() => setCurrent(daily)}>
+                  Play the daily ({daily.puzzle.start} → {daily.puzzle.goal})
                 </button>
               ) : null}
-              <button className="pill quiet" onClick={() => setCelebrating({})}>
-                Preview celebration
+              {scene && (
+                <button className="pill quiet" onClick={() => setCelebrating({ perfect: false })}>
+                  Preview celebration
+                </button>
+              )}
+              <button className="pill quiet" onClick={() => setCelebrating({ perfect: true })}>
+                Preview Perfect
               </button>
               {(Object.keys(FLAGS) as Flag[]).map((f) => (
                 <label key={f} className="flag">
@@ -632,13 +656,15 @@ export function MazeApp() {
       {inkFlights}
       {celebrating && (
         <Celebration
-          start={theme ? puzzle.start : data.puzzle.start}
-          goal={theme ? puzzle.goal : data.puzzle.goal}
-          theme={theme ?? themeFor(data.puzzle.start, data.puzzle.goal)!}
-          strokes={won ? spent : data.puzzle.best + 1}
+          start={puzzle.start}
+          goal={puzzle.goal}
+          load={scene}
+          perfect={celebrating.perfect}
+          strokes={won ? spent : celebrating.perfect ? best : best + 1}
           hints={won ? hintsUsed : 0}
-          best={theme ? best : data.puzzle.best}
+          best={best}
           freezeAt={celebrating.freezeAt}
+          freezeEncoreAt={celebrating.freezeEncoreAt}
           onClose={() => setCelebrating(null)}
         />
       )}

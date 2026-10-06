@@ -358,3 +358,44 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 ## How to play, for touch and for mouse (2026-10-05)
 - How to play shows one of two lists, picked by whether the device's main pointer is a finger (`(pointer: coarse)`: phones and tablets) or a mouse, since the controls differ: tap vs click to remove, double-tap vs a swipe while placing to turn, tap vs click Hint.
 - Player-facing text calls every stroke just a stroke (no chevrons, arcs or bowls): How to play, and the tray tooltips ("Drag into a letter · double-tap to turn" / "· swipe as you place it to turn"). Screen readers still get each stroke's name, the only description they have.
+
+## M built like H (2026-10-06, branch `oct-6`)
+- **The problem** (playtest): M's bars sat two units apart, so after a first bar the second had to go in a third spot to the right; put a unit away (as for H) it could never become M.
+- **Now M is two bars a unit apart with the small chevron on top**: "‖" can become H, M, N or U, and the chevron snaps on to make M. No letter has bars two apart any more, so that third spot is gone. M is drawn as it always was (bars two apart, the chevron's ends on their tops) by a display-only `spread` of 2 (positions only; `squeeze`, as in W, narrows positions and strokes). While the chevron hovers, the bars already part, so nothing jumps on the drop.
+- **Rules:** M is now 2 strokes from H, N, U, K and I. The maze gained 4 connected words (1,984); WILD → TAME is unchanged (13, the same route and ink pots), and the pool was regenerated with the same mix.
+
+## Picking the stroke under a finger or cursor (2026-10-06, branch `oct-6`)
+- **The problem** (playtest): each placed stroke had its own wide tap area, and where they overlapped the one drawn last won. T's top bar was nearly impossible to take on a phone (its stem's area covered it), and a tap on N's right bar took the diagonal.
+- **Now a press or hover anywhere on a letter takes the stroke whose drawn line is nearest** (as drawn: looks, squeeze, spread), and where two are within 0.06 units (a junction) the shorter one, so T's bar wins where it meets the stem. Tested with phone taps: along T's bar and at the junction take the bar, the stem takes the stem; N's right bar takes the bar.
+- **Hover (mouse only):** the stroke a click would remove turns pale red (`--remove`, per theme; full red stays "doesn't fit") and lifts slightly. Never while dragging or when the step is locked.
+- **Tray hover (mouse only, `(hover: hover) and (pointer: fine)`):** a tray stroke under the mouse invites a grab: its tile rises 2 px on a deeper ledge and brightens, and the stroke grows 10%; pressed, the tile sinks onto its ledge with a grabbing cursor. Not for taken tiles or a locked step; no movement with reduced motion.
+
+## How to play, clearer (2026-10-06, branch `oct-6`)
+- **Bigger and brighter:** the pop-up's text is now the full text colour at 16 px (15 on phones), the lead 17 px, the title 23 px.
+- **Shorter, and about this puzzle:** "Turn **WILD** into **TAME**, one real word at a time, in as few strokes as you can.", then: change up to 3 strokes a step to make another real word; drag strokes in, tap/click one to remove it or drag it to move it; double-tap to turn (touch) or swipe as you place it, swiping up flips a V (mouse); going back is free; stuck? Hint.
+- **A tiny demo** (`HowToDemo`): a looping drawing of a bar carried from a tray tile into an I, which becomes L, by a fingertip on touch screens (the stroke riding above it) or a cursor. Reduced motion shows the L. It fits a 360×640 screen without scrolling.
+
+## The daily puzzle (2026-10-06, branch `oct-6`)
+- **One puzzle a day, the same for everyone on that date in their own time zone.** Each day is two files in `src/daily/days/`: `{DATE}.json`, the puzzle (start, goal, best, route, ink pots, and its need and tricky labels), and `{DATE}.ts`, its own win celebration. Both load only when needed. The game plays the player's local date, else the latest day before it, else the first; `?day=YYYY-MM-DD` replays an earlier day (any day in development). The masthead shows "No. N · Tuesday, October 6", numbered from the first daily (2026-10-06, No. 1).
+- **WILD → TAME is No. 1,** and the flora scene moved in as its celebration, with identical frames. The pool stays behind the `freshPuzzle` flag; off now means today's daily.
+- **Choosing the next one** (`npm run daily`): candidates come from the pool, so each is tricky with everyday endpoints. The script cycles through it:
+  - never a pair already used, either way round;
+  - no start or goal word from the last 30 days;
+  - lowest strokes by weekday: Monday and Tuesday 8, Wednesday and Thursday 9, Friday and Saturday 10, Sunday 9;
+  - the kind of route (none, letter or stone) the last week has had least of, against the pool's mix.
+
+  The same date and history always give the same ten. `npm run daily -- DATE START GOAL` checks one in and prints the fields the celebration prompt needs. The history is the day files themselves.
+- **Making it:** `/daily` in Claude Code follows `docs/daily-celebration-prompt.md`: choose the pair with the clearest picture of change, write three concepts and pick one, build the scene to the contract, check it with the tests and stills, log the concept in `src/daily/LOG.md`, and open a pull request. Merging it deploys.
+- **The scene contract** (`src/celebration/scene.ts`): a scene is a pure function of time, starts on the start word, ends on the goal word's strokes and holds still, keeps to 6 meshes, 20,000 vertices and 5,000 instances (about 40% less on a phone), and is self-contained. `src/celebration/scenes.test.ts` checks each of these for every day's scene. It fails on a scene that uses `Math.random` in `update` and on one that never finishes the goal word, both tried. `src/daily/daily.test.ts` re-solves every daily against the current word list, so a word-list change that alters a day's best fails the tests.
+
+## The Perfect encore (2026-10-06, branch `oct-6`)
+- **A solve in the lowest possible strokes** (with ink pots, the best with them) earns an encore after the day's celebration, or on its own for a pool puzzle.
+- **What it shows:** the stage dims to deep violet in both themes, so gold and sparkles shine in light mode too. The goal word turns gold, its strokes scatter into a swirl, and they come together as PERFECT, with a band of shine sweeping across, a burst of sparkles and glints at the tops of strokes.
+- **Then the languages:** every 2.4 s the strokes re-form, stroke by stroke, into "perfect" in another language. Each stroke flies to the same kind of stroke in the next word, extras arrive and leave, and the language's name shows under the word. The languages are French PARFAIT, Spanish PERFECTO, Italian PERFETTO, German PERFEKT, Portuguese PERFEITO, Indonesian SEMPURNA, Swahili KAMILI, Tagalog PERPEKTO and Irish FOIRFE: only those whose own spelling is plain A–Z, never with accents stripped.
+- **Framing:** fitted once to the widest word (SEMPURNA), so it never zooms between languages; the zoom from the goal word happens while the strokes are in the air.
+- **Taps:** during the day's scene a tap skips to the encore; then a tap carries on. Reduced motion shows the day's last frame, then (tap) PERFECT, still.
+- **Development:** `?perfect` previews it after the day's scene, and `?perfect=1.6` holds it 1.6 s in. Dev has "Preview Perfect".
+
+## Deploying on every merge (2026-10-06, branch `oct-6`)
+- **Every push to `main` deploys.** `.github/workflows/deploy.yml` runs the tests, builds, and publishes with `scripts/deploy.sh` to the `funklunsford/strokes` Pages site. Pull requests are tested and built, not published.
+- **Credentials:** the workflow pushes with an SSH deploy key that can write to `funklunsford/strokes`, kept as the `STROKES_DEPLOY_KEY` secret. `scripts/setup-deploy-key.sh` creates both, run once by the owner. Until it's set, runs on main pass with a warning instead of publishing. The site repo stays separate, so the source repo can go private without changing the site's address.

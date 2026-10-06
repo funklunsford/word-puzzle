@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
-import { LETTERS, TILES, TILE_IDS, xExtent, type Placement, type TileId } from '../../glyphs';
+import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, lookCenterline, strokeCenterline, type Pt } from '../../ink';
 import { EMPTY_CELL_X, formedLooks, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
@@ -148,9 +148,30 @@ interface Props {
 /** How much a formed letter is narrowed (W); on phones no letter is drawn wider than MAX_DRAWN_COMPACT. */
 function drawnSqueeze(letter: string | null, compact: boolean): number {
   if (!letter) return 1;
-  return Math.min(LETTERS[letter].squeeze ?? 1, compact ? MAX_DRAWN_COMPACT / LETTERS[letter].width : Infinity);
+  return drawnScale(letter).shape * (compact ? Math.min(1, MAX_DRAWN_COMPACT / drawnWidth(letter)) : 1);
 }
 
+/** How far apart a formed letter's strokes are drawn, beyond its squeeze (M's spread; see drawnScale). */
+const spreadOf = (letter: string | null) => (letter ? (LETTERS[letter].spread ?? 1) : 1);
+
+/** Distance from a point to a polyline, and the polyline's length. */
+function nearness(pts: Pt[], x: number, y: number) {
+  let d = Infinity;
+  let length = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, ay] = pts[i - 1];
+    const [bx, by] = pts[i];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const l2 = dx * dx + dy * dy || 1;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+    d = Math.min(d, Math.hypot(ax + t * dx - x, ay + t * dy - y));
+    length += Math.sqrt(l2);
+  }
+  return { d, length };
+}
+/** Strokes this close (cell units) count as equally near: then the shorter one is picked (T's bar over its stem). */
+const PICK_TIE = 0.06;
 /** The centrelines a cell's strokes are drawn along: their formed letter's looks, or null where a stroke is drawn as itself. */
 function lookPoints(content: Placement[], compact: boolean): (Pt[] | null)[] {
   const looks = formedLooks(content);
@@ -681,6 +702,45 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   };
 
   /** Press on a placed stroke. Looked up by position, so a stale press can't grab the wrong one. */
+  /**
+   * The placed stroke a pointer is on: the one whose drawn line is nearest (not the one drawn last,
+   * whose wide tap area would otherwise cover a neighbour: T's stem over its bar, N's diagonal over
+   * a bar), the shorter one where two meet. Used for presses and hover alike.
+   */
+  const strokeAt = (cell: number, clientX: number, clientY: number) => {
+    const m = svgs.current[cell]?.getScreenCTM();
+    if (!m) return null;
+    const q = new DOMPoint(clientX, clientY).matrixTransform(m.inverse());
+    const lx = q.x - offsets[cell];
+    const content = cellsRef.current[cell];
+    const letter = recognize(content);
+    const squeeze = drawnSqueeze(letter, !!compact);
+    const place = squeeze * spreadOf(letter);
+    const [lo, hi] = content.length ? xExtent(content) : [0, 0];
+    const looks = lookPoints(content, !!compact);
+    let best: { p: Placement; x: number; d: number; length: number } | null = null;
+    content.forEach((p, i) => {
+      const x = (lo + hi) / 2 + (p.x - (lo + hi) / 2) * place;
+      const line = (looks[i] ?? strokeCenterline(p.tile, p.rot ?? 0, squeeze)).map(([px, py]): Pt => [x + px, p.y + py]);
+      const { d, length } = nearness(line, lx, q.y);
+      if (!best || d < best.d - PICK_TIE || (Math.abs(d - best.d) <= PICK_TIE && length < best.length)) best = { p, x, d, length };
+    });
+    return best as { p: Placement; x: number } | null;
+  };
+  const pressAt = (e: React.PointerEvent, cell: number) => {
+    const s = strokeAt(cell, e.clientX, e.clientY);
+    if (s) pressPlaced(e, cell, s.p, s.x);
+  };
+  /** A mouse over the word: the stroke a click would remove is tinted (see .placed.hovered). */
+  const hoverAt = (e: React.PointerEvent, cell: number) => {
+    if (e.pointerType !== 'mouse' || dragRef.current) return;
+    const s = strokeAt(cell, e.clientX, e.clientY);
+    const key = s ? slotKey(s.p) : null;
+    if (hover?.cell === cell && hover.key === key) return;
+    setHover(key ? { cell, key } : null);
+    onHoverTile(s ? s.p.tile : null);
+  };
+
   const pressPlaced = (e: React.PointerEvent, cell: number, p: Placement, x: number) => {
     const index = cells[cell].findIndex((q) => slotKey(q) === slotKey(p));
     const at = screenOf(cell, x, p.y);
@@ -702,7 +762,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     const kept = cells[c].filter((_, i) => !(carried?.cell === c && carried.index === i));
     const onSpot = held?.target?.cell === c ? held.target.slot.placement : null;
     const looks = lookPoints(onSpot ? [...kept, onSpot] : kept, !!compact);
-    return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null };
+    // The letter the cell is drawn as: what it'll be with the held stroke on its spot, if anything.
+    const formed = recognize(onSpot ? [...kept, onSpot] : kept);
+    return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null, formed };
   };
   const floating = lifting
     ? {
@@ -722,10 +784,14 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       <div className={`word-cells${glow ? ' opened' : ''}`}>
         {cells.map((content, c) => {
           const letter = recognize(content);
+          const { kept, looks, formed } = preview(c);
+          // Strokes are narrowed by the letter's squeeze (W), and drawn apart by its spread (M): the
+          // spread follows the letter the cell is about to be, so M's bars part as its chevron
+          // comes in (positions only, so the held chevron still lands on its spot).
           const squeeze = drawnSqueeze(letter, !!compact);
+          const place = squeeze * spreadOf(formed);
           const [lo, hi] = content.length ? xExtent(content) : [0, 0];
-          const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * squeeze;
-          const { kept, looks } = preview(c);
+          const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * place;
           const shown = kept.map((p, i) => ({ p, look: looks[i] }));
           const target = held?.target?.cell === c ? held.target : null;
           const aim = held?.aim?.cell === c ? held.aim : null;
@@ -743,7 +809,19 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                 width={compact ? '100%' : cellW * unit}
                 height={compact ? undefined : CELL_H * unit}
               >
-                <motion.g className="cell-content" initial={false} animate={{ x: offsets[c] }} transition={SETTLE}>
+                <motion.g
+                  className="cell-content"
+                  initial={false}
+                  animate={{ x: offsets[c] }}
+                  transition={SETTLE}
+                  onPointerDown={(e) => pressAt(e, c)}
+                  onPointerMove={(e) => hoverAt(e, c)}
+                  onPointerLeave={() => {
+                    if (hover?.cell !== c) return;
+                    setHover(null);
+                    onHoverTile(null);
+                  }}
+                >
                   {shown.map(({ p, look }) => {
                     const key = slotKey(p);
                     const x = squeezed(p.x);
@@ -758,7 +836,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                         key={key}
                         className={`placed${hovered ? ' hovered' : ''}`}
                         initial={landing ? { x: landing.x, y: landing.y, scale: landing.scale, rotate: landing.rotate } : { opacity: 0 }}
-                        animate={{ x: 0, y: 0, rotate: 0, opacity: leaving ? 0.35 : 1, scale: hovered ? 1.06 : 1 }}
+                        animate={{ x: 0, y: 0, rotate: 0, opacity: leaving ? 0.35 : 1, scale: hovered ? 1.04 : 1 }}
                         transition={
                           landing
                             ? { ...LAND, x: { ...LAND, velocity: landing.vx }, y: { ...LAND, velocity: landing.vy } }
@@ -775,7 +853,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                             seed={inkSeed(p)}
                             minHalfWidth={minHalf}
                             squeeze={squeeze}
-                            fill={red ? 'var(--spicy)' : undefined}
+                            fill={red ? 'var(--spicy)' : hovered ? 'var(--remove)' : undefined}
                             look={look}
                             from={landing ? (look ?? 'own') : undefined}
                           />
@@ -790,17 +868,8 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                               ? `translate(${x} ${p.y})`
                               : `translate(${x} ${p.y})${squeeze !== 1 ? ` scale(${squeeze} 1)` : ''}${p.rot ? ` rotate(${p.rot})` : ''}`
                           }
-                          onPointerDown={(e) => pressPlaced(e, c, p, x)}
-                          onPointerEnter={() => {
-                            onHoverTile(p.tile);
-                            if (!dragRef.current) setHover({ cell: c, key });
-                          }}
-                          onPointerLeave={() => {
-                            onHoverTile(null);
-                            setHover(null);
-                          }}
                         >
-                          <title>{coarse ? 'Tap to remove · double-tap to turn · drag to move' : 'Tap to remove · drag to move'}</title>
+                          <title>{coarse ? 'Tap to remove · double-tap to turn · drag to move' : 'Click to remove · drag to move'}</title>
                         </path>
                       </motion.g>
                     );

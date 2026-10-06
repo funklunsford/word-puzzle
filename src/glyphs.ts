@@ -93,6 +93,12 @@ export interface LetterGlyph {
    * strokes and their positions (and so the game rules) are unchanged.
    */
   squeeze?: number;
+  /**
+   * Draw the letter's strokes this much further apart once it's formed: their positions only, each
+   * stroke keeps its own shape. Display only. M is built from two bars a unit apart, as H is, and
+   * drawn with them two apart, so its chevron reaches both.
+   */
+  spread?: number;
 }
 
 const p = (tile: TileId, x: number, y: number, rot = 0, look?: Look): Placement =>
@@ -121,7 +127,9 @@ export const LETTERS: Record<string, LetterGlyph> = {
   J: { width: 1, parts: [p('LV', 1, 1, 0, TOP_HALF), p('P', 0.5, 1.5, 90)] },
   K: { width: 1, parts: [p('LV', 0, 1), p('SC', 0.5, 1, 90)] },
   L: { width: 1, parts: [p('LV', 0, 1), p('H', 0.5, 2)] },
-  M: { width: 2, parts: [p('LV', 0, 1), p('LV', 2, 1), p('SC', 1, 0.5)] },
+  // Two bars a unit apart, as in H, N and U, with the small chevron on top (drawn spread to look as
+  // it always has: bars two apart, the chevron's ends on their tops).
+  M: { width: 1, spread: 2, parts: [p('LV', 0, 1), p('LV', 1, 1), p('SC', 0.5, 0.5)] },
   N: { width: 1, parts: [p('LV', 0, 1), p('LV', 1, 1), p('LB', 0.5, 1)] },
   O: { width: 2, parts: [p('C', 0.5, 1), p('C', 1.5, 1, 180)] },
   P: { width: 1, parts: [p('LV', 0, 1), p('P', 0.5, 0.5)] },
@@ -142,8 +150,18 @@ export const LETTERS: Record<string, LetterGlyph> = {
   Z: { width: 1, parts: [p('H', 0.5, 0), p('H', 0.5, 2), p('LD', 0.5, 1)] },
 };
 
-/** How wide a letter is drawn (its width after any squeeze). */
-export const drawnWidth = (letter: string) => LETTERS[letter].width * (LETTERS[letter].squeeze ?? 1);
+/**
+ * How a formed letter is drawn: `place` scales its strokes' positions (squeeze and spread), `shape`
+ * narrows each stroke (squeeze only).
+ */
+export const drawnScale = (letter: string) => {
+  const g = LETTERS[letter];
+  const shape = g.squeeze ?? 1;
+  return { shape, place: shape * (g.spread ?? 1) };
+};
+
+/** How wide a letter is drawn (its width after any squeeze or spread). */
+export const drawnWidth = (letter: string) => LETTERS[letter].width * drawnScale(letter).place;
 
 /** Tile counts needed to build a letter. */
 export function recipe(letter: string): Map<TileId, number> {

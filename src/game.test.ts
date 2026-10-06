@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LETTERS, TILE_IDS, drawnWidth, recipe, xExtent, type Placement } from './glyphs';
+import { LETTERS, TILE_IDS, drawnScale, drawnWidth, recipe, xExtent, type Placement } from './glyphs';
 import { lookCenterline, strokeCenterline } from './ink';
 import { PANGRAM_BONUS, check, newGame, play, playableLetters, remainingWords, strokeCount, tilesFor, type Board } from './game';
 
@@ -60,6 +60,22 @@ describe('glyphs', () => {
     expect(drawnWidth('W')).toBe(2.5);
     expect(drawnWidth('V')).toBe(2);
     expect(LETTERS.W.width).toBe(4); // the strokes themselves are unchanged
+  });
+
+  it('builds M from two bars a unit apart (as H is), drawn as it always was: bars two apart, chevron between', () => {
+    const m = LETTERS.M;
+    expect(m.parts.filter((p) => p.tile === 'LV').map((p) => p.x)).toEqual([0, 1]);
+    const { place, shape } = drawnScale('M');
+    expect(shape).toBe(1); // strokes keep their shape
+    // Drawn positions match the old M exactly: bars at 0 and 2, the chevron's middle at 1.
+    expect(m.parts.map((p) => [p.tile, p.x * place, p.y])).toEqual([
+      ['LV', 0, 1],
+      ['LV', 2, 1],
+      ['SC', 1, 0.5],
+    ]);
+    expect(drawnWidth('M')).toBe(2);
+    // W is untouched: squeezed shapes and positions.
+    expect(drawnScale('W')).toEqual({ shape: 0.625, place: 0.625 });
   });
 
   it('uses every tile in at least two letters (no single-letter strokes)', () => {

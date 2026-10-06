@@ -9,6 +9,8 @@
   --ink-fill: #26357a;
   --feather: #f4ecdc;
   --spicy: #e4572e;
+  /* A placed stroke under the mouse: pale red, as a click removes it (full red is for "doesn't fit"). */
+  --remove: #e8907f;
   --ok: #5e8c4f;
   --ledge: #e4ddcf;
   --pastel-1: #ffc95c;
@@ -43,6 +45,7 @@
     --ink-fill: #4a63c8;
     --feather: #e6dfd0;
     --spicy: #ff7a4d;
+    --remove: #f2a49a;
     --ok: #93c27f;
     --ledge: #0e0d12;
     --pastel-1: #f5c45e;
@@ -512,6 +515,21 @@ select,
   overflow: visible;
 }
 
+/* The daily's number and date, under the wordmark. */
+.dateline {
+  margin: -4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.maze.compact .dateline {
+  margin-top: -6px;
+  font-size: 11px;
+}
+
 /* The parts row: each stroke type on a tile tinted in its colour, like the tray. */
 .part-tile {
   fill: color-mix(in srgb, var(--tile) 12%, var(--surface));
@@ -657,12 +675,12 @@ select,
 }
 
 .help-card {
-  width: min(440px, 100%);
+  width: min(460px, 100%);
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
-  padding: 18px 20px 20px;
-  font-size: 14px;
-  color: var(--muted);
+  padding: 20px 22px 22px;
+  font-size: 16px;
+  color: var(--ink);
   box-shadow:
     0 6px 0 var(--ledge),
     0 24px 60px rgb(0 0 0 / 0.3);
@@ -676,15 +694,53 @@ select,
 
 .help-head h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 23px;
   color: var(--ink);
 }
 
 .help-lead {
   margin: 8px 0 4px;
   color: var(--ink);
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.4;
+}
+
+/* The tiny demo in How to play: a bar carried from a tray tile into an I, which becomes L. */
+.how-demo {
+  display: block;
+  width: min(260px, 72%);
+  margin: 10px auto 2px;
+  overflow: visible;
+}
+
+.how-demo-box {
+  fill: color-mix(in srgb, var(--ink) 5%, transparent);
+  stroke: var(--line);
+  stroke-width: 0.05;
+}
+
+.how-demo-tile {
+  fill: color-mix(in srgb, var(--t-H) 14%, var(--surface));
+  stroke: color-mix(in srgb, var(--t-H) 35%, var(--line));
+  stroke-width: 0.05;
+}
+
+.how-demo-label {
+  font-size: 0.5px;
+  font-weight: 700;
+  text-anchor: middle;
+  fill: var(--muted);
+}
+
+.how-demo-pointer {
+  fill: var(--ink);
+  stroke: var(--bg);
+  stroke-width: 0.06;
+}
+
+.how-demo-pointer circle {
+  fill: color-mix(in srgb, var(--ink) 35%, transparent);
+  stroke: color-mix(in srgb, var(--ink) 70%, transparent);
 }
 
 .help-go {
@@ -809,7 +865,8 @@ select,
   cursor: default;
 }
 
-/* A hovered placed stroke lifts (tapping removes it); red is kept for "doesn't fit". */
+/* A placed stroke under the mouse turns pale red and lifts a little (a click removes it); full
+   red is kept for "doesn't fit". */
 .placed.hovered {
   filter: drop-shadow(0 0.06px 0.08px color-mix(in srgb, var(--ink) 45%, transparent));
 }
@@ -857,7 +914,28 @@ select,
   box-shadow: 0 4px 0 color-mix(in srgb, var(--tile) 35%, var(--ledge));
   cursor: grab;
   touch-action: none;
-  transition: transform 0.1s ease-out, border-color 0.15s, background 0.15s;
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, border-color 0.15s, background 0.15s;
+}
+
+/* A tray stroke under the mouse invites a grab: its tile rises on its ledge and brightens, and the
+   stroke grows a touch; pressed, the tile sinks onto the ledge. Mouse only (a finger has no hover). */
+@media (hover: hover) and (pointer: fine) {
+  .editor:not(.disabled) .tray-tile:not(.taken):hover {
+    transform: translateY(-2px);
+    background: color-mix(in srgb, var(--tile) 20%, var(--surface));
+    border-color: color-mix(in srgb, var(--tile) 65%, var(--line));
+    box-shadow: 0 6px 0 color-mix(in srgb, var(--tile) 45%, var(--ledge));
+  }
+
+  .editor:not(.disabled) .tray-tile:not(.taken):hover svg {
+    transform: scale(1.1);
+  }
+
+  .editor:not(.disabled) .tray-tile:not(.taken):active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 color-mix(in srgb, var(--tile) 45%, var(--ledge));
+    cursor: grabbing;
+  }
 }
 
 /* Its stroke is out of the tile (held, or flying home). */
@@ -875,7 +953,9 @@ select,
   height: 100%;
   overflow: visible;
   pointer-events: none;
-  transition: opacity 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.15s ease-out;
 }
 
 .editor.disabled .tray-tile {
@@ -1304,6 +1384,7 @@ select,
 @media (prefers-reduced-motion: reduce) {
   .tray-tile,
   .tray-tile.taken,
+  .tray-tile svg,
   .pill,
   .key,
   .tile,
@@ -1396,8 +1477,8 @@ select,
 }
 
 .maze.compact .help-card {
-  padding: 16px 16px 18px;
-  font-size: 13.5px;
+  padding: 18px 16px 18px;
+  font-size: 15px;
 }
 .maze.compact .board {
   gap: 8px;
@@ -1571,6 +1652,52 @@ select,
   margin: 14px 0 0;
   font-size: 13px;
   color: var(--muted);
+}
+
+.celebration-title.gone {
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+/* The Perfect encore plays on a dark stage, in light mode too: its words are light. */
+.celebration.stage .celebration-text {
+  color: #f3eee4;
+}
+
+.celebration.stage .celebration-hint {
+  color: #a9a2b6;
+}
+
+/* The language of each "perfect", just under the word (placed by the scene's framing). */
+.celebration-caption {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.celebration-language {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #e8c877;
+  animation: language-in 0.5s ease-out;
+}
+
+@keyframes language-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration-language {
+    animation: none;
+  }
 }
 
 /* Hints: the letters a hint points at, and its line in the step panel. */

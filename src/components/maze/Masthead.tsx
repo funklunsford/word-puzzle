@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { LETTERS, TILES, TILE_IDS, drawnWidth } from '../../glyphs';
+import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth } from '../../glyphs';
 import { inkSeed } from '../../ink';
 import { TileStroke } from '../Glyph';
 
@@ -33,7 +33,7 @@ function layout() {
       continue;
     }
     for (const [pi, p] of LETTERS[ch].parts.entries()) {
-      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
+      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
     }
     x += drawnWidth(ch) + GAP;
   }
@@ -60,7 +60,8 @@ const PAD = 0.5;
  * On phones (`compact`) only the wordmark is shown, its strokes flying in from above, to leave
  * the screen to the game.
  */
-export function Masthead({ compact = false }: { compact?: boolean }) {
+/** The wordmark, with an optional line under it (the daily's number and date). */
+export function Masthead({ compact = false, dateline }: { compact?: boolean; dateline?: string }) {
   const top = compact ? -PAD : PART_Y - PART / 2 - PAD;
   return (
     <header className="masthead">
@@ -93,6 +94,7 @@ export function Masthead({ compact = false }: { compact?: boolean }) {
           </g>
         ))}
       </svg>
+      {dateline && <p className="dateline">{dateline}</p>}
     </header>
   );
 }

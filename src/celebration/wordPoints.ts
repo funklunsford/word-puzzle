@@ -1,4 +1,4 @@
-import { LETTERS, drawnWidth, type TileId } from '../glyphs';
+import { LETTERS, drawnScale, drawnWidth, type TileId } from '../glyphs';
 import { lookCenterline, strokeCenterline, type Pt } from '../ink';
 
 const GAP = 0.7;
@@ -9,10 +9,10 @@ export function wordStrokes(word: string): { tile: TileId; pts: Pt[] }[] {
   const out: { tile: TileId; pts: Pt[] }[] = [];
   for (const ch of word) {
     const g = LETTERS[ch];
-    const squeeze = g.squeeze ?? 1;
+    const { shape: squeeze, place } = drawnScale(ch);
     for (const p of g.parts) {
       const line = p.look ? lookCenterline(p, p.look, squeeze) : strokeCenterline(p.tile, p.rot ?? 0, squeeze);
-      out.push({ tile: p.tile, pts: line.map(([lx, ly]): Pt => [x + p.x * squeeze + lx, p.y + ly]) });
+      out.push({ tile: p.tile, pts: line.map(([lx, ly]): Pt => [x + p.x * place + lx, p.y + ly]) });
     }
     x += drawnWidth(ch) + GAP;
   }

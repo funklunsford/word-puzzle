@@ -4,8 +4,8 @@
 
 export const FLAGS = {
   inkPots: { label: 'Ink pots', on: false },
-  // Off: every load plays WILD → TAME (the shipped puzzle, with its celebration). On: a random
-  // puzzle from the pool on each load.
+  // Off: every load plays the day's puzzle (src/daily), with its celebration. On: a random puzzle
+  // from the pool on each load.
   freshPuzzle: { label: 'New puzzle each load', on: false },
 } as const;
 
