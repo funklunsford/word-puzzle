@@ -1,34 +1,30 @@
 {
   "date": "2026-10-06",
   "puzzle": {
-    "start": "WILD",
-    "goal": "TAME",
-    "best": 13,
+    "start": "PINK",
+    "goal": "DUNE",
+    "best": 8,
     "path": [
-      "WILD",
-      "WILL",
-      "WILE",
-      "VALE",
-      "TALE",
-      "TAME"
+      "PINK",
+      "PINT",
+      "PINE",
+      "DUNE"
     ]
   },
+  "need": "letter",
+  "tricky": true,
   "inkPots": {
     "pots": [
-      "WILT",
-      "TILE",
-      "KALE"
+      "DINE",
+      "RINK",
+      "LINT"
     ],
-    "best": 13,
+    "best": 8,
     "walk": [
-      "WILD",
-      "WILL",
-      "WILE",
-      "VALE",
-      "TALE",
-      "TAME"
+      "PINK",
+      "PINT",
+      "PINE",
+      "DUNE"
     ]
-  },
-  "need": "stone",
-  "tricky": true
+  }
 }

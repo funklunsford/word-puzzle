@@ -1,298 +1,266 @@
-// Daily #1, WILD → TAME: "Tamed!"
+// Daily #1, PINK → DUNE: "Windswept!"
 //
-// The start word, drawn in vines, bursts into wild growth (curling tendrils, unfurling ferns, big
-// blooms); then the wild growth is gathered into the goal word's strokes and shrinks away while a
-// neat, trained garden grows along them: a leafy vine on each stroke, fern fronds on the bars, and
-// a small flower at each stroke's tip in the game's colour for it.
+// PINK is drawn in pink sand. A desert wind sweeps in from the left and strips the letters away,
+// grain by grain, into a swirling cloud that turns the colour of sand as it flies. The grains
+// come down, stroke by stroke, where the wind piles them: ridges that spell DUNE, each with a
+// sunlit side and a shadowed one, like a real dune's crest.
 //
 // Everything is a function of time `t` (seconds), worked out afresh for each frame, so any moment
 // can be drawn on its own (for stills and previews).
 
 import type * as THREE_NS from 'three';
-import type { TileId } from '../../glyphs';
 import { seededRandom } from '../../maze';
-import { along, clamp01, mix, smooth, toLine } from '../../celebration/kit';
+import { along, clamp01, mix, smooth, toLine, type Line } from '../../celebration/kit';
 import type { CelebrationTheme, Scene, SceneOptions, Three } from '../../celebration/scene';
 import { wordStrokes } from '../../celebration/wordPoints';
 
 export const theme: CelebrationTheme = {
-  title: 'Tamed!',
-  stormBg: '#0c1a10',
-  timing: { burst: 0.45, calm: 2.0, settled: 3.7 },
+  title: 'Windswept!',
+  stormBg: '#3a1c2a',
+  timing: { burst: 0.5, calm: 2.2, settled: 3.9 },
 };
 
-/** Wild growth, then the trained garden. */
-const flora = {
-  wildStems: ['#2f6b3a', '#3e7f45', '#285c33', '#4a8a3f'],
-  wildLeaves: ['#2f8f46', '#4caf50', '#3a7d44', '#6cc05f', '#1f6f3a', '#5aa83c'],
-  wildFern: '#3f9a52',
-  wildFlowers: ['#ff4f8b', '#ff8a3d', '#ffd23f', '#b061ff', '#ff5e5b', '#ff77c8'],
-  wildCentre: '#ffe08a',
-  tameStem: '#6f9e68',
-  tameLeaves: ['#8cc084', '#7fb878', '#97c98c'],
-  tameCentre: '#f6e7b8',
+const COLORS = {
+  pinks: ['#ff6f9f', '#f78fb3', '#ec5f8f', '#ff9ec4', '#e8679a'],
+  // Mid-tone ochres: at least 3:1 against both the light and the dark page.
+  sands: ['#b97a3e', '#a96b35', '#c4884a', '#92582b', '#b5713a'],
+  // A pink fleck or two stays in the sand.
+  fleck: '#d0607e',
+  lit: '#b97a3e',
+  shade: '#8f5629',
+  wind: '#ffe3ec',
 };
 
-/** Points along each stem's ribbon. */
-const K = 40;
+/** Points along each ribbon, and half a stroke's width. */
+const K = 32;
+const HALF = 0.06;
+/** Where the light comes from (up and to the left): the side of a ridge facing it is lit. */
+const SUN = { x: -0.6, y: 0.8 };
 
-export function scene(THREE: Three, { start, goal, theme, small, cssColor }: SceneOptions): Scene {
+const easeInOut = (p: number) => p * p * (3 - 2 * p);
+
+export function scene(THREE: Three, { start, goal, theme, small }: SceneOptions): Scene {
   const { burst, calm, settled } = theme.timing;
-  const random = seededRandom(23);
+  const random = seededRandom(61);
   const pick = <T,>(xs: T[]) => xs[Math.floor(random() * xs.length)];
   const color = (hex: string) => new THREE.Color(hex);
 
-  // ---------- The wild growth, from the start word ----------
   const startLines = wordStrokes(start).map((s) => toLine(s.pts));
-  const goalStrokes = wordStrokes(goal).map((s) => ({ tile: s.tile, line: toLine(s.pts) }));
-  const goalPoints = goalStrokes.flatMap((s) => Array.from({ length: 24 }, (_, i) => along(s.line, (s.line.length * i) / 23)));
-  const nWild = small ? 30 : 44;
-  // Split the start word's strokes into nWild pieces, by length: at first the pieces draw the word.
-  const total = startLines.reduce((t, l) => t + l.length, 0);
-  const counts = startLines.map((l) => Math.max(1, Math.round((l.length / total) * nWild)));
-  const wild = startLines.flatMap((l, li) =>
-    Array.from({ length: counts[li] }, (_, k) => {
-      const a = (l.length * k) / counts[li];
-      const b = (l.length * (k + 1)) / counts[li];
-      const piece = Array.from({ length: K }, (_, i) => along(l, mix(a, b, i / (K - 1))));
-      const p0 = piece[0];
-      // Where it's gathered to as it's tamed: the nearest point of the goal word.
-      const near = goalPoints.reduce((m, q) => (Math.hypot(q.x - p0.x, q.y - p0.y) < Math.hypot(m.x - p0.x, m.y - p0.y) ? q : m));
-      const fern = random() < 0.22;
-      const outward = Math.atan2(p0.y + 0.3, p0.x) + (random() - 0.5) * 1.6;
-      return {
-        piece,
-        gather: near,
-        fern,
-        flower: !fern && random() < 0.4,
-        // Head mostly outward and a little upward, as plants do.
-        h0: Math.atan2(Math.sin(outward) + 0.5, Math.cos(outward)),
-        side: random() < 0.5 ? -1 : 1,
-        reach: 1.1 + 2.4 * random(),
-        coil: 4 + 7 * random(),
-        bend: 0.4 + 1.2 * random(),
-        phase: random() * 6.28,
-        stem: color(pick(flora.wildStems)),
-        leafColors: Array.from({ length: 4 }, () => color(pick(flora.wildLeaves))),
-        leafSizes: Array.from({ length: 4 }, () => 0.16 + 0.24 * random()),
-        leafAngles: Array.from({ length: 4 }, () => 0.5 + 0.8 * random()),
-        bloom: 0.2 + 0.18 * random(),
-        petals: color(pick(flora.wildFlowers)),
-      };
-    }),
-  );
+  const goalLines = wordStrokes(goal).map((s) => toLine(s.pts));
+  /** Strokes further right go later: the wind sweeps from the left. */
+  const delays = (lines: Line[], spread: number) => {
+    const xs = lines.map((l) => Math.min(...l.pts.map((p) => p[0])));
+    const [lo, hi] = [Math.min(...xs), Math.max(...xs)];
+    return xs.map((x) => spread * ((x - lo) / (hi - lo || 1)));
+  };
+  const startDelay = delays(startLines, 0.35);
+  const goalDelay = delays(goalLines, 0.35);
+  /** When the wind has stripped a start stroke up to `u` (0–1 along it), and when a goal stroke has filled to `u`. */
+  const strippedAt = (s: number, u: number) => burst + startDelay[s] + 0.6 * u;
+  const filledAt = (g: number, u: number) => calm + goalDelay[g] + 1.0 * u;
 
-  // ---------- The trained garden, along the goal word ----------
-  const tameStem = color(flora.tameStem);
-  const tame = goalStrokes.map((s, j) => {
-    const L = s.line.length;
-    const bar = s.tile === 'H';
-    // Leaves every 0.32 along a vine (alternating sides); pinnae every 0.11 along a bar (in pairs).
-    const leaves = bar
-      ? Array.from({ length: Math.max(2, Math.floor((L - 0.12) / 0.11)) }, (_, k) => 0.08 + k * 0.11).flatMap((d) => [
-          { d, side: 1 },
-          { d, side: -1 },
-        ])
-      : Array.from({ length: Math.max(1, Math.floor((L - 0.1) / 0.32)) }, (_, k) => ({ d: 0.2 + k * 0.32, side: k % 2 ? -1 : 1 }));
-    // The flower sits at the stroke's top end (a bar's right end).
-    const [a, b] = [s.line.pts[0], s.line.pts[s.line.pts.length - 1]];
-    const tipAtEnd = bar ? b[0] >= a[0] : b[1] >= a[1];
+  // ---------- Ribbons: PINK, worn away; DUNE, built up ----------
+  const makeRibbons = (n: number) => {
+    const verts = n * K * 4;
+    const pos = new Float32Array(verts * 3);
+    const col = new Float32Array(verts * 3);
+    const index: number[] = [];
+    for (let s = 0; s < n; s++)
+      for (let k = 0; k < K - 1; k++) {
+        const v = (s * K + k) * 4;
+        // Two strips: the near half (left edge to centre) and the far half (centre to right edge).
+        index.push(v, v + 1, v + 4, v + 1, v + 5, v + 4, v + 2, v + 3, v + 6, v + 3, v + 7, v + 6);
+      }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setIndex(index);
+    geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
+    geometry.setAttribute('color', new THREE.BufferAttribute(col, 3).setUsage(THREE.DynamicDrawUsage));
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, depthTest: false, depthWrite: false }));
+    mesh.frustumCulled = false;
+    return { mesh, pos, col };
+  };
+  const pinkRibbons = makeRibbons(startLines.length);
+  const duneRibbons = makeRibbons(goalLines.length);
+  const pinkColors = startLines.map(() => color(pick(COLORS.pinks)));
+  const lit = color(COLORS.lit);
+  const shade = color(COLORS.shade);
+
+  const pts = Array.from({ length: K }, () => ({ x: 0, y: 0 }));
+  /** Write ribbon `s` along `pts`: half-width `half(u)`, the side facing the sun in `a`, the other in `b`. */
+  const writeRibbon = (r: { pos: Float32Array; col: Float32Array }, s: number, half: (u: number) => number, a: THREE_NS.Color, b: THREE_NS.Color) => {
+    for (let k = 0; k < K; k++) {
+      const p = pts[Math.max(0, k - 1)];
+      const q = pts[Math.min(K - 1, k + 1)];
+      const len = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+      let nx = -(q.y - p.y) / len;
+      let ny = (q.x - p.x) / len;
+      // The first two vertices are the sunlit side.
+      if (nx * SUN.x + ny * SUN.y < 0) [nx, ny] = [-nx, -ny];
+      const w = half(k / (K - 1));
+      const { x, y } = pts[k];
+      const v = (s * K + k) * 4;
+      const set = (i: number, px: number, py: number, c: THREE_NS.Color) => {
+        r.pos[(v + i) * 3] = px;
+        r.pos[(v + i) * 3 + 1] = py;
+        r.col.set([c.r, c.g, c.b], (v + i) * 3);
+      };
+      set(0, x + nx * w, y + ny * w, a);
+      set(1, x, y, a);
+      set(2, x, y, b);
+      set(3, x - nx * w, y - ny * w, b);
+    }
+  };
+  const span = (line: Line, from: number, to: number) => {
+    for (let k = 0; k < K; k++) {
+      const q = along(line, line.length * mix(from, to, k / (K - 1)));
+      pts[k].x = q.x;
+      pts[k].y = q.y;
+    }
+  };
+
+  // ---------- Sand grains ----------
+  const GRAINS = small ? 1500 : 2600;
+  const byLength = (lines: Line[]) => {
+    const total = lines.reduce((t, l) => t + l.length, 0);
+    return () => {
+      let r = random() * total;
+      for (let i = 0; i < lines.length; i++) if ((r -= lines[i].length) <= 0) return i;
+      return lines.length - 1;
+    };
+  };
+  const startStroke = byLength(startLines);
+  const goalStroke = byLength(goalLines);
+  const across = (line: Line, u: number, spread: number) => {
+    const q = along(line, line.length * u);
+    const off = (random() - 0.5) * spread;
+    return { x: q.x - q.ty * off, y: q.y + q.tx * off };
+  };
+  const grains = Array.from({ length: GRAINS }, () => {
+    const s = startStroke();
+    const uo = random();
+    const g = goalStroke();
+    const ut = random();
+    const from = across(startLines[s], uo, 2 * HALF);
+    const to = across(goalLines[g], ut, 1.7 * HALF);
+    const lift = strippedAt(s, uo) + 0.05 * random();
+    const land = Math.min(settled - 0.15, filledAt(g, ut) + 0.1 * random());
+    const r1 = random();
+    const r2 = random();
     return {
-      line: s.line,
-      bar,
-      delay: 0.07 * j,
-      leaves,
-      tipAtEnd,
-      flower: new THREE.Color().setRGB(...cssColor(`--t-${s.tile as TileId}`, '#d6908f'), THREE.SRGBColorSpace),
-      leafColors: leaves.map(() => color(pick(flora.tameLeaves))),
+      from,
+      to,
+      lift,
+      land,
+      // Blown up and away to the right, then down onto its ridge from upwind.
+      c1: { x: from.x + 1.6 + 1.6 * r1, y: from.y + 0.9 + 1.0 * r2 },
+      c2: { x: to.x - 1.4 - 1.2 * r2, y: to.y + 1.1 + 0.9 * r1 },
+      swirl: 0.25 + 0.45 * random(),
+      rate: 5 + 6 * random(),
+      phase: random() * 6.28,
+      size: 0.028 + 0.03 * random(),
+      pink: color(pick(COLORS.pinks)),
+      sand: random() < 0.08 ? color(COLORS.fleck) : color(pick(COLORS.sands)),
     };
   });
+  const grainMesh = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 6), new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false }), GRAINS);
+  grainMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  grainMesh.setColorAt(0, new THREE.Color());
+  grainMesh.instanceColor!.setUsage(THREE.DynamicDrawUsage);
+  grainMesh.frustumCulled = false;
 
-  // ---------- Meshes ----------
-  const stems = nWild + tame.length;
-  const ribbon = new THREE.BufferGeometry();
-  const pos = new Float32Array(stems * K * 2 * 3);
-  const col = new Float32Array(stems * K * 2 * 3);
-  const index: number[] = [];
-  for (let s = 0; s < stems; s++)
-    for (let k = 0; k < K - 1; k++) {
-      const v = (s * K + k) * 2;
-      index.push(v, v + 1, v + 2, v + 1, v + 3, v + 2);
-    }
-  ribbon.setIndex(index);
-  ribbon.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
-  ribbon.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const paint = (s: number, c: THREE_NS.Color) => {
-    for (let v = s * K * 2; v < (s + 1) * K * 2; v++) col.set([c.r, c.g, c.b], v * 3);
-  };
-  wild.forEach((w, i) => paint(i, w.stem));
-  tame.forEach((_, j) => paint(nWild + j, tameStem));
-  /** A flat, unlit material (instance colours tint it), drawn in order rather than by depth. */
-  const flat = () => new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, depthTest: false, depthWrite: false });
-  const stemsMesh = new THREE.Mesh(ribbon, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, depthTest: false, depthWrite: false }));
+  // ---------- Wind: faint streaks racing across while the storm blows ----------
+  const STREAKS = small ? 18 : 30;
+  const reach = 7;
+  const streaks = Array.from({ length: STREAKS }, () => ({
+    y: (random() * 2 - 1) * 2.2,
+    speed: 6 + 4 * random(),
+    length: 0.6 + 0.8 * random(),
+    phase: random() * 2 * reach,
+  }));
+  const streakMesh = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ color: COLORS.wind, transparent: true, opacity: 0.4, depthTest: false, depthWrite: false }),
+    STREAKS,
+  );
+  streakMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  streakMesh.frustumCulled = false;
 
-  const leafShape = new THREE.Shape();
-  leafShape.moveTo(0, 0);
-  leafShape.quadraticCurveTo(0.45, 0.36, 1, 0);
-  leafShape.quadraticCurveTo(0.45, -0.36, 0, 0);
-  const petalShape = new THREE.Shape();
-  petalShape.moveTo(0.12, 0);
-  petalShape.quadraticCurveTo(0.45, 0.5, 1, 0);
-  petalShape.quadraticCurveTo(0.45, -0.5, 0.12, 0);
-  const wildLeafCount = nWild * 4 + wild.filter((w) => w.fern).length * 20;
-  const tameLeafCount = tame.reduce((t, s) => t + s.leaves.length, 0);
-  const leaves = new THREE.InstancedMesh(new THREE.ShapeGeometry(leafShape, 6), flat(), wildLeafCount + tameLeafCount);
-  const flowers = nWild + tame.length;
-  const petals = new THREE.InstancedMesh(new THREE.ShapeGeometry(petalShape, 6), flat(), flowers * 5);
-  const centres = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 14), flat(), flowers);
-  const meshes = [stemsMesh, leaves, petals, centres];
-  meshes.forEach((m, i) => {
-    m.frustumCulled = false;
-    m.renderOrder = i;
-  });
-  for (const m of [leaves, petals, centres]) m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-
-  // Instance colours never change: set them once.
-  let li = 0;
-  for (const w of wild) {
-    for (let k = 0; k < 4; k++) leaves.setColorAt(li++, w.leafColors[k]);
-    if (w.fern) for (let k = 0; k < 20; k++) leaves.setColorAt(li++, color(flora.wildFern));
-  }
-  for (const s of tame) s.leafColors.forEach((c) => leaves.setColorAt(li++, c));
-  const centre = [color(flora.wildCentre), color(flora.tameCentre)];
-  wild.forEach((w, i) => {
-    for (let k = 0; k < 5; k++) petals.setColorAt(i * 5 + k, w.petals);
-    centres.setColorAt(i, centre[0]);
-  });
-  tame.forEach((s, j) => {
-    for (let k = 0; k < 5; k++) petals.setColorAt((nWild + j) * 5 + k, s.flower);
-    centres.setColorAt(nWild + j, centre[1]);
-  });
+  const meshes = [streakMesh, pinkRibbons.mesh, duneRibbons.mesh, grainMesh];
+  meshes.forEach((m, i) => (m.renderOrder = i));
 
   const m4 = new THREE.Matrix4();
-  /** Place instance `i`: at (x, y), turned `angle`, scaled `size` (0 hides it). */
-  const put = (mesh: THREE_NS.InstancedMesh, i: number, x: number, y: number, angle: number, size: number, stretch = 1) => {
-    const c = Math.cos(angle) * size;
-    const s = Math.sin(angle) * size;
-    m4.set(c * stretch, -s, 0, x, s * stretch, c, 0, y, 0, 0, 1, 0, 0, 0, 0, 1);
-    mesh.setMatrixAt(i, m4);
-  };
-  /** Write stem `s`'s ribbon from its centre points and half-widths. */
-  const ribbonAt = (s: number, pts: { x: number; y: number }[], half: (u: number) => number) => {
-    for (let k = 0; k < K; k++) {
-      const a = pts[Math.max(0, k - 1)];
-      const b = pts[Math.min(K - 1, k + 1)];
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const n = Math.hypot(dx, dy) || 1;
-      const w = half(k / (K - 1));
-      const v = (s * K + k) * 2 * 3;
-      pos[v] = pts[k].x - (dy / n) * w;
-      pos[v + 1] = pts[k].y + (dx / n) * w;
-      pos[v + 3] = pts[k].x + (dy / n) * w;
-      pos[v + 4] = pts[k].y - (dx / n) * w;
-    }
-  };
-  /** A point `u` (0–1) of the way along a list of points, with the direction there. */
-  const onPath = (pts: { x: number; y: number }[], u: number) => {
-    const f = clamp01(u) * (K - 1);
-    const i = Math.min(K - 2, Math.floor(f));
-    const r = f - i;
-    const [a, b] = [pts[i], pts[i + 1]];
-    return { x: a.x + (b.x - a.x) * r, y: a.y + (b.y - a.y) * r, angle: Math.atan2(b.y - a.y, b.x - a.x) };
-  };
-
-  const path = Array.from({ length: K }, () => ({ x: 0, y: 0 }));
+  const tint = new THREE.Color();
 
   const update = (t: number) => {
-    const peel = smooth(burst, burst + 0.6, t); // the start word's pieces peel off into tendrils
-    const grow = smooth(burst, burst + 1.3, t);
-    const retract = smooth(calm, calm + 1.1, t); // gathered into the goal word, and shrinking away
-    const unfurl = smooth(burst + 0.2, calm, t);
-    const bloom = smooth(burst + 0.6, burst + 1.4, t) * (1 - retract);
-    const rest = smooth(settled - 0.4, settled + 0.6, t);
-    let li = 0;
+    // PINK wears away from the left of each stroke as the wind strips it.
+    let anyPink = false;
+    startLines.forEach((line, s) => {
+      const gone = clamp01((t - burst - startDelay[s]) / 0.6);
+      if (gone < 1) anyPink = true;
+      span(line, gone, 1);
+      writeRibbon(pinkRibbons, s, () => HALF, pinkColors[s], pinkColors[s]);
+    });
+    pinkRibbons.mesh.visible = anyPink;
 
-    wild.forEach((w, i) => {
-      const len = w.reach * grow * (1 - retract) + 1e-4;
-      const ax = mix(w.piece[0].x, w.gather.x, retract);
-      const ay = mix(w.piece[0].y, w.gather.y, retract);
-      // Walk the tendril out from its root: it bends, coils at the tip (a fern's tip unrolls), and sways.
-      let h = w.h0;
-      let x = ax;
-      let y = ay;
-      for (let k = 0; k < K; k++) {
-        const s = k / (K - 1);
-        const tx = mix(w.piece[k].x, x, peel);
-        const ty = mix(w.piece[k].y, y, peel);
-        path[k].x = tx;
-        path[k].y = ty;
-        const curl = w.fern ? w.side * (w.bend * 0.6 + 14 * s ** 4 * (1 - unfurl)) : w.side * (w.bend + w.coil * s ** 3);
-        const sway = 0.5 * Math.sin(1.6 * t + 2.2 * s + w.phase) * s * (1 - retract);
-        h += (curl + sway) / (K - 1);
-        x += (Math.cos(h) * len) / (K - 1);
-        y += (Math.sin(h) * len) / (K - 1);
+    // DUNE builds up along each stroke as its sand lands, tapering at the growing end.
+    let anyDune = false;
+    goalLines.forEach((line, g) => {
+      const built = clamp01((t - calm - goalDelay[g]) / 1.0);
+      if (built > 0) anyDune = true;
+      span(line, 0, built);
+      writeRibbon(duneRibbons, g, (u) => HALF * (built < 1 ? mix(1, 0.3, smooth(0.75, 1, u)) : 1), lit, shade);
+    });
+    duneRibbons.mesh.visible = anyDune;
+
+    // Grains: hidden in PINK until the wind lifts them, then blown along a swirling arc onto DUNE.
+    grains.forEach((gr, i) => {
+      let x = gr.from.x;
+      let y = gr.from.y;
+      let size = 0;
+      let k = 0;
+      if (t >= gr.lift) {
+        const p = clamp01((t - gr.lift) / (gr.land - gr.lift));
+        const e = easeInOut(p);
+        const a = 1 - e;
+        x = a * a * a * gr.from.x + 3 * a * a * e * gr.c1.x + 3 * a * e * e * gr.c2.x + e * e * e * gr.to.x;
+        y = a * a * a * gr.from.y + 3 * a * a * e * gr.c1.y + 3 * a * e * e * gr.c2.y + e * e * e * gr.to.y;
+        const flutter = 4 * p * (1 - p) * gr.swirl;
+        x += flutter * Math.cos(gr.rate * t + gr.phase);
+        y += flutter * Math.sin(gr.rate * 0.8 * t + gr.phase);
+        size = gr.size * (p < 1 ? 0.85 : 1);
+        k = smooth(0.25, 0.9, p);
       }
-      const width = mix(0.068, 0.045, peel);
-      ribbonAt(i, path, (u) => width * mix(1, 1 - 0.65 * u, peel));
-      // Leaves along the vine: tiny buds while it's still the word, lush once it's wild.
-      for (let k = 0; k < 4; k++) {
-        const u = 0.22 + 0.2 * k;
-        const p = onPath(path, u);
-        const side = k % 2 ? -1 : 1;
-        const size = mix(0.07, w.leafSizes[k] * grow, peel) * (1 - retract);
-        put(leaves, li++, p.x, p.y, p.angle + side * w.leafAngles[k] + 0.15 * Math.sin(2 * t + w.phase + k), size);
-      }
-      if (w.fern) {
-        for (let k = 0; k < 10; k++) {
-          const u = 0.1 + 0.08 * k;
-          const p = onPath(path, u);
-          const size = (0.2 * (1 - u) + 0.05) * grow * (1 - retract) * smooth(0, 0.6, unfurl + 0.3 - u * 0.3);
-          put(leaves, li++, p.x, p.y, p.angle + 1.0, size, 0.8);
-          put(leaves, li++, p.x, p.y, p.angle - 1.0, size, 0.8);
-        }
-      }
-      const tip = onPath(path, 1);
-      const r = w.flower ? w.bloom * bloom : 0;
-      for (let k = 0; k < 5; k++) put(petals, i * 5 + k, tip.x, tip.y, w.phase + (k * 2 * Math.PI) / 5 + 0.2 * t, r);
-      put(centres, i, tip.x, tip.y, 0, r * 0.32);
+      m4.makeScale(size, size, 1).setPosition(x, y, 0);
+      grainMesh.setMatrixAt(i, m4);
+      grainMesh.setColorAt(i, tint.copy(gr.pink).lerp(gr.sand, k));
     });
 
-    tame.forEach((s, j) => {
-      const g = smooth(calm + 0.15 + s.delay, calm + 1.1 + s.delay, t);
-      const L = s.line.length;
-      const drawn = g * L;
-      for (let k = 0; k < K; k++) {
-        const q = along(s.line, (drawn * k) / (K - 1));
-        path[k].x = q.x;
-        path[k].y = q.y;
-      }
-      // About the game's stroke weight; tapered at the growing tip and a little at real ends.
-      ribbonAt(nWild + j, path, (u) => 0.058 * (g < 1 ? mix(1, 0.35, smooth(0.8, 1, u)) : 1) * mix(0.75, 1, smooth(0, 0.05, u * drawn)) * mix(0.75, 1, smooth(0, 0.05, (1 - u) * drawn)));
-      for (const leaf of s.leaves) {
-        const q = along(s.line, leaf.d);
-        const open = smooth(leaf.d, leaf.d + 0.25, drawn);
-        const angle = Math.atan2(q.ty, q.tx) + leaf.side * (s.bar ? 1.05 : 0.85) + 0.07 * rest * Math.sin(1.3 * t + leaf.d * 5);
-        const size = s.bar ? 0.1 * (1 - 0.35 * Math.abs((2 * leaf.d) / L - 1)) : 0.18;
-        put(leaves, li++, q.x, q.y, angle, size * open, s.bar ? 0.85 : 1);
-      }
-      const tip = along(s.line, s.tipAtEnd ? L : 0);
-      const r = 0.15 * smooth(settled - 0.45, settled + 0.15, t) * g;
-      for (let k = 0; k < 5; k++) put(petals, (nWild + j) * 5 + k, tip.x, tip.y, (k * 2 * Math.PI) / 5 + 0.1 * Math.sin(t), r);
-      put(centres, nWild + j, tip.x, tip.y, 0, r * 0.34);
+    // The wind, blowing hardest between the burst and the calm.
+    const blow = smooth(burst, burst + 0.3, t) * (1 - smooth(calm, calm + 0.8, t));
+    streaks.forEach((st, j) => {
+      const run = (st.speed * t + st.phase) % (2 * reach);
+      const edge = Math.sin((Math.PI * run) / (2 * reach));
+      const len = st.length * blow * edge;
+      if (len < 1e-3) m4.makeScale(0, 0, 0);
+      else m4.makeScale(len, 0.022, 1).setPosition(run - reach, st.y, 0);
+      streakMesh.setMatrixAt(j, m4);
     });
 
-    ribbon.attributes.position.needsUpdate = true;
-    for (const m of [leaves, petals, centres]) m.instanceMatrix.needsUpdate = true;
+    for (const r of [pinkRibbons, duneRibbons]) {
+      r.mesh.geometry.attributes.position.needsUpdate = true;
+      r.mesh.geometry.attributes.color.needsUpdate = true;
+    }
+    grainMesh.instanceMatrix.needsUpdate = true;
+    grainMesh.instanceColor!.needsUpdate = true;
+    streakMesh.instanceMatrix.needsUpdate = true;
   };
 
   update(0);
-  for (const m of [leaves, petals, centres]) if (m.instanceColor) m.instanceColor.needsUpdate = true;
 
   return {
     objects: meshes,
-    /** How far the growth reaches beyond the words (in word units), for framing. */
-    margin: 1.2,
+    /** How far the blown sand reaches beyond the words (in word units), for framing. */
+    margin: 1.4,
     update,
     dispose: () => {
       for (const m of meshes) {
