@@ -414,7 +414,7 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Hover red:** the stroke a click would remove is now clearly red, `--remove` #e5484d light and #ff6b6b dark (was a pale #e8907f / #f2a49a). "Doesn't fit" keeps the orange-red `--spicy`.
 - **GitHub Pages only:** the repo no longer mentions Netlify (the `.netlify/` ignore and the local CLI folder are gone). The site is served only from https://funklunsford.github.io/strokes/.
 
-## A half-built M sits right (2026-10-06, branch `fix-half-built-m`)
+## A half-built M sits right (2026-10-06, branch `tweaks`)
 - **The bug** (playtest screenshot): a long bar with the small chevron on top (M missing its second bar) drew the chevron overhanging the bar by half a unit. Since M became two bars a unit apart, its strokes are only spread to their drawn width once the letter is complete, and this shape wasn't yet.
 - **Now a shape that can only become one letter is drawn as that letter is** (`onlyFit` in `src/strokes.ts`, already the rule for a half-built U's look). A bar with the chevron on top can only become M, so it gets M's spread, and the chevron's end sits on the bar. "‖" could still be H, M, N or U, so it's drawn as it is.
 - **The same layout is used everywhere a stroke's position matters** (`across` in `WordEditor`): drawing, picking the stroke under a finger or cursor, where a held stroke sits on its spot, and where a dropped one springs in from. Nothing jumps when M's second bar or its chevron lands.
