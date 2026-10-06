@@ -426,11 +426,13 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 
 ## Lowest strokes the editor can actually make (2026-10-06, branch `stroke-cost`)
 - **The bug** (playtest): WILD → TAME's lowest-stroke route went KALE → TAME in 3, which can't be done. Counting a stroke moved between letters as one, the two words differ by 3: K's chevron to the L (for M), L's foot bar to the K (for T), and a long bar. But the editor only takes a stroke where a letter's strokes stay part of a real letter, so each of those is blocked until another has gone. The fewest the editor allows is 4, over a step's 3.
-- **Now a step costs what the editor needs** (`wordDistance` in `src/strokes.ts`). The game searches stroke orders one action at a time: add from the tray, remove, or move to another letter or another spot (turning it). Every letter in between must be part of a real letter. The old count (now `strokeDiff`) is a lower bound that cuts the search short. A finger can't turn a stroke it's carrying, so a move only lands turned if the spot fits it one way, or if it's turned where it sits. Steps that a finger can only make one way round count what both ways need. Results are cached by the letters that change, and the whole graph builds in about a second.
+- **Now a step costs what the editor needs** (`wordDistance` in `src/strokes.ts`). The game searches stroke orders one action at a time: add from the tray, remove, or move to another letter or another spot (turning it). Every letter in between must be part of a real letter. The old count (now `strokeDiff`) is a lower bound that cuts the search short. A move may land turned, since a mouse or a finger can turn a carried stroke (see below). Results are cached by the letters that change, and the whole graph builds in about a second.
 - **Effect:**
-  - of 7,127 steps, 296 (4%) turn out impossible and are gone, and 58 cost more;
+  - of 7,127 steps, 282 (4%) turn out impossible and are gone, and 56 cost more;
   - in the old pool, 39 of 420 puzzles had a wrong lowest count and 2 couldn't be solved;
   - the pool was rebuilt with the same mix (420 tricky puzzles averaging 9);
   - WILD → TAME is still 13, by WILD → WILL → WILE → VALE → TALE → TAME;
   - its ink pots are now WILT, TILE and KALE.
 - The obvious-approach check still judges distance to the goal by `strokeDiff`, as a player would estimate it.
+
+- **Phones turn a carried stroke too:** on a spot that fits a stroke more than one way, a finger's swipe turns it, as a mouse's does (up flips a V into Λ). A finger's swipe must be a bit longer (0.8 units, a mouse's is 0.5), so a wobble doesn't flip it; a wobbly straight drop stays as it was. A finger used to keep a carried stroke the way it was picked up, so moves that needed a turn on the way (W's chevron to an empty letter as Λ) took a phone an extra stroke. 14 steps that only a mouse could make are now open to phones as well. Double-tapping still turns a stroke in the tray or where it sits.

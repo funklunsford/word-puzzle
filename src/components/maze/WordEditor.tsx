@@ -46,6 +46,8 @@ const LIFT = 1.08;
 const ARM = 0.6;
 const RELEASE = 1.6;
 const SWIPE = 0.5;
+/** A finger wobbles, and carries the stroke above it: its swipe to turn a stroke is a little longer. */
+const SWIPE_TOUCH = 0.8;
 
 const norm = (deg: number) => ((deg % 360) + 360) % 360;
 /** Shortest signed angle from one direction to another, in degrees. */
@@ -108,10 +110,8 @@ interface Drag {
   overCell: number | null;
   /** The look it had in a formed letter when picked up (U's cup), so it eases back to itself as it lifts. */
   look0: Pt[] | null;
-  /** A finger, not a mouse or pen: the stroke is held above the fingertip, and isn't twisted. */
+  /** A finger, not a mouse or pen: the stroke is held above the fingertip, and turns with a longer swipe. */
   touch: boolean;
-  /** The orientation it was picked up at; a touch drag keeps to it where a spot fits it more than one way. */
-  chosen: number;
   /** Where it was picked up (screen px). */
   home: { x: number; y: number };
   /** The second tap of a double tap on a placed stroke (the first is waiting to remove it). */
@@ -403,15 +403,8 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       return { overCell, target: { cell: overCell, slot: ways[0] }, aim: null, turn };
     }
 
-    // Under a finger the stroke goes in the way it was turned in the tray (double-tap there to turn
-    // it), following the nearest spot (red, and the label says so, if it doesn't fit that way).
-    if (d.touch) {
-      const aim = { cell: overCell, x: at.x, y: at.y, armed: false, ax: lx, ay: ly };
-      const slot = ways.find((s) => norm(s.placement.rot ?? 0) === norm(d.chosen));
-      return { overCell, target: slot ? { cell: overCell, slot } : null, aim, turn: d.turn + wrap(d.chosen - d.turn) };
-    }
-
-    // With a mouse it settles the way it's held, or the nearest way that fits, and a swipe turns it:
+    // It settles the way it's held, or the nearest way that fits, and a swipe turns it (a mouse's or a
+    // finger's, a finger's a little longer):
     // whichever way round points most along the swipe (up turns V into Λ; left and right turn an arc
     // or a bowl). Swipes count from where the cursor came onto the spot, or last turned it.
     let aim: Aim = held ? d.aim! : { cell: overCell, x: at.x, y: at.y, armed: false, ax: lx, ay: ly };
@@ -423,7 +416,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       const dx = rawLocal.lx - aim.ax;
       const dy = rawLocal.ly - aim.ay;
       const len = Math.hypot(dx, dy);
-      if (len >= SWIPE) {
+      if (len >= (d.touch ? SWIPE_TOUCH : SWIPE)) {
         const along = (w: Slot) => {
           const [px, py] = pointing(d.tile, w.placement.rot ?? 0);
           return (px * dx + py * dy) / len;
@@ -671,7 +664,6 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       overCell: null,
       look0,
       touch,
-      chosen: rot,
       home,
       again,
       entered: false,
@@ -907,7 +899,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (held?.touch ? 'double-tap tray' : 'swipe to turn') : noFit ? 'no fit' : (letter ?? '·')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? 'swipe to turn' : noFit ? 'no fit' : (letter ?? '·')}
               </span>
             </div>
           );

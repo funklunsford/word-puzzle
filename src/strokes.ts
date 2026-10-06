@@ -228,19 +228,13 @@ function stepCost(from: string[], to: string[]): number {
         const rest = cells[c].filter((_, k) => k !== i);
         // Remove it.
         if (go(cells.map((x, k) => (k === c ? rest : x)))) return true;
-        // Move it: to another letter, or elsewhere in its own. A finger can't turn a stroke it's
-        // carrying, so it lands the way it was, unless the spot fits it only one way (it turns to
-        // fit) or it's turned where it sits (a double tap); a mouse can do all of that too.
+        // Move it: to another letter, or elsewhere in its own (turned on its spot, say). It can land
+        // turned: a swipe turns a carried stroke, under a mouse or a finger.
         for (let d = 0; d < cells.length; d++) {
           const base = d === c ? rest : cells[d];
-          const slots = slotsFor(base, p.tile);
-          for (const slot of slots) {
+          for (const slot of slotsFor(base, p.tile)) {
             const q = slot.placement;
             if (d === c && slotKey(q) === slotKey(p)) continue;
-            const turned = norm(q.rot) !== norm(p.rot);
-            const inPlace = d === c && r2(q.y) === r2(p.y);
-            const oneWay = slots.filter((o) => r2(o.placement.x) === r2(q.x) && r2(o.placement.y) === r2(q.y)).length === 1;
-            if (turned && !inPlace && !oneWay) continue;
             if (go(cells.map((x, k) => (k === d ? [...base, q] : k === c ? rest : x)))) return true;
           }
         }
@@ -263,10 +257,9 @@ function stepCost(from: string[], to: string[]): number {
 }
 
 /**
- * Strokes for one step between words a and b (same length) as the editor allows them, whichever
- * way it's taken: Infinity if it can't be done within STEP_LIMIT. Never less than strokeDiff,
- * sometimes more. (A finger can make a few steps only one way round, since it can't turn a stroke
- * it's carrying; the maze's doors open both ways, so a step counts what both ways need.)
+ * Strokes for one step between words a and b (same length) as the editor allows them: Infinity if
+ * it can't be done within STEP_LIMIT. Never less than strokeDiff, sometimes more. The same either
+ * way round (each order of strokes undoes in reverse); both are checked, as the maze's doors open both ways.
  */
 export function wordDistance(a: string, b: string): number {
   if (a.length !== b.length) return Infinity;
