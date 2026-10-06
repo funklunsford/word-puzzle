@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LETTERS, TILE_IDS, recipe, xExtent, type Placement } from './glyphs';
 import { strokeCenterline } from './ink';
-import { EMPTY_CELL_X, formedLooks, letterDiff, onlyFit, recognize, slotKey, slotsFor, wordDistance } from './strokes';
+import { EMPTY_CELL_X, STEP_LIMIT, formedLooks, letterDiff, onlyFit, recognize, slotKey, slotsFor, strokeDiff, wordDistance } from './strokes';
 
 const glyph = (ch: string, dx = 0) => LETTERS[ch].parts.map((p) => ({ ...p, x: p.x + dx }));
 
@@ -251,6 +251,32 @@ describe('slotsFor offers every orientation that fits at a spot (the player twis
     const bottom = slotsFor([], 'P').find((s) => s.toward.includes('S'))!;
     const top = slotsFor([bottom.placement], 'P').find((s) => s.toward.includes('S'))!;
     expect(recognize([bottom.placement, top.placement])).toBe('S');
+  });
+});
+
+describe('wordDistance counts the strokes the editor can actually make', () => {
+  it("can't do KALE → TAME in one step: each of its 3 strokes is blocked until another has gone", () => {
+    expect(strokeDiff('KALE', 'TAME')).toBe(3); // move K's chevron to M, L's foot bar to T, add a bar
+    // K's chevron won't go into L (bar and foot), the foot bar won't go onto K (bar and chevron), and
+    // a long bar won't go into L either; the fewest the editor allows is 4, over a step's 3.
+    expect(wordDistance('KALE', 'TAME')).toBe(Infinity);
+  });
+
+  it('keeps steps whose strokes can be put in a working order', () => {
+    expect(wordDistance('WILE', 'VALE')).toBe(3); // remove I's bar, add a crossbar, move W's chevron onto it
+    expect(wordDistance('C', 'D')).toBe(2); // turn the C round, add a long bar
+    expect(wordDistance('L', 'M')).toBe(3); // remove the foot, add a bar, add the chevron
+  });
+
+  it('is never less than the stroke difference, and the same either way', () => {
+    const words = ['WILD', 'WILL', 'WILE', 'VALE', 'TALE', 'TAME', 'KALE', 'RAID', 'RACK', 'MOLE', 'HOLE', 'COLD', 'CORD'];
+    for (const a of words)
+      for (const b of words) {
+        const d = wordDistance(a, b);
+        expect(d, `${a} → ${b}`).toBeGreaterThanOrEqual(strokeDiff(a, b));
+        expect(d, `${a} → ${b}`).toBe(wordDistance(b, a));
+        if (d !== Infinity) expect(d).toBeLessThanOrEqual(STEP_LIMIT);
+      }
   });
 });
 

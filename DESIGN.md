@@ -423,3 +423,14 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **No "One step away" under the goal.** The game no longer says when the goal is within one step.
 - **How to play's lead is general:** "Turn one word into another, in as few strokes as you can." It no longer names the day's words.
 - **The practice turns a C too:** after V → A comes C → D: turn the C around (double-tap; with a mouse, drag it a little to the right), then add a long bar on its left. That makes five moves, and the practice tray gains the arc. The mouse ghost swipes the way the turned stroke will point: up for a V, right for a C. It still fits a 375×812 phone without scrolling.
+
+## Lowest strokes the editor can actually make (2026-10-06, branch `stroke-cost`)
+- **The bug** (playtest): WILD → TAME's lowest-stroke route went KALE → TAME in 3, which can't be done. Counting a stroke moved between letters as one, the two words differ by 3: K's chevron to the L (for M), L's foot bar to the K (for T), and a long bar. But the editor only takes a stroke where a letter's strokes stay part of a real letter, so each of those is blocked until another has gone. The fewest the editor allows is 4, over a step's 3.
+- **Now a step costs what the editor needs** (`wordDistance` in `src/strokes.ts`). The game searches stroke orders one action at a time: add from the tray, remove, or move to another letter or another spot (turning it). Every letter in between must be part of a real letter. The old count (now `strokeDiff`) is a lower bound that cuts the search short. A finger can't turn a stroke it's carrying, so a move only lands turned if the spot fits it one way, or if it's turned where it sits. Steps that a finger can only make one way round count what both ways need. Results are cached by the letters that change, and the whole graph builds in about a second.
+- **Effect:**
+  - of 7,127 steps, 296 (4%) turn out impossible and are gone, and 58 cost more;
+  - in the old pool, 39 of 420 puzzles had a wrong lowest count and 2 couldn't be solved;
+  - the pool was rebuilt with the same mix (420 tricky puzzles averaging 9);
+  - WILD → TAME is still 13, by WILD → WILL → WILE → VALE → TALE → TAME;
+  - its ink pots are now WILT, TILE and KALE.
+- The obvious-approach check still judges distance to the goal by `strokeDiff`, as a player would estimate it.

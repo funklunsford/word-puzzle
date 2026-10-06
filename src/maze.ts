@@ -2,7 +2,7 @@
 // Shared by scripts/mazes.ts (the fixed puzzle) and the app's dev button (random puzzles).
 
 import { LETTERS } from './glyphs';
-import { STEP_LIMIT, wordDistance } from './strokes';
+import { STEP_LIMIT, strokeDiff, wordDistance } from './strokes';
 
 export interface Puzzle {
   start: string;
@@ -171,7 +171,7 @@ export function isObvious(words: string[], adj: Graph, start: string, goal: stri
   const walk = (cur: number, spent: number, seen: Set<number>): boolean => {
     if (cur === g) return spent === best;
     if (spent >= best) return false;
-    const moves = adj[cur].filter((e) => !seen.has(e.to)).map((e) => ({ e, key: [off(words[e.to]), wordDistance(words[e.to], goal), e.cost] }));
+    const moves = adj[cur].filter((e) => !seen.has(e.to)).map((e) => ({ e, key: [off(words[e.to]), strokeDiff(words[e.to], goal), e.cost] }));
     if (!moves.length) return false;
     const top = moves.reduce((a, m) => (m.key[0] < a[0] || (m.key[0] === a[0] && (m.key[1] < a[1] || (m.key[1] === a[1] && m.key[2] < a[2]))) ? m.key : a), moves[0].key);
     return moves.some(({ e, key }) => key.every((v, i) => v === top[i]) && walk(e.to, spent + e.cost, new Set([...seen, e.to])));
