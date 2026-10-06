@@ -7,6 +7,7 @@
 # stores the private half as the STROKES_DEPLOY_KEY secret of this repo. The key is deleted from
 # this machine afterwards. Needs the GitHub CLI, logged in as an owner of both repos.
 set -euo pipefail
+cd "$(dirname "$0")/.." # this repo, wherever it's run from
 
 SITE="${STROKES_REPO:-funklunsford/strokes}"
 SOURCE="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
