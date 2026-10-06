@@ -423,7 +423,7 @@ export function MazeApp() {
                   <ul className="how">
                     <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
-                      <li>Drag strokes in from the tray. Tap one to remove it, double-tap it to turn it, or drag it to move it.</li>
+                      <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it, or swipe as you place it.</li>
                     ) : (
                       <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, swipe as you place it.</li>
                     )}

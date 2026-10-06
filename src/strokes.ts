@@ -4,7 +4,7 @@
 // Shapes are compared up to a horizontal shift, so a lone long bar is the same shape whether it
 // sits at x = 0 (as in I) or x = 0.5 (as in T).
 
-import { LETTERS, type Look, type Placement, type TileId } from './glyphs';
+import { LETTERS, TILE_IDS, type Look, type Placement, type TileId } from './glyphs';
 
 const norm = (r = 0) => ((r % 360) + 360) % 360;
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -172,8 +172,12 @@ function editCost(diffs: LetterDiff[]): number {
   return n;
 }
 
-/** Minimum stroke edits (add / remove / move) to turn word a into word b (same length). */
-export function wordDistance(a: string, b: string): number {
+/**
+ * The stroke difference between two words (same length): strokes to remove and add, a stroke
+ * moved from one letter to another counting once. A lower bound on a step's real cost (see
+ * wordDistance), since the editor may not allow the strokes in any order that achieves it.
+ */
+export function strokeDiff(a: string, b: string): number {
   if (a.length !== b.length) return Infinity;
   const diffs: LetterDiff[] = [];
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) diffs.push(letterDiff(a[i], b[i]));
@@ -181,6 +185,91 @@ export function wordDistance(a: string, b: string): number {
 }
 
 export const STEP_LIMIT = 3;
+
+/** What a cell's strokes lack and have spare against a letter, at the best alignment. */
+function contentDiff(content: Placement[], ch: string): LetterDiff {
+  const parts = LETTERS[ch].parts.map(({ look: _look, ...p }) => p);
+  const shifts = new Set([0]);
+  for (const c of content) for (const q of parts) if (c.tile === q.tile) shifts.add(r2(q.x - c.x));
+  let best: LetterDiff | null = null;
+  let bestCost = Infinity;
+  for (const dx of shifts) {
+    const moved = content.map((p) => shift(p, dx));
+    const d = { removed: minus(moved, parts).map((p) => p.tile), added: minus(parts, moved).map((p) => p.tile) };
+    const cost = d.removed.length + d.added.length;
+    if (cost < bestCost) [bestCost, best] = [cost, d];
+  }
+  return best!;
+}
+
+const stepCache = new Map<string, number>();
+
+/**
+ * The fewest strokes the editor needs to turn the letters `from` into `to` (position by position),
+ * or Infinity if it takes more than STEP_LIMIT. Each stroke is one action: add one from the tray,
+ * remove one, or move one (to another letter, or turned on its spot), and the editor only takes a
+ * stroke where the letter's strokes stay part of a real letter. So the order matters: KALE → TAME
+ * differs by 3 strokes, but every one of them is blocked until another has gone, and it needs 4.
+ * Searched depth-first, cut off where even the stroke difference can't make it in time.
+ */
+function stepCost(from: string[], to: string[]): number {
+  const key = from.map((f, i) => f + to[i]).sort().join(',');
+  const hit = stepCache.get(key);
+  if (hit !== undefined) return hit;
+  const left = (cells: Placement[][]) => editCost(cells.map((c, i) => contentDiff(c, to[i])));
+  const done = (cells: Placement[][]) => cells.every((c, i) => recognize(c) === to[i]);
+  const search = (cells: Placement[][], budget: number): boolean => {
+    if (done(cells)) return true;
+    if (budget === 0 || left(cells) > budget) return false;
+    const go = (next: Placement[][]) => search(next, budget - 1);
+    for (let c = 0; c < cells.length; c++) {
+      for (let i = 0; i < cells[c].length; i++) {
+        const p = cells[c][i];
+        const rest = cells[c].filter((_, k) => k !== i);
+        // Remove it.
+        if (go(cells.map((x, k) => (k === c ? rest : x)))) return true;
+        // Move it: to another letter, or elsewhere in its own (turned on its spot, say). It can land
+        // turned: a swipe turns a carried stroke, under a mouse or a finger.
+        for (let d = 0; d < cells.length; d++) {
+          const base = d === c ? rest : cells[d];
+          for (const slot of slotsFor(base, p.tile)) {
+            const q = slot.placement;
+            if (d === c && slotKey(q) === slotKey(p)) continue;
+            if (go(cells.map((x, k) => (k === d ? [...base, q] : k === c ? rest : x)))) return true;
+          }
+        }
+      }
+      // Add one from the tray.
+      for (const tile of TILE_IDS) for (const slot of slotsFor(cells[c], tile)) if (go(cells.map((x, k) => (k === c ? [...x, slot.placement] : x)))) return true;
+    }
+    return false;
+  };
+  const start = from.map((f) => LETTERS[f].parts.map(({ look: _look, ...p }) => p));
+  let cost = Infinity;
+  for (let budget = left(start); budget <= STEP_LIMIT; budget++) {
+    if (search(start, budget)) {
+      cost = budget;
+      break;
+    }
+  }
+  stepCache.set(key, cost);
+  return cost;
+}
+
+/**
+ * Strokes for one step between words a and b (same length) as the editor allows them: Infinity if
+ * it can't be done within STEP_LIMIT. Never less than strokeDiff, sometimes more. The same either
+ * way round (each order of strokes undoes in reverse); both are checked, as the maze's doors open both ways.
+ */
+export function wordDistance(a: string, b: string): number {
+  if (a.length !== b.length) return Infinity;
+  if (a === b) return 0;
+  if (strokeDiff(a, b) > STEP_LIMIT) return Infinity;
+  const from: string[] = [];
+  const to: string[] = [];
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) (from.push(a[i]), to.push(b[i]));
+  return Math.max(stepCost(from, to), stepCost(to, from));
+}
 
 /** Words reachable from `word` in one step (at most STEP_LIMIT stroke edits). */
 export function exits(word: string, dict: string[]): { word: string; cost: number }[] {
