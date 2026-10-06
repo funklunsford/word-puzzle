@@ -1,4 +1,4 @@
-// How to play's practice moves (see HowToTry): four letters to make, each teaching a move. Kept
+// How to play's practice moves (see HowToTry): five letters to make, each teaching a move. Kept
 // apart from the component so a test can check every step can still be done with the game's rules.
 
 import type { Placement, TileId } from './glyphs';
@@ -24,9 +24,10 @@ export interface Step {
 const same = (say: string): Say => ({ touch: say, mouse: say });
 /** Where to drop `tile` in `content` to make `goal` (if one drop does it). */
 const spotFor = (content: Placement[], tile: TileId, goal: string) => slotsFor(content, tile).find((s) => recognize([...content, s.placement]) === goal)?.placement;
-const isTurnedV = (content: Placement[]) => content.length === 1 && content[0].tile === 'BV' && (content[0].rot ?? 0) === 180;
+/** A lone stroke turned round from how it sits in its letter (V upside down, C facing right). */
+const isTurned = (content: Placement[], tile: TileId) => content.length === 1 && content[0].tile === tile && (content[0].rot ?? 0) === 180;
 
-/** Add a stroke, move one, turn one (then add), remove one. A step that starts from the last one's letter carries on with it. */
+/** Add a stroke, move one, turn a V and a C (then add to each), remove one. A step that starts from the last one's letter carries on with it. */
 export const TUTORIAL: Step[] = [
   {
     start: 'I',
@@ -54,8 +55,19 @@ export const TUTORIAL: Step[] = [
     next: (c) => {
       if (recognize(c) === 'V')
         return { say: { touch: 'Double-tap the V to turn it over.', mouse: 'Drag the V up a little to turn it over.' }, ghost: { kind: 'turn', at: c[0] } };
-      const to = isTurnedV(c) ? spotFor(c, 'H', 'A') : undefined;
+      const to = isTurned(c, 'BV') ? spotFor(c, 'H', 'A') : undefined;
       return to ? { say: same('Now drag a bar across it to make A.'), ghost: { kind: 'carry', tile: 'H', from: 'tray', to } } : null;
+    },
+  },
+  {
+    start: 'C',
+    goal: 'D',
+    done: 'A D: turned around, then a long bar.',
+    next: (c) => {
+      if (recognize(c) === 'C')
+        return { say: { touch: 'Double-tap the C to turn it around.', mouse: 'Drag the C to the right a little to turn it around.' }, ghost: { kind: 'turn', at: c[0] } };
+      const to = isTurned(c, 'C') ? spotFor(c, 'LV', 'D') : undefined;
+      return to ? { say: same('Now drag a long bar onto its left side to make D.'), ghost: { kind: 'carry', tile: 'LV', from: 'tray', to } } : null;
     },
   },
   {

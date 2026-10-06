@@ -53,19 +53,29 @@ function within(content: Placement[], ch: string): number[] {
 }
 
 /**
- * How a cell's strokes are drawn (see Look), matched stroke by stroke: the formed letter's looks;
- * or, for a shape on its way to exactly one letter (one long bar and the cup can only become U),
- * that letter's looks, so the cup's tail meets the bar instead of crossing it. Null when no look
- * applies (every stroke is drawn as itself).
+ * The letter a cell's strokes are drawn as, and where they sit in it: the letter they make; or, for
+ * a shape on its way to exactly one letter at one place, that letter (a long bar and the cup can
+ * only become U; a long bar with the chevron on top, only M). Null when it could be several, or none.
  */
-export function formedLooks(content: Placement[]): (Look | undefined)[] | null {
+export function onlyFit(content: Placement[]): { ch: string; dx: number } | null {
   if (!content.length) return null;
   const ch = recognize(content);
-  const fits = ch ? [{ ch, dx: within(content, ch)[0] }] : Object.keys(LETTERS).flatMap((c) => within(content, c).map((dx) => ({ ch: c, dx })));
-  if (fits.length !== 1) return null;
-  const free = LETTERS[fits[0].ch].parts.map((p) => shift(p, fits[0].dx));
+  if (ch) return { ch, dx: within(content, ch)[0] };
+  const fits = Object.keys(LETTERS).flatMap((c) => within(content, c).map((dx) => ({ ch: c, dx })));
+  return fits.length === 1 ? fits[0] : null;
+}
+
+/**
+ * How a cell's strokes are drawn (see Look), matched stroke by stroke: the looks of the letter they
+ * make, or of the only letter they can become (see onlyFit), so a half-built U's cup meets its bar
+ * instead of crossing it. Null when no look applies (every stroke is drawn as itself).
+ */
+export function formedLooks(content: Placement[]): (Look | undefined)[] | null {
+  const fit = onlyFit(content);
+  if (!fit) return null;
+  const free = LETTERS[fit.ch].parts.map((p) => shift(p, fit.dx));
   const looks = content.map((q) => free.splice(free.findIndex((p) => slotKey(p) === slotKey(q)), 1)[0].look);
-  return ch || looks.some(Boolean) ? looks : null;
+  return recognize(content) || looks.some(Boolean) ? looks : null;
 }
 
 export interface Slot {

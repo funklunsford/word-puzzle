@@ -323,7 +323,6 @@ export function MazeApp() {
       : null;
   const found = roomExits.filter((x) => visited.has(x.word)).length;
   const lettersWithTile = hoverTile ? new Set(Object.keys(LETTERS).filter((ch) => recipe(ch).has(hoverTile))) : null;
-  const toGoal = wordDistance(room, puzzle.goal);
   const potsLeft = (potPlan?.pots ?? []).filter((p) => !visited.has(p));
   const potsNear = won ? [] : potsLeft.filter((p) => wordDistance(room, p) <= STEP_LIMIT);
   const banked = Math.max(0, ink - inFlight);
@@ -354,7 +353,6 @@ export function MazeApp() {
             <div className={`goal-panel${won ? ' reached' : ''}`}>
               <span className="label">{won ? 'Reached' : 'Goal'}</span>
               <GlyphWord word={puzzle.goal} size={compact ? 24 : unit * 1.3} />
-              {!won && toGoal <= STEP_LIMIT && <div className="score-hint">One step away</div>}
             </div>
             <div className="score-panel">
               <div className="score-big">
@@ -419,9 +417,7 @@ export function MazeApp() {
                       ×
                     </button>
                   </div>
-                  <p className="help-lead">
-                    Turn <strong>{puzzle.start}</strong> into <strong>{puzzle.goal}</strong>, one real word at a time, in as few strokes as you can.
-                  </p>
+                  <p className="help-lead">Turn one word into another, in as few strokes as you can.</p>
                   <HowToTry touch={coarse} />
                   {/* Touch screens and mouse play differently (tap vs click, double-tap vs swipe to turn), so each gets its own. */}
                   <ul className="how">

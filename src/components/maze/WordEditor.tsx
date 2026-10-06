@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, lookCenterline, strokeCenterline, type Pt } from '../../ink';
-import { EMPTY_CELL_X, formedLooks, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
+import { EMPTY_CELL_X, formedLooks, onlyFit, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
 import { MorphStroke, centerlinePath } from './MorphStroke';
 import { COARSE, useMedia } from '../../useMedia';
@@ -158,6 +158,22 @@ function drawnSqueeze(letter: string | null, compact: boolean): number {
 
 /** How far apart a formed letter's strokes are drawn, beyond its squeeze (M's spread; see drawnScale). */
 const spreadOf = (letter: string | null) => (letter ? (LETTERS[letter].spread ?? 1) : 1);
+
+/**
+ * Where a cell draws its strokes across. The letter it is narrows them (W's squeeze). The letter
+ * its shape is becoming spreads them (M's spread): a formed M, a half-built one (a bar with the
+ * chevron on top, so the chevron's end sits on the bar), or one forming under a held stroke.
+ * `shape` is the cell as it's about to be (with a held stroke on its spot); the spread is about
+ * its middle, so nothing jumps when the stroke lands.
+ */
+function across(content: Placement[], shape: Placement[], compact: boolean) {
+  const squeeze = drawnSqueeze(recognize(content), compact);
+  const spread = spreadOf(onlyFit(shape)?.ch ?? null);
+  const basis = spread !== 1 ? shape : content;
+  const [lo, hi] = basis.length ? xExtent(basis) : [0, 0];
+  const mid = (lo + hi) / 2;
+  return { squeeze, x: (x: number) => mid + (x - mid) * squeeze * spread };
+}
 
 /** Distance from a point to a polyline, and the polyline's length. */
 function nearness(pts: Pt[], x: number, y: number) {
@@ -431,7 +447,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   const steer = (d: Drag, px: number, py: number) => {
     const g = grip.current;
     const spot = d.target ? { cell: d.target.cell, ...d.target.slot.placement } : d.aim;
-    const at = spot ? screenOf(spot.cell, spot.x, spot.y) : null;
+    // On a spot it sits where that spot is drawn (M's bars part as its last stroke comes in).
+    const sx = d.target ? across(cellsRef.current[d.target.cell], [...without(d.target.cell, d.source), d.target.slot.placement], !!compact).x(d.target.slot.placement.x) : spot?.x;
+    const at = spot ? screenOf(spot.cell, sx!, spot.y) : null;
     const scaleTo = at ? 1 : LIFT;
     if (scaleTo !== g.scaleTo) {
       g.scaleTo = scaleTo;
@@ -453,9 +471,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     g.snapped = false;
   };
 
-  /** Let a placed stroke spring into its slot from wherever the floating stroke is now. */
-  const land = (cell: number, p: Placement, turn: number) => {
-    const at = screenOf(cell, p.x, p.y);
+  /** Let a placed stroke spring into its slot (in `after`, the cell as it will be) from wherever the floating stroke is now. */
+  const land = (cell: number, p: Placement, turn: number, after: Placement[]) => {
+    const at = screenOf(cell, across(after, after, !!compact).x(p.x), p.y);
     if (!at || reduce) return;
     const v = velocity();
     landings.current.set(`${cell}|${slotKey(p)}`, {
@@ -530,7 +548,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
           const turned = turnedInPlace(d, from.cell, original);
           if (turned) {
             next[from.cell][at] = turned;
-            land(from.cell, turned, d.turn);
+            land(from.cell, turned, d.turn, next[from.cell]);
             apply(next);
           } else setWiggle((w) => ({ id: `${from.cell}|${from.key}`, n: w.n + 1 }));
           return;
@@ -566,7 +584,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     }
     if (d.target) {
       const p = d.target.slot.placement;
-      land(d.target.cell, p, d.turn);
+      land(d.target.cell, p, d.turn, [...base[d.target.cell].filter((_, i) => !(from && from.cell === d.target!.cell && i === at)), p]);
       if (from && from.cell === d.target.cell && slotKey(original!) === slotKey(p)) return; // dropped where it was
       if (from) next[from.cell].splice(at, 1);
       next[d.target.cell].push(p);
@@ -574,7 +592,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       return;
     }
     // Nowhere to go: a placed stroke springs back to its slot, a tray stroke back to the tray.
-    if (from && original) land(from.cell, original, d.turn);
+    if (from && original) land(from.cell, original, d.turn, base[from.cell]);
     else flyHome(d);
   };
 
@@ -731,14 +749,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     const q = new DOMPoint(clientX, clientY).matrixTransform(m.inverse());
     const lx = q.x - offsets[cell];
     const content = cellsRef.current[cell];
-    const letter = recognize(content);
-    const squeeze = drawnSqueeze(letter, !!compact);
-    const place = squeeze * spreadOf(letter);
-    const [lo, hi] = content.length ? xExtent(content) : [0, 0];
+    const { squeeze, x: drawn } = across(content, content, !!compact);
     const looks = lookPoints(content, !!compact);
     let best: { p: Placement; x: number; d: number; length: number } | null = null;
     content.forEach((p, i) => {
-      const x = (lo + hi) / 2 + (p.x - (lo + hi) / 2) * place;
+      const x = drawn(p.x);
       const line = (looks[i] ?? strokeCenterline(p.tile, p.rot ?? 0, squeeze)).map(([px, py]): Pt => [x + px, p.y + py]);
       const { d, length } = nearness(line, lx, q.y);
       if (!best || d < best.d - PICK_TIE || (Math.abs(d - best.d) <= PICK_TIE && length < best.length)) best = { p, x, d, length };
@@ -780,9 +795,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     const kept = cells[c].filter((_, i) => !(carried?.cell === c && carried.index === i));
     const onSpot = held?.target?.cell === c ? held.target.slot.placement : null;
     const looks = lookPoints(onSpot ? [...kept, onSpot] : kept, !!compact);
-    // The letter the cell is drawn as: what it'll be with the held stroke on its spot, if anything.
-    const formed = recognize(onSpot ? [...kept, onSpot] : kept);
-    return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null, formed };
+    // The cell as it'll be with the held stroke on its spot, if anything (see across).
+    const shape = onSpot ? [...kept, onSpot] : kept;
+    return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null, shape };
   };
   const floating = lifting
     ? {
@@ -802,14 +817,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       <div className={`word-cells${glow ? ' opened' : ''}`}>
         {cells.map((content, c) => {
           const letter = recognize(content);
-          const { kept, looks, formed } = preview(c);
+          const { kept, looks, shape } = preview(c);
           // Strokes are narrowed by the letter's squeeze (W), and drawn apart by its spread (M): the
-          // spread follows the letter the cell is about to be, so M's bars part as its chevron
-          // comes in (positions only, so the held chevron still lands on its spot).
-          const squeeze = drawnSqueeze(letter, !!compact);
-          const place = squeeze * spreadOf(formed);
-          const [lo, hi] = content.length ? xExtent(content) : [0, 0];
-          const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * place;
+          // spread follows the letter the cell is becoming, so M's bars part as its last stroke
+          // comes in, and a half-built M's chevron sits on its bar (see across).
+          const { squeeze, x: squeezed } = across(content, shape, !!compact);
           const shown = kept.map((p, i) => ({ p, look: looks[i] }));
           const target = held?.target?.cell === c ? held.target : null;
           const aim = held?.aim?.cell === c ? held.aim : null;
