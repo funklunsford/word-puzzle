@@ -7,7 +7,7 @@ import { TileStroke, minHalfWidthAt } from '../Glyph';
 import { MorphStroke, centerlinePath } from './MorphStroke';
 import { COARSE, useMedia } from '../../useMedia';
 
-const CELL_W = 4;
+export const CELL_W = 4;
 /**
  * On phones the cells are narrow, so the four of them draw the word big (a half-built W spills
  * over its neighbours for a moment).
@@ -18,7 +18,7 @@ const CELL_W_COMPACT = 2.6;
  * (only W, 2.5 units at its usual squeeze, is wider: it's drawn a little narrower on phones).
  */
 const MAX_DRAWN_COMPACT = 2.2;
-const CELL_TOP = -0.7;
+export const CELL_TOP = -0.7;
 const CELL_H = 3.6;
 /** A press that moves less than this many pixels is a tap (remove), not a drag. Fingers wobble more. */
 const TAP_SLOP = 6;
@@ -143,7 +143,12 @@ interface Props {
   compact?: boolean;
   /** Letters a hint points at (indexes): their cells are outlined. */
   hinted?: number[];
+  /** The strokes in the tray (all of them by default; How to play's practice offers a few). */
+  tray?: readonly TileId[];
 }
+
+/** How far above a fingertip a held stroke rides (px), so the finger doesn't hide it. */
+export const fingerLift = (unit: number) => Math.round(Math.min(72, Math.max(44, 1.7 * unit)));
 
 /** How much a formed letter is narrowed (W); on phones no letter is drawn wider than MAX_DRAWN_COMPACT. */
 function drawnSqueeze(letter: string | null, compact: boolean): number {
@@ -180,7 +185,7 @@ function lookPoints(content: Placement[], compact: boolean): (Pt[] | null)[] {
 }
 
 /** Offset that centers a cell's strokes horizontally. */
-function centerOffset(content: Placement[]): number {
+export function centerOffset(content: Placement[]): number {
   if (!content.length) return -EMPTY_CELL_X;
   const [lo, hi] = xExtent(content);
   return -(lo + hi) / 2;
@@ -207,7 +212,7 @@ const TWISTS = new Set(
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
  * slot from where it was released or flies back to its tray tile.
  */
-export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, compact = false, hinted }: Props) {
+export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, compact = false, hinted, tray = TILE_IDS }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<{ cell: number; key: string } | null>(null);
   /** A stroke flying home to its tray tile after the drag ended (removed, or not placed). */
@@ -612,7 +617,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     const reach = 0.8 * u * home.scale;
     g.dx = touch ? 0 : Math.max(-reach, Math.min(reach, e.clientX - home.x));
     g.dy = touch ? 0 : Math.max(-reach, Math.min(reach, e.clientY - home.y));
-    g.lift = touch ? Math.round(Math.min(72, Math.max(44, 1.7 * u))) : 0;
+    g.lift = touch ? fingerLift(u) : 0;
     g.scale0 = home.scale;
     // Under a finger the stroke glides up to its place above the fingertip rather than jumping there.
     g.snapped = touch;
@@ -622,6 +627,19 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     samples.current = [{ t: performance.now(), x: e.clientX, y: e.clientY }];
 
     const slots = cellsRef.current.map((_, c) => slotsFor(without(c, source), tile));
+    // With a mouse, a stroke lifted from a spot that fits it more than one way (a lone V, which can
+    // be Λ) is already on that spot: a swipe from wherever it was pressed turns it there.
+    let aim: Aim | null = null;
+    if (!touch && source.kind === 'cell' && TILES[tile].rotates) {
+      const own = cellsRef.current[source.cell][source.index];
+      const level = slots[source.cell].filter((s) => s.placement.y === own.y);
+      const spot = level.length ? level.reduce((a, b) => (Math.abs(b.placement.x - own.x) < Math.abs(a.placement.x - own.x) ? b : a)).placement : null;
+      const m = svgs.current[source.cell]?.getScreenCTM();
+      if (spot && m && level.filter((s) => s.placement.x === spot.x).length > 1) {
+        const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+        aim = { cell: source.cell, x: spot.x, y: spot.y, armed: true, ax: p.x - offsets[source.cell], ay: p.y };
+      }
+    }
     const d0: Drag = {
       tile,
       source,
@@ -630,7 +648,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       moved: false,
       turn: rot,
       slots,
-      aim: null,
+      aim,
       target: null,
       overCell: null,
       look0,
@@ -885,7 +903,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       </div>
 
       <div className="tray">
-        {TILE_IDS.map((t) => {
+        {tray.map((t) => {
           const taken = (lifting && drag?.source.kind === 'tray' && drag.tile === t) || flight?.tile === t;
           return (
             <button
