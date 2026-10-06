@@ -956,10 +956,6 @@ select,
   position: relative;
 }
 
-/* The win banner at the top of the word box stays clear of the flame too. */
-.board > .win {
-  margin-right: 44px;
-}
 
 .board-head {
   display: flex;
@@ -1293,13 +1289,19 @@ select,
   margin-top: 4px;
 }
 
-.win {
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--ink);
-  color: var(--bg);
-  font-weight: 700;
-  text-align: center;
+/* After a win the step controls give way to the result: the score, Share, and Watch again. */
+.result-line {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.result-next,
+.solved-before {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 /* Side card: the path so far, and game controls. */

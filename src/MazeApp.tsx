@@ -71,6 +71,24 @@ const SIDE_MIN = 1000;
 const COMPACT_MAX = 600;
 
 const HELP_KEY = 'strokes:seen-help';
+/** A daily's result, kept in this browser so a return visit shows it. */
+interface Result {
+  strokes: number;
+  best: number;
+  hints: number;
+  hardcore: boolean;
+  /** Strokes per step, for the share line. */
+  steps: number[];
+}
+const resultKey = (date: string) => `strokes:result:${date}`;
+const loadResult = (date: string): Result | null => {
+  try {
+    return JSON.parse(localStorage.getItem(resultKey(date)) ?? 'null');
+  } catch {
+    return null;
+  }
+};
+
 /** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par. */
 const HARDCORE_KEY = 'strokes:hardcore';
 const loadHardcore = () => {
@@ -269,8 +287,47 @@ export function MazeApp() {
   const perfect = won && spent <= best;
   const [celebrating, setCelebrating] = useState<{ perfect: boolean; freezeAt?: number } | null>(null);
   useEffect(() => {
-    if (won && (scene || perfect)) setCelebrating({ perfect });
+    if (!won) return;
+    if (scene || perfect) setCelebrating({ perfect });
+    // A daily's result is kept, so coming back today shows it (the best one, if played again).
+    const date = current?.date;
+    if (!date) return;
+    const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: trail.slice(1).map((v) => v.cost) };
+    const before = loadResult(date);
+    if (!before || result.strokes < before.strokes || (result.strokes === before.strokes && result.hints < before.hints)) {
+      try {
+        localStorage.setItem(resultKey(date), JSON.stringify(result));
+      } catch {
+        // storage blocked: shown this visit only
+      }
+      setSaved(result);
+    }
   }, [won]);
+  /** Today's result from an earlier visit (or this one), if any. */
+  const [saved, setSaved] = useState<Result | null>(null);
+  useEffect(() => setSaved(current?.date ? loadResult(current.date) : null), [current?.date]);
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    if (!puzzle) return;
+    const r = won ? { strokes: spent, best, hints: hintsUsed, hardcore, steps: trail.slice(1).map((v) => v.cost) } : saved;
+    if (!r) return;
+    const text = [
+      `Strokes${current?.date ? ` No. ${dayNumber(current.date)}` : ''} · ${puzzle.start} → ${puzzle.goal}`,
+      `${r.strokes} strokes (lowest ${r.best})${r.strokes <= r.best ? ' ⭐' : ''}${r.hardcore ? ' · hardcore' : ''}${r.hints ? ` · ${r.hints} ${r.hints === 1 ? 'hint' : 'hints'}` : ''}`,
+      r.steps.map((n) => '●'.repeat(n) || '○').join(' '),
+      `${location.origin}${location.pathname}`,
+    ].join('\n');
+    try {
+      if (navigator.share) await navigator.share({ text });
+      else {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // cancelled, or no clipboard: nothing to do
+    }
+  };
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     const at = (key: string) => (q.get(key) ? Number(q.get(key)) : undefined);
@@ -516,14 +573,6 @@ export function MazeApp() {
           </AnimatePresence>
 
           <section className="board" ref={boardRef}>
-            <AnimatePresence>
-              {won && (
-                <motion.div className="win" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  You reached {puzzle.goal} in {spent} strokes. Lowest strokes possible: {best}.
-                  {hintsUsed > 0 && ` (${hintsUsed} ${hintsUsed === 1 ? 'hint' : 'hints'})`}
-                </motion.div>
-              )}
-            </AnimatePresence>
             <button
               className={`hardcore-btn${hardcore ? ' on' : ''}${armed ? ' armed' : ''}`}
               aria-pressed={hardcore}
@@ -576,7 +625,37 @@ export function MazeApp() {
             </div>
           </section>
 
+          {won ? (
+            <section className="controls result" aria-label="Result" aria-live="polite">
+              <p className="result-line">
+                <strong>
+                  {puzzle.goal} in {spent} {spent === 1 ? 'stroke' : 'strokes'}
+                </strong>
+                <span className="nowrap"> · lowest possible {best}</span>
+                {spent <= best && <span className="nowrap"> · perfect ⭐</span>}
+                {hardcore && <span className="nowrap"> · hardcore</span>}
+                {hintsUsed > 0 && <span className="nowrap"> · {hintsUsed} {hintsUsed === 1 ? 'hint' : 'hints'}</span>}
+              </p>
+              <div className="pill-row">
+                <button className="pill" onClick={share}>
+                  {copied ? 'Copied!' : 'Share'}
+                </button>
+                {(scene || spent <= best) && (
+                  <button className="pill quiet" onClick={() => setCelebrating({ perfect: spent <= best })}>
+                    Watch again
+                  </button>
+                )}
+              </div>
+              {current?.date && <p className="result-next">A new puzzle comes at midnight.</p>}
+            </section>
+          ) : (
           <section className="controls" aria-label="This step">
+            {saved && stepEdits === 0 && trail.length === 1 && (
+              <p className="solved-before">
+                Solved today in {saved.strokes}
+                {saved.strokes <= saved.best ? ' · perfect ⭐' : ''}. Play it again any time.
+              </p>
+            )}
             <div className="pill-row">
               <button className="pill" onClick={undo} disabled={!history.length}>
                 Undo
@@ -617,6 +696,7 @@ export function MazeApp() {
               </span>
             </div>
           </section>
+          )}
         </main>
 
         <aside className="side-card">
