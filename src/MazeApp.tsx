@@ -118,14 +118,14 @@ const markHelpSeen = () => {
 
 const cellsFor = (word: string): Placement[][] => [...word].map((ch) => LETTERS[ch].parts.map((p) => ({ ...p })));
 
-function useWidth() {
-  const [w, setW] = useState(() => window.innerWidth);
+function useWindowSize() {
+  const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
   useEffect(() => {
-    const on = () => setW(window.innerWidth);
+    const on = () => setSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', on);
     return () => window.removeEventListener('resize', on);
   }, []);
-  return w;
+  return size;
 }
 
 export function MazeApp() {
@@ -189,7 +189,7 @@ export function MazeApp() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [help, closeHelp]);
-  const width = useWidth();
+  const { w: width, h: height } = useWindowSize();
   const compact = width < COMPACT_MAX;
   const coarse = useMedia(COARSE);
 
@@ -292,7 +292,9 @@ export function MazeApp() {
   }, [data]);
   const roomExits = useMemo(() => (doorsOf && room ? doorsOf(room).map(([word, cost]) => ({ word, cost })) : []), [doorsOf, room]);
 
-  const won = !!puzzle && room === puzzle.goal;
+  // (A path that started from this puzzle's start: while a new puzzle swaps in, the old word can
+  // equal the new goal for a moment, which isn't a win.)
+  const won = !!puzzle && room === puzzle.goal && trail[0]?.word === puzzle.start;
   // Reaching the goal celebrates: confetti for a solve in the lowest possible strokes, then the
   // daily's own scene. In development, ?celebrate opens it at once (?celebrate=2.2 holds it at 2.2
   // seconds), and ?perfect adds the confetti (?perfect=1.2 holds the whole thing at 1.2 seconds).
@@ -481,7 +483,8 @@ export function MazeApp() {
         style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}
       >
         <Masthead
-          compact={compact}
+          // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
+          compact={compact || height < 500}
           dateline={
             current?.date &&
             `No. ${dayNumber(current.date)} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
