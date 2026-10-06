@@ -1311,6 +1311,17 @@ select,
   color: var(--ink);
 }
 
+.share-text {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  white-space: pre-line;
+  text-align: left;
+  user-select: text;
+}
+
 .result-next,
 .solved-before {
   margin: 0;
@@ -1333,7 +1344,7 @@ select,
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -1346,7 +1357,7 @@ select,
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 6px 10px;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -1354,7 +1365,6 @@ select,
 }
 
 .trail-word {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1366,11 +1376,15 @@ select,
   cursor: pointer;
 }
 
-/* A pill is small to look at, but its word takes a finger-sized tap. */
+/* A pill's word takes a tap over the whole pill and half the gap round it (never a neighbour's). */
+.trail li {
+  position: relative;
+}
+
 .trail-word::after {
   content: '';
   position: absolute;
-  inset: -12px -10px;
+  inset: -4px;
 }
 
 .trail li:has(.trail-word[aria-pressed='true']) {

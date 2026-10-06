@@ -322,6 +322,8 @@ export function MazeApp() {
   const [saved, setSaved] = useState<Result | null>(null);
   useEffect(() => setSaved(current?.date ? loadResult(current.date) : null), [current?.date]);
   const [copied, setCopied] = useState(false);
+  /** The share line, shown to copy by hand when neither sharing nor the clipboard works here. */
+  const [shareText, setShareText] = useState<string | null>(null);
   const share = async () => {
     if (!puzzle) return;
     const r = won ? { strokes: spent, best, hints: hintsUsed, hardcore, steps: trail.slice(1).map((v) => v.cost) } : saved;
@@ -332,15 +334,21 @@ export function MazeApp() {
       r.steps.map((n) => '●'.repeat(n) || '○').join(' '),
       `${location.origin}${location.pathname}`,
     ].join('\n');
-    try {
-      if (navigator.share) await navigator.share({ text });
-      else {
+    const copy = async () => {
+      try {
         await navigator.clipboard.writeText(text);
         setCopied(true);
         window.setTimeout(() => setCopied(false), 2000);
+      } catch {
+        setShareText(text); // no clipboard either: show it, to copy by hand
       }
-    } catch {
-      // cancelled, or no clipboard: nothing to do
+    };
+    if (!navigator.share) return copy();
+    try {
+      await navigator.share({ text });
+    } catch (e) {
+      // Cancelled is the player's choice; anything else (no share target here) falls back to copying.
+      if ((e as Error)?.name !== 'AbortError') await copy();
     }
   };
   useEffect(() => {
@@ -629,7 +637,7 @@ export function MazeApp() {
               onEdit={onEdit}
               onHoverTile={setHoverTile}
               onMiss={(why) =>
-                setNotice(why === 'turn' ? `That fits there turned the other way: ${coarse ? 'swipe as you drop it, or double-tap it after' : 'swipe as you drop it'}.` : "That stroke doesn't fit in that letter.")
+                setNotice(why === 'turn' ? 'That fits there turned the other way: swipe as you drop it.' : "That stroke doesn't fit in that letter.")
               }
             />
             <div className="letters" aria-label="Letters by stroke">
@@ -665,6 +673,7 @@ export function MazeApp() {
                   </button>
                 )}
               </div>
+              {shareText && <p className="share-text">{shareText}</p>}
               {current?.date && <p className="result-next">A new puzzle comes at midnight.</p>}
             </section>
           ) : (

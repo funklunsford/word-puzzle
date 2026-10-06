@@ -461,7 +461,6 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The phone swipe to turn is shorter:** half a unit, the same as a mouse (was 0.8, about 24 px; now about 15 px). To keep a stroke carried onto its spot from counting as a swipe, swipes now count from where the pointer stopped coming in (its closest point to the spot), not from where it first came near. Checked with a finger: carried straight onto its spot with a wobble, a V stays a V; carry on 17 px further, and it turns to Λ.
 
 ## Fixes from the second phone playtest (2026-10-06, branch `core-and-perfect`)
-The playtest report is `reports/mobile-playtest-2026-10-06.txt`.
 - **Swipe to turn** flipped after 6–8 px, not about 15. A swipe counted from the stroke's closest approach to its spot, so an overshoot then a nudge turned it.
   - Now a pause restarts the swipe where the pointer rested, and a pointer slower than 1.5 letter units a second (creeping or lining up) carries the swipe's start along with it.
   - Checked: carried straight on, a V stays a V; a quick 12 px swipe stays a V; a quick 18 px swipe turns; overshoot, rest, then 12 px stays a V; a slow 30 px creep never turns; mouse swipes still turn.
@@ -474,12 +473,12 @@ The playtest report is `reports/mobile-playtest-2026-10-06.txt`.
 - **Tapping to remove:** a stroke that can't turn where it sits goes at once. Only turnable strokes wait the 0.4 s for a second tap. A quick second tap where one just went is ignored, so a double tap still removes one stroke.
 - **After a win:** the result replaces Undo, Reset step and Hint ("DUNE in 8 strokes · lowest possible 8 · perfect ⭐"), with Share and Watch again, and "A new puzzle comes at midnight." The banner no longer pushes the board down.
   - A daily's best result is kept in this browser (`strokes:result:{DATE}`), and a return visit says "Solved today in 8 · perfect ⭐. Play it again any time."
-  - Share uses the phone's share sheet, else copies a spoiler-free line: the puzzle, strokes and par, a star for perfect, and dots for the strokes in each step.
+  - Share uses the phone's share sheet, else copies a spoiler-free line: the puzzle, strokes and par, a star for perfect, and dots for the strokes in each step. If there's no clipboard either, the line appears under the buttons, to copy by hand.
 - **Hints are instant:** the maze's graph ships in `mazes.json` (each word's doors and costs), so hints and "within reach" look them up. A first hint takes about 5 ms (was 0.6–1 s on desktop since the exact step cost). `mazes.json` is 58 KB compressed (+28 KB).
 - **Smaller fixes:**
   - a stroke let go over a letter it doesn't fit says so ("That stroke doesn't fit in that letter.", or that it fits turned the other way);
   - a shape that isn't a letter is labelled "no letter" (was "·");
-  - path pills, ?, the flame and the practice's Start over take finger-sized taps without looking bigger, and practice tray tiles are 54 px;
+  - path pills take taps over the whole pill and half the gap round it (a little taller, 8 px apart, never a neighbour's area); ?, the flame and the practice's Start over take 44 px taps without looking bigger, and practice tray tiles are 54 px;
   - the Hint button keeps one width (Hint, Next word, Hint used);
   - the step line is announced to screen readers;
   - the celebration line keeps "· 3 hints" together;
