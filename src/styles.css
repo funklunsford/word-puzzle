@@ -655,6 +655,95 @@ select,
   border-color: var(--ink);
 }
 
+/* Hardcore: a flame in the score card's other top corner. Unlit, an outline; lit, it burns on
+   the spicy colour (only words on a lowest-stroke route open). */
+.hardcore-btn {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--ledge);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.hardcore-btn svg {
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+
+.hardcore-btn .flame {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  transition:
+    fill 0.2s,
+    stroke 0.2s;
+}
+
+.hardcore-btn .core {
+  fill: transparent;
+  transition: fill 0.2s;
+}
+
+.hardcore-btn.on {
+  background: var(--spicy);
+  border-color: color-mix(in srgb, var(--spicy) 70%, var(--ink));
+  box-shadow:
+    0 3px 0 color-mix(in srgb, var(--spicy) 55%, var(--ledge)),
+    0 0 0 4px color-mix(in srgb, var(--spicy) 22%, transparent);
+  animation: ignite 0.45s ease-out;
+}
+
+.hardcore-btn.on .flame {
+  fill: #fff5e6;
+  stroke: #fff5e6;
+}
+
+.hardcore-btn.on .core {
+  fill: var(--gold);
+}
+
+@keyframes ignite {
+  0% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hardcore-btn:hover {
+    border-color: var(--spicy);
+  }
+
+  .hardcore-btn:not(.on):hover .flame {
+    stroke: var(--spicy);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hardcore-btn.on {
+    animation: none;
+  }
+}
+
 /* How to play: a pop-up over the game (first visit, or the ? button). */
 .help-backdrop {
   position: fixed;
@@ -809,15 +898,15 @@ select,
   stroke-width: 0.06;
 }
 
-.pill.toggle.on {
-  color: var(--bg);
-  background: var(--ink);
-  border-color: var(--ink);
-}
-
 .hardcore-tag {
-  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--spicy);
+  background: color-mix(in srgb, var(--spicy) 12%, transparent);
 }
 
 .help-go {
@@ -1528,6 +1617,12 @@ select,
 
 .maze.compact .score-big strong {
   font-size: 34px;
+}
+
+.maze.compact .hardcore-btn {
+  order: 2;
+  position: static;
+  flex: none;
 }
 
 .maze.compact .help-btn {

@@ -131,6 +131,8 @@ export function MazeApp() {
   const [hardcore, setHardcore] = useState(loadHardcore);
   /** A word hardcore just turned away (off the lowest-stroke route), for the step line. */
   const [refused, setRefused] = useState<string | null>(null);
+  /** Said in the step line until the next stroke (switching hardcore on or off). */
+  const [notice, setNotice] = useState<string | null>(null);
   /** Free strokes banked from ink pots, waiting to pay for the next steps to new words. */
   const [ink, setInk] = useState(0);
   // Ink in flight: drops rise from a pot word into the bank, and pour from the bank into a word.
@@ -218,6 +220,7 @@ export function MazeApp() {
     setHintsUsed(0);
     setPeek(null);
     setRefused(null);
+    setNotice(null);
   }, [puzzle, potPlan]);
   useEffect(restart, [restart]);
 
@@ -231,6 +234,7 @@ export function MazeApp() {
     }
     setHardcore(next);
     if (next) restart();
+    setNotice(next ? 'Hardcore on: only words on a lowest-stroke route open. Started over.' : 'Hardcore off: any real word opens.');
   };
 
   const roomExits = useMemo(() => (data && room ? exits(room, data.words) : []), [data, room]);
@@ -275,6 +279,7 @@ export function MazeApp() {
           }
         }
         setRefused(null);
+        setNotice(null);
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
@@ -293,6 +298,7 @@ export function MazeApp() {
         return true;
       }
       setRefused(null);
+      setNotice(null);
       setHistory((h) => [...h, cells]);
       setCells(next);
       return true;
@@ -384,6 +390,18 @@ export function MazeApp() {
 
         <main className="column">
           <section className="scorecard">
+            <button
+              className={`hardcore-btn${hardcore ? ' on' : ''}`}
+              aria-pressed={hardcore}
+              aria-label="Hardcore mode"
+              title={hardcore ? 'Hardcore is on: only words on a lowest-stroke route open' : 'Hardcore: only words on a lowest-stroke route open (starts the puzzle over)'}
+              onClick={toggleHardcore}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path className="flame" d="M12 2.8c.9 3.4 5.6 5.6 5.6 10.6a5.6 5.6 0 0 1-11.2 0c0-2.6 1.6-4.3 2.6-5.6.3 1.8 1.2 3 2.3 3.6-.5-3 .1-6 .7-8.6Z" />
+                <path className="core" d="M12 13.2c1.3 1.3 2.3 2.4 2.1 3.9a2.1 2.1 0 0 1-4.2 0c0-1.4 1-2.5 2.1-3.9Z" />
+              </svg>
+            </button>
             <button ref={helpBtn} className="help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
               ?
             </button>
@@ -396,10 +414,8 @@ export function MazeApp() {
                 <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
               </div>
               <div className="score-sub">
-                <span>
-                  lowest strokes possible: {best}
-                  {hardcore && <span className="hardcore-tag"> · hardcore</span>}
-                </span>
+                <span>lowest strokes possible: {best}</span>
+                {hardcore && <span className="hardcore-tag">Hardcore</span>}
                 <span>
                   {roomExits.length} {roomExits.length === 1 ? 'word' : 'words'} within reach
                   {found ? <span className="nowrap"> ({found} visited)</span> : null}
@@ -469,6 +485,7 @@ export function MazeApp() {
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
+                    <li>Want a challenge? {coarse ? 'Tap' : 'Click'} the flame for hardcore: only words on a lowest-stroke route count.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
@@ -543,6 +560,8 @@ export function MazeApp() {
             <p className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
               {refused
                 ? `Hardcore: ${refused} isn't on a lowest-stroke route. Try another word.`
+                : notice
+                ? notice
                 : hintText && !locked
                 ? hintText
                 : locked
@@ -643,14 +662,6 @@ export function MazeApp() {
             </button>
             <button className="pill quiet" onClick={() => setReveal((r) => !r)}>
               {reveal ? 'Hide' : 'Show'} lowest-stroke route
-            </button>
-            <button
-              className={`pill quiet toggle${hardcore ? ' on' : ''}`}
-              aria-pressed={hardcore}
-              title="Hardcore: only words on a lowest-stroke route open. Turning it on starts the puzzle over."
-              onClick={toggleHardcore}
-            >
-              Hardcore {hardcore ? 'on' : 'off'}
             </button>
           </div>
           {import.meta.env.DEV && (
