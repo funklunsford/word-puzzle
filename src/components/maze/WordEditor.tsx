@@ -519,8 +519,8 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       apply(next);
     };
     if (!d.moved) {
-      // On a touch screen, double-tapping a stroke in the tray turns it (if it ever needs turning).
-      if (d.touch && d.source.kind === 'tray') {
+      // Double-tapping (or double-clicking) a stroke in the tray turns it (if it ever needs turning).
+      if (d.source.kind === 'tray') {
         if (!TWISTS.has(d.tile)) return;
         const now = performance.now();
         const prev = lastTap.current;
@@ -533,10 +533,10 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
         }
         return;
       }
-      // On a touch screen a tap on a placed stroke waits a moment (dimmed) before removing it; a
-      // second tap turns it on its spot where it fits the other way round too (a chevron as V or Λ,
-      // a bowl as B's or U's), or wiggles it where it doesn't (and removes nothing).
-      if (d.touch && from && original) {
+      // A tap or click on a placed stroke waits a moment (dimmed) before removing it; a second one
+      // turns it on its spot where it fits the other way round too (a chevron as V or Λ, a bowl as
+      // B's or U's), or wiggles it where it doesn't (and removes nothing).
+      if (from && original) {
         if (d.again) {
           const turned = turnedInPlace(d, from.cell, original);
           if (turned) {
@@ -773,10 +773,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
   };
 
   const held = drag?.moved ? drag : null;
-  // The pressed stroke leaves its cell for the floating layer from the moment it's pressed, except
-  // under a finger, which may be about to tap it (to remove or turn it): there it stays put, and in
-  // the page, until the finger moves.
-  const lifting = !!drag && !(drag.touch && !drag.moved);
+  // The pressed stroke leaves its cell (or tile) for the floating layer once the pointer moves: until
+  // then the press may be a tap or click (to remove it, or the first of two to turn it), and it stays put.
+  const lifting = !!drag && drag.moved;
   const carried = lifting && drag?.source.kind === 'cell' ? drag.source : null;
   /**
    * How a cell's strokes are drawn (see Look): what's left in it once the held stroke is lifted
@@ -891,7 +890,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                               : `translate(${x} ${p.y})${squeeze !== 1 ? ` scale(${squeeze} 1)` : ''}${p.rot ? ` rotate(${p.rot})` : ''}`
                           }
                         >
-                          <title>{coarse ? 'Tap to remove · double-tap to turn · drag to move' : 'Click to remove · drag to move'}</title>
+                          <title>{coarse ? 'Tap to remove · double-tap to turn · drag to move' : 'Click to remove · double-click to turn · drag to move'}</title>
                         </path>
                       </motion.g>
                     );
@@ -920,7 +919,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
               style={{ ['--tile' as string]: `var(--t-${t})` }}
               data-tile={t /* which stroke this is (read by tests and tools) */}
               aria-label={`${TILES[t].name} stroke`}
-              title={TWISTS.has(t) ? (coarse ? 'Drag into a letter · double-tap to turn' : 'Drag into a letter · swipe as you place it to turn') : 'Drag into a letter'}
+              title={TWISTS.has(t) ? (coarse ? 'Drag into a letter · double-tap to turn' : 'Drag into a letter · double-click to turn') : 'Drag into a letter'}
               onPointerDown={(e) => start(e, t, trayTurn[t], { kind: 'tray' }, trayHome(t))}
               onPointerEnter={() => onHoverTile(t)}
               onPointerLeave={() => onHoverTile(null)}

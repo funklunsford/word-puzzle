@@ -54,7 +54,7 @@ export const TUTORIAL: Step[] = [
     done: 'An A: turned over, then crossed.',
     next: (c) => {
       if (recognize(c) === 'V')
-        return { say: { touch: 'Double-tap the V to turn it over.', mouse: 'Drag the V up a little to turn it over.' }, ghost: { kind: 'turn', at: c[0] } };
+        return { say: { touch: 'Double-tap the V to turn it over.', mouse: 'Double-click the V to turn it over.' }, ghost: { kind: 'turn', at: c[0] } };
       const to = isTurned(c, 'BV') ? spotFor(c, 'H', 'A') : undefined;
       return to ? { say: same('Now drag a bar across it to make A.'), ghost: { kind: 'carry', tile: 'H', from: 'tray', to } } : null;
     },
@@ -65,7 +65,7 @@ export const TUTORIAL: Step[] = [
     done: 'A D: turned around, then a long bar.',
     next: (c) => {
       if (recognize(c) === 'C')
-        return { say: { touch: 'Double-tap the C to turn it around.', mouse: 'Drag the C to the right a little to turn it around.' }, ghost: { kind: 'turn', at: c[0] } };
+        return { say: { touch: 'Double-tap the C to turn it around.', mouse: 'Double-click the C to turn it around.' }, ghost: { kind: 'turn', at: c[0] } };
       const to = isTurned(c, 'C') ? spotFor(c, 'LV', 'D') : undefined;
       return to ? { say: same('Now drag a long bar onto its left side to make D.'), ghost: { kind: 'carry', tile: 'LV', from: 'tray', to } } : null;
     },
