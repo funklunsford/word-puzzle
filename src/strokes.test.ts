@@ -185,6 +185,17 @@ describe('formedLooks', () => {
     expect([...withLooks]).toEqual(['LV@0,1,0 P@0.5,1.5,90']);
   });
 
+  it('builds M on "||" as H is (no bar two units away any more), with its chevron snapping on top', () => {
+    const bar = { tile: 'LV' as const, x: 0, y: 1, rot: 0 };
+    // A second bar only ever goes a unit away (H, M, N, U), never two.
+    expect(slotsFor([bar], 'LV').every((s) => Math.abs(s.placement.x - bar.x) === 1)).toBe(true);
+    const bars = [bar, { ...bar, x: 1 }];
+    const chevron = slotsFor(bars, 'SC');
+    expect(chevron.map((s) => s.toward)).toEqual([['M']]);
+    expect(recognize([...bars, chevron[0].placement])).toBe('M');
+    expect(wordDistance('M', 'H')).toBe(2); // swap the crossbar for the chevron
+  });
+
   it('never offers a stroke with a look: slots are always plain strokes', () => {
     for (const tile of TILE_IDS) {
       for (const content of [[], glyph('C'), glyph('L'), glyph('J')]) for (const s of slotsFor(content, tile)) expect(s.placement.look).toBeUndefined();

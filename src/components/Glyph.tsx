@@ -36,8 +36,11 @@ export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed
   );
 }
 
-/** A letter's strokes in its own coordinates; `squeeze` narrows it towards x = 0. */
-export function PlacedStrokes({ parts, minHalfWidth, squeeze = 1 }: { parts: Placement[]; minHalfWidth?: number; squeeze?: number }) {
+/**
+ * A letter's strokes in its own coordinates; `squeeze` narrows it towards x = 0 (positions and
+ * strokes), `spread` moves its strokes apart (positions only). See drawnScale.
+ */
+export function PlacedStrokes({ parts, minHalfWidth, squeeze = 1, spread = 1 }: { parts: Placement[]; minHalfWidth?: number; squeeze?: number; spread?: number }) {
   return (
     <>
       {parts.map((part, i) => (
@@ -45,7 +48,7 @@ export function PlacedStrokes({ parts, minHalfWidth, squeeze = 1 }: { parts: Pla
           key={i}
           tile={part.tile}
           rot={part.rot}
-          x={part.x * squeeze}
+          x={part.x * squeeze * spread}
           y={part.y}
           seed={inkSeed(part)}
           minHalfWidth={minHalfWidth}
@@ -69,7 +72,7 @@ export function Glyph({ letter, size = 64 }: { letter: string; size?: number }) 
       width={(size * w) / 2}
       aria-label={letter}
     >
-      <PlacedStrokes parts={glyph.parts} minHalfWidth={minHalfWidthAt(size / 2)} squeeze={glyph.squeeze} />
+      <PlacedStrokes parts={glyph.parts} minHalfWidth={minHalfWidthAt(size / 2)} squeeze={glyph.squeeze} spread={glyph.spread} />
     </svg>
   );
 }
@@ -90,7 +93,7 @@ export function GlyphWord({ word, size = 48 }: { word: string; size?: number }) 
     <svg viewBox={`${-PAD} ${-PAD} ${w} ${h}`} height={(size * h) / 2} width={(size * w) / 2} aria-label={word}>
       {letters.map(({ ch, at }, i) => (
         <g key={i} transform={`translate(${at} 0)`}>
-          <PlacedStrokes parts={LETTERS[ch].parts} minHalfWidth={minHalfWidthAt(size / 2)} squeeze={LETTERS[ch].squeeze} />
+          <PlacedStrokes parts={LETTERS[ch].parts} minHalfWidth={minHalfWidthAt(size / 2)} squeeze={LETTERS[ch].squeeze} spread={LETTERS[ch].spread} />
         </g>
       ))}
     </svg>

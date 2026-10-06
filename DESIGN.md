@@ -358,3 +358,8 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 ## How to play, for touch and for mouse (2026-10-05)
 - How to play shows one of two lists, picked by whether the device's main pointer is a finger (`(pointer: coarse)`: phones and tablets) or a mouse, since the controls differ: tap vs click to remove, double-tap vs a swipe while placing to turn, tap vs click Hint.
 - Player-facing text calls every stroke just a stroke (no chevrons, arcs or bowls): How to play, and the tray tooltips ("Drag into a letter · double-tap to turn" / "· swipe as you place it to turn"). Screen readers still get each stroke's name, the only description they have.
+
+## M built like H (2026-10-06, branch `oct-6`)
+- **The problem** (playtest): M's bars sat two units apart, so after a first bar the second had to go in a third spot to the right; put a unit away (as for H) it could never become M.
+- **Now M is two bars a unit apart with the small chevron on top**: "‖" can become H, M, N or U, and the chevron snaps on to make M. No letter has bars two apart any more, so that third spot is gone. M is drawn as it always was (bars two apart, the chevron's ends on their tops) by a display-only `spread` of 2 (positions only; `squeeze`, as in W, narrows positions and strokes). While the chevron hovers, the bars already part, so nothing jumps on the drop.
+- **Rules:** M is now 2 strokes from H, N, U, K and I. The maze gained 4 connected words (1,984); WILD → TAME is unchanged (13, the same route and ink pots), and the pool was regenerated with the same mix.

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
-import { LETTERS, TILES, TILE_IDS, xExtent, type Placement, type TileId } from '../../glyphs';
+import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, lookCenterline, strokeCenterline, type Pt } from '../../ink';
 import { EMPTY_CELL_X, formedLooks, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
@@ -148,9 +148,11 @@ interface Props {
 /** How much a formed letter is narrowed (W); on phones no letter is drawn wider than MAX_DRAWN_COMPACT. */
 function drawnSqueeze(letter: string | null, compact: boolean): number {
   if (!letter) return 1;
-  return Math.min(LETTERS[letter].squeeze ?? 1, compact ? MAX_DRAWN_COMPACT / LETTERS[letter].width : Infinity);
+  return drawnScale(letter).shape * (compact ? Math.min(1, MAX_DRAWN_COMPACT / drawnWidth(letter)) : 1);
 }
 
+/** How far apart a formed letter's strokes are drawn, beyond its squeeze (M's spread; see drawnScale). */
+const spreadOf = (letter: string | null) => (letter ? (LETTERS[letter].spread ?? 1) : 1);
 /** The centrelines a cell's strokes are drawn along: their formed letter's looks, or null where a stroke is drawn as itself. */
 function lookPoints(content: Placement[], compact: boolean): (Pt[] | null)[] {
   const looks = formedLooks(content);
@@ -702,7 +704,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
     const kept = cells[c].filter((_, i) => !(carried?.cell === c && carried.index === i));
     const onSpot = held?.target?.cell === c ? held.target.slot.placement : null;
     const looks = lookPoints(onSpot ? [...kept, onSpot] : kept, !!compact);
-    return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null };
+    // The letter the cell is drawn as: what it'll be with the held stroke on its spot, if anything.
+    const formed = recognize(onSpot ? [...kept, onSpot] : kept);
+    return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null, formed };
   };
   const floating = lifting
     ? {
@@ -722,10 +726,14 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       <div className={`word-cells${glow ? ' opened' : ''}`}>
         {cells.map((content, c) => {
           const letter = recognize(content);
+          const { kept, looks, formed } = preview(c);
+          // Strokes are narrowed by the letter's squeeze (W), and drawn apart by its spread (M): the
+          // spread follows the letter the cell is about to be, so M's bars part as its chevron
+          // comes in (positions only, so the held chevron still lands on its spot).
           const squeeze = drawnSqueeze(letter, !!compact);
+          const place = squeeze * spreadOf(formed);
           const [lo, hi] = content.length ? xExtent(content) : [0, 0];
-          const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * squeeze;
-          const { kept, looks } = preview(c);
+          const squeezed = (x: number) => (lo + hi) / 2 + (x - (lo + hi) / 2) * place;
           const shown = kept.map((p, i) => ({ p, look: looks[i] }));
           const target = held?.target?.cell === c ? held.target : null;
           const aim = held?.aim?.cell === c ? held.aim : null;

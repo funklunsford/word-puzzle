@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { LETTERS, TILES, TILE_IDS, drawnWidth } from '../../glyphs';
+import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth } from '../../glyphs';
 import { inkSeed } from '../../ink';
 import { TileStroke } from '../Glyph';
 
@@ -33,7 +33,7 @@ function layout() {
       continue;
     }
     for (const [pi, p] of LETTERS[ch].parts.entries()) {
-      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
+      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
     }
     x += drawnWidth(ch) + GAP;
   }

@@ -71,7 +71,7 @@ export function WordLine({ word, maxWidth, tileEl, scope, ghost }: Props) {
             style={{ left: ((word ? at : 0) - 0.5) * unit, width: (ghostWidth + 1) * unit, height: 2.6 * unit }}
             viewBox={`-0.5 0 ${ghostWidth + 1} 2.6`}
           >
-            <PlacedStrokes parts={LETTERS[ghost].parts} />
+            <PlacedStrokes parts={LETTERS[ghost].parts} squeeze={LETTERS[ghost].squeeze} spread={LETTERS[ghost].spread} />
           </svg>
         )}
       </div>
