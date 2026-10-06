@@ -95,4 +95,7 @@ console.log(`pool: ${puzzles.length} puzzles from ${attempts} candidates, best $
 console.log(`candidates seen per cell: ${[...tries].sort().map(([k, n]) => `${k} ${n}`).join(', ')}`);
 console.log(`e.g. ${puzzles.slice(0, 8).map((x) => `${x.puzzle.start} → ${x.puzzle.goal} (${x.puzzle.best}, ${x.need})`).join(', ')}`);
 
-writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, puzzle, inkPots, onRoute: routeWords(words, adj, START, GOAL), puzzles }));
+// The graph itself goes along too: each word's doors as [to, cost, to, cost, ...] (word indexes),
+// so the game never has to search a step's cost (hints, words within reach, hardcore).
+const doors = adj.map((a) => a.flatMap((e) => [e.to, e.cost]));
+writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, doors, puzzle, inkPots, onRoute: routeWords(words, adj, START, GOAL), puzzles }));

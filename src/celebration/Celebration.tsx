@@ -178,9 +178,11 @@ export function Celebration({ start, goal, load, perfect, strokes, best, hints =
       <div className={`celebration-text${shown ? ' shown' : ''}`}>
         {title && <p className="celebration-title">{title}</p>}
         <p className="celebration-line">
-          {start} → {goal} in {strokes} {strokes === 1 ? 'stroke' : 'strokes'}
-          {strokes <= best ? ' · the lowest possible!' : ` · lowest possible ${best}`}
-          {hints > 0 && ` · ${hints} ${hints === 1 ? 'hint' : 'hints'}`}
+          <span className="nowrap">
+            {start} → {goal} in {strokes} {strokes === 1 ? 'stroke' : 'strokes'}
+          </span>
+          <span className="nowrap">{strokes <= best ? ' · the lowest possible!' : ` · lowest possible ${best}`}</span>
+          {hints > 0 && <span className="nowrap">{` · ${hints} ${hints === 1 ? 'hint' : 'hints'}`}</span>}
         </p>
         <p className="celebration-hint">Tap anywhere to carry on</p>
       </div>

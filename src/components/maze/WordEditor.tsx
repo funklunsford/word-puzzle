@@ -143,6 +143,8 @@ interface Props {
   /** Apply an edit; returns false when the game refuses it (the step is out of strokes, or won). */
   onEdit: (next: Placement[][]) => boolean | void;
   onHoverTile: (tile: TileId | null) => void;
+  /** A stroke let go over a letter it doesn't fit (or not the way it was turned): for a word of explanation. */
+  onMiss?: (why: 'nofit' | 'turn') => void;
   /** Phone layout: narrower cells sharing the row's width (the unit is then measured, not given). */
   compact?: boolean;
   /** Letters a hint points at (indexes): their cells are outlined. */
@@ -232,7 +234,7 @@ const TWISTS = new Set(
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
  * slot from where it was released or flies back to its tray tile.
  */
-export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, compact = false, hinted, tray = TILE_IDS }: Props) {
+export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<{ cell: number; key: string } | null>(null);
   /** A stroke flying home to its tray tile after the drag ended (removed, or not placed). */
@@ -616,9 +618,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
       }
       return;
     }
-    // Nowhere to go: a placed stroke springs back to its slot, a tray stroke back to the tray.
+    // Nowhere to go: a placed stroke springs back to its slot, a tray stroke back to the tray. Let
+    // go over a letter, it says why.
     if (from && original) land(from.cell, original, d.turn, base[from.cell]);
     else flyHome(d);
+    if (d.overCell !== null && !(from && from.cell === d.overCell)) onMiss?.(d.aim ? 'turn' : 'nofit');
   };
 
   // Listeners are attached synchronously on pointer-down (not in an effect) so a quick flick
@@ -940,7 +944,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, c
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? 'swipe to turn' : noFit ? 'no fit' : (letter ?? '·')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? 'swipe to turn' : noFit ? 'no fit' : (letter ?? 'no letter')}
               </span>
             </div>
           );

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
-import { STEP_LIMIT, exits, recognize, wordDistance } from './strokes';
+import { STEP_LIMIT, recognize, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
-import { nextStep, type NextStep } from './hints';
+import { doorsFrom, nextStep, type Doors, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { COARSE, useMedia } from './useMedia';
 import { InkDrop } from './components/maze/InkDrop';
@@ -44,6 +44,8 @@ const NEEDS: Record<Need, string> = {
 
 interface MazeData extends Pick {
   words: string[];
+  /** Each word's doors, as [to, cost, to, cost, ...] by word index (see scripts/mazes.ts). */
+  doors?: number[][];
   /** The pool a puzzle is picked from on each load (see scripts/mazes.ts). */
   puzzles: Pick[];
 }
@@ -277,7 +279,18 @@ export function MazeApp() {
     setNotice(next ? 'Hardcore on: only lowest-stroke words count.' : 'Hardcore off.');
   };
 
-  const roomExits = useMemo(() => (data && room ? exits(room, data.words) : []), [data, room]);
+  // The maze's doors, shipped with it (worked out from the words only if they're missing).
+  const doorsOf = useMemo<Doors | null>(() => {
+    if (!data) return null;
+    if (!data.doors) return doorsFrom(data.words);
+    const index = new Map(data.words.map((w, i) => [w, i]));
+    const doors = data.doors;
+    return (w) => {
+      const flat = doors[index.get(w) ?? -1] ?? [];
+      return Array.from({ length: flat.length / 2 }, (_, k): [string, number] => [data.words[flat[2 * k]], flat[2 * k + 1]]);
+    };
+  }, [data]);
+  const roomExits = useMemo(() => (doorsOf && room ? doorsOf(room).map(([word, cost]) => ({ word, cost })) : []), [doorsOf, room]);
 
   const won = !!puzzle && room === puzzle.goal;
   // Reaching the goal celebrates: confetti for a solve in the lowest possible strokes, then the
@@ -437,7 +450,7 @@ export function MazeApp() {
     setHintsUsed((n) => n + 1);
     // The search takes a moment on a phone: show the hint once it's ready, without blocking the tap.
     window.setTimeout(() => {
-      const step = shownHint?.step ?? nextStep(data.words, room, puzzle.goal, visited);
+      const step = shownHint?.step ?? nextStep(doorsOf!, room, puzzle.goal, visited);
       setHint({ room, level, step });
     }, 0);
   };
@@ -612,6 +625,9 @@ export function MazeApp() {
               room={room}
               onEdit={onEdit}
               onHoverTile={setHoverTile}
+              onMiss={(why) =>
+                setNotice(why === 'turn' ? `That fits there turned the other way: ${coarse ? 'swipe as you drop it, or double-tap it after' : 'swipe as you drop it'}.` : "That stroke doesn't fit in that letter.")
+              }
             />
             <div className="letters" aria-label="Letters by stroke">
               {Object.keys(LETTERS).map((ch) => (
@@ -664,10 +680,10 @@ export function MazeApp() {
                 Reset step
               </button>
               <button className="pill hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
-                {shownHint ? 'Next word' : 'Hint'}
+                {!shownHint ? 'Hint' : shownHint.level === 1 ? 'Next word' : 'Hint used'}
               </button>
             </div>
-            <p className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
+            <p aria-live="polite" className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
               {refused
                 ? `Hardcore: ${refused} is off the lowest-stroke route.`
                 : notice

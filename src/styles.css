@@ -651,6 +651,20 @@ select,
   box-shadow: 0 3px 0 var(--ledge);
 }
 
+/* The Hint button keeps one width as its label changes (Hint, Next word, Hint used). */
+.hint-btn {
+  min-width: 124px;
+}
+
+/* The ? and the flame look 36px, and take a 44px tap. */
+.help-btn::after,
+.hardcore-btn::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+}
+
 .help-btn[aria-expanded='true'] {
   border-color: var(--ink);
 }
@@ -858,8 +872,8 @@ select,
 }
 
 .how-try-again {
-  margin-left: 8px;
-  padding: 0;
+  margin: -12px 0 -12px 4px;
+  padding: 12px 6px;
   border: 0;
   background: none;
   font: inherit;
@@ -882,7 +896,7 @@ select,
 }
 
 .how-try .tray-tile {
-  flex: 0 0 46px;
+  flex: 0 0 54px;
 }
 
 /* The ghost doing the move: drawn over the cell and tray, never in the way. */
@@ -1340,6 +1354,7 @@ select,
 }
 
 .trail-word {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1349,6 +1364,13 @@ select,
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+/* A pill is small to look at, but its word takes a finger-sized tap. */
+.trail-word::after {
+  content: '';
+  position: absolute;
+  inset: -12px -10px;
 }
 
 .trail li:has(.trail-word[aria-pressed='true']) {
@@ -1654,7 +1676,7 @@ select,
 
 .maze.compact .help-btn {
   order: 2;
-  position: static;
+  position: relative;
   flex: none;
   width: 36px;
   height: 36px;
