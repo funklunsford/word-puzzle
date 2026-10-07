@@ -15,6 +15,8 @@ import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
 import { HowToTry } from './components/maze/HowToTry';
 import { GearIcon, Settings } from './components/maze/Settings';
+import { ShareSheet } from './components/maze/ShareSheet';
+import type { ShareResult } from './share';
 import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
 import { Celebration } from './celebration/Celebration';
 import { DAYS, celebrationFor, dayFor, dayNumber, loadDaily, localDate } from './daily/daily';
@@ -65,6 +67,8 @@ interface Visit {
   cost: number;
   /** Ink spent on that step. */
   used?: number;
+  /** The word the step started from (going back is free, so it isn't always the word before it). */
+  from?: string;
 }
 
 /** Layout: the main column's width cap, the side card's width, and the width where the card sits beside it. */
@@ -81,17 +85,22 @@ interface Result {
   best: number;
   hints: number;
   hardcore: boolean;
-  /** Strokes per step, for the share line. */
-  steps: number[];
+  /** Each step's words and strokes, for the share grid. */
+  steps: ShareResult['steps'];
 }
 const resultKey = (date: string) => `strokes:result:${date}`;
 const loadResult = (date: string): Result | null => {
   try {
-    return JSON.parse(localStorage.getItem(resultKey(date)) ?? 'null');
+    const r = JSON.parse(localStorage.getItem(resultKey(date)) ?? 'null');
+    // (Results kept before the grid have only each step's strokes: they share without it.)
+    return r && { ...r, steps: Array.isArray(r.steps) ? r.steps.filter((s: unknown) => typeof s === 'object') : [] };
   } catch {
     return null;
   }
 };
+
+/** A path's steps, for sharing: where each began, the word it made, and its strokes. */
+const stepsOf = (trail: Visit[]): ShareResult['steps'] => trail.slice(1).map((v) => ({ from: v.from ?? v.word, to: v.word, cost: v.cost }));
 
 /** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par. */
 const HARDCORE_KEY = 'strokes:hardcore';
@@ -324,7 +333,7 @@ export function MazeApp() {
     // A daily's result is kept, so coming back today shows it (the best one, if played again).
     const date = current?.date;
     if (!date) return;
-    const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: trail.slice(1).map((v) => v.cost) };
+    const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail) };
     const before = loadResult(date);
     if (!before || result.strokes < before.strokes || (result.strokes === before.strokes && result.hints < before.hints)) {
       try {
@@ -338,36 +347,18 @@ export function MazeApp() {
   /** Today's result from an earlier visit (or this one), if any. */
   const [saved, setSaved] = useState<Result | null>(null);
   useEffect(() => setSaved(current?.date ? loadResult(current.date) : null), [current?.date]);
-  const [copied, setCopied] = useState(false);
-  /** The share line, shown to copy by hand when neither sharing nor the clipboard works here. */
-  const [shareText, setShareText] = useState<string | null>(null);
-  const share = async () => {
-    if (!puzzle) return;
-    const r = won ? { strokes: spent, best, hints: hintsUsed, hardcore, steps: trail.slice(1).map((v) => v.cost) } : saved;
-    if (!r) return;
-    const text = [
-      `Strokes${current?.date ? ` No. ${dayNumber(current.date)}` : ''} · ${puzzle.start} → ${puzzle.goal}`,
-      `${r.strokes} strokes (lowest ${r.best})${r.strokes <= r.best ? ' ⭐' : ''}${r.hardcore ? ' · hardcore' : ''}${r.hints ? ` · ${r.hints} ${r.hints === 1 ? 'hint' : 'hints'}` : ''}`,
-      r.steps.map((n) => '●'.repeat(n) || '○').join(' '),
-      `${location.origin}${location.pathname}`,
-    ].join('\n');
-    const copy = async () => {
-      try {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 2000);
-      } catch {
-        setShareText(text); // no clipboard either: show it, to copy by hand
-      }
-    };
-    if (!navigator.share) return copy();
-    try {
-      await navigator.share({ text });
-    } catch (e) {
-      // Cancelled is the player's choice; anything else (no share target here) falls back to copying.
-      if ((e as Error)?.name !== 'AbortError') await copy();
-    }
+  /** The result being shared (the share sheet is open). */
+  const [sharing, setSharing] = useState<ShareResult | null>(null);
+  const shareBtn = useRef<HTMLButtonElement>(null);
+  const share = (r: Result | null) => {
+    if (!puzzle || !r) return;
+    const date = current?.date;
+    setSharing({ ...r, start: puzzle.start, goal: puzzle.goal, date, number: date ? dayNumber(date) : undefined });
   };
+  const closeShare = useCallback(() => {
+    setSharing(null);
+    shareBtn.current?.focus();
+  }, []);
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     const at = (key: string) => (q.get(key) ? Number(q.get(key)) : undefined);
@@ -413,7 +404,7 @@ export function MazeApp() {
         const pot = !!potPlan?.pots.includes(word);
         setSpent((s) => s + paid);
         setInk(ink - used + (pot ? 1 : 0));
-        setTrail((t) => [...t, { word, cost: paid, used }]);
+        setTrail((t) => [...t, { word, cost: paid, used, from: room }]);
         setLastDoor({ word, cost: paid, used, back: false, pot });
         return true;
       }
@@ -687,8 +678,13 @@ export function MazeApp() {
                 {hintsUsed > 0 && <span className="nowrap"> · {hintsUsed} {hintsUsed === 1 ? 'hint' : 'hints'}</span>}
               </p>
               <div className="pill-row">
-                <button className="pill" onClick={share}>
-                  {copied ? 'Copied!' : 'Share'}
+                <button
+                  ref={shareBtn}
+                  className="pill"
+                  aria-haspopup="dialog"
+                  onClick={() => share({ strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail) })}
+                >
+                  Share
                 </button>
                 {(scene || spent <= best) && (
                   <button className="pill quiet" onClick={() => setCelebrating({ perfect: spent <= best })}>
@@ -696,7 +692,6 @@ export function MazeApp() {
                   </button>
                 )}
               </div>
-              {shareText && <p className="share-text">{shareText}</p>}
               {current?.date && <p className="result-next">A new puzzle comes at midnight.</p>}
             </section>
           ) : (
@@ -704,7 +699,11 @@ export function MazeApp() {
             {saved && stepEdits === 0 && trail.length === 1 && (
               <p className="solved-before">
                 Solved today in {saved.strokes}
-                {saved.strokes <= saved.best ? ' · perfect ⭐' : ''}. Play it again any time.
+                {saved.strokes <= saved.best ? ' · perfect ⭐' : ''}. Play it again any time, or{' '}
+                <button ref={shareBtn} className="link-btn" aria-haspopup="dialog" onClick={() => share(saved)}>
+                  share it
+                </button>
+                .
               </p>
             )}
             <div className="pill-row">
@@ -872,6 +871,7 @@ export function MazeApp() {
         </aside>
       </div>
       <AnimatePresence>{settings && <Settings theme={theme} onTheme={chooseTheme} onClose={closeSettings} />}</AnimatePresence>
+      <AnimatePresence>{sharing && <ShareSheet result={sharing} onClose={closeShare} />}</AnimatePresence>
       {inkFlights}
       {celebrating && (
         <Celebration

@@ -489,3 +489,15 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - the tray wrapping onto two rows on phones;
   - a full landscape layout;
   - the shortest phones (375×667), where the controls fall below the fold.
+
+## Sharing, settings, and centring by eye (2026-10-06, branch `share-and-settings`)
+- **A result card to share** (`src/share.ts`, `ShareSheet.tsx`), Wordle's grid in this game's terms. Share (after a win, or "share it" on the "Solved today" line) opens a sheet with:
+  - **the picture** (1080×1350, a portrait post, always on paper): the wordmark, the day's number and date, the score with ★ PERFECT and 🔥 HARDCORE badges, then the solve as a ladder: the start word in ink, a row of squares per step under the letters it changed, the goal word in ink, each step's strokes beside its row, and the link;
+  - **the text to paste:** "Strokes No. 1 🔥", "PINK → DUNE · 9 strokes (lowest 8) · 1 hint", a row of squares per step (⬜ kept, 🟨 1 stroke, 🟧 2, 🟥 3) with its strokes, and the link. No word from the route appears; the start and goal are the day's puzzle, not a spoiler.
+  - **Share** hands the phone's share sheet the picture and the text together (where it takes files; the text alone otherwise), **Copy text**, and **Save image**. The picture is drawn as the sheet opens, so Share needs no waiting (iPhones refuse a share that waits). With no clipboard, the text box is outlined to copy by hand.
+  - A stroke moved from one letter to another colours both squares, so a row can add up to more than the number beside it, which is the step's true cost.
+  - Each step now records the word it left (going back is free, so it isn't always the word before it). Results kept before this have no grid and share without one.
+- **Link previews:** Open Graph and Twitter tags in `index.html`, with `public/og.png` (1200×630, drawn by `drawPreviewCard` in headless Chrome against the dev server).
+- **Settings** (the gear, top right of the header): Appearance is System, Light or Dark (`strokes:theme`). The page's dark colours moved from the media query to `:root[data-theme='dark']`, set before the first paint by a script in `index.html`; System follows the device as it changes.
+- **Tray strokes are centred by eye** (`opticalOffset` in `ink.ts`): halfway between the drawn outline's middle and the centre line's balance point. The C sat 2 px left of its tile's centre on phones; it's now 0.7 px right, which looks centred because its weight is on the left. The bowl got the mirror fix. The practice in How to play uses the same offsets.
+- **Swiping a placed V on a phone** keeps it in its letter while the finger swipes (it no longer jumps up above the finger); dragged away, it lifts above the finger as before.

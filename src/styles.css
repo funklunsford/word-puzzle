@@ -1423,15 +1423,59 @@ select,
   color: var(--ink);
 }
 
-.share-text {
-  margin: 0;
+/* A button that reads as a link, inside a sentence ("or share it"). */
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* Sharing: the picture card, the text grid to paste, and Share / Copy text / Save image. */
+.share-preview {
+  display: grid;
+  place-items: center;
+  margin: 12px 0 10px;
+}
+
+.share-preview img,
+.share-loading {
+  display: block;
+  height: min(44dvh, 400px);
+  aspect-ratio: 4 / 5;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--ledge);
+}
+
+.share-loading {
+  background: var(--line);
+  opacity: 0.5;
+}
+
+.share-grid {
+  max-height: 168px;
+  overflow: auto;
+  margin: 0 0 14px;
   padding: 8px 12px;
   border: 1px dashed var(--line);
   border-radius: 10px;
+  font: inherit;
   font-size: 13px;
-  white-space: pre-line;
-  text-align: left;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: var(--ink);
   user-select: text;
+}
+
+.share-grid.select {
+  border-style: solid;
+  border-color: var(--ink);
 }
 
 .result-next,
