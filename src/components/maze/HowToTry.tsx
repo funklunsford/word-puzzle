@@ -1,11 +1,12 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { usePrefs, useReduceMotion } from '../../prefs';
 import { LETTERS, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, strokeCenterline } from '../../ink';
 import { recognize, slotKey } from '../../strokes';
 import { TUTORIAL as STEPS, type Ghost } from '../../tutorial';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
-import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift } from './WordEditor';
+import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift, trayCentring } from './WordEditor';
 
 /** The practice tray: a long bar, a bar, a chevron and an arc (every stroke the steps use). */
 const TRAY: TileId[] = ['LV', 'H', 'BV', 'C'];
@@ -34,7 +35,8 @@ interface Geo {
  * player has a go, and again whenever they leave it alone for a moment.
  */
 export function HowToTry({ touch }: { touch: boolean }) {
-  const reduce = useReducedMotion();
+  const reduce = useReduceMotion();
+  const { swipe } = usePrefs();
   const [stepIndex, setStepIndex] = useState(0);
   const [startCells, setStartCells] = useState(() => [fresh(STEPS[0].start)]);
   const [cells, setCells] = useState(startCells);
@@ -60,7 +62,9 @@ export function HowToTry({ touch }: { touch: boolean }) {
       const tray: Geo['tray'] = {};
       for (const t of TRAY) {
         const b = el.querySelector(`[data-tile="${t}"] svg`)?.getBoundingClientRect();
-        if (b) tray[t] = { x: (b.left - r.left + b.width / 2) / scale, y: (b.top - r.top + b.height / 2) / scale };
+        // Where the tile's stroke is drawn (centred by eye, see trayCentring).
+        const [ox, oy] = trayCentring(t, 0);
+        if (b) tray[t] = { x: (b.left - r.left + b.width / 2 + (ox * b.width) / 2.4) / scale, y: (b.top - r.top + b.height / 2 + (oy * b.width) / 2.4) / scale };
       }
       setGeo({ ox: (s.left - r.left) / scale + (CELL_W / 2) * k, oy: (s.top - r.top) / scale - CELL_TOP * k, k, tray, w: el.offsetWidth, h: el.offsetHeight });
     };
@@ -126,7 +130,7 @@ export function HowToTry({ touch }: { touch: boolean }) {
         )}
       </p>
       <div className="how-try-box" ref={box} onPointerDownCapture={busy} onPointerUpCapture={rest} onPointerCancelCapture={rest}>
-        <WordEditor key={stepIndex} cells={cells} unit={UNIT} disabled={done} room={done ? step.goal : step.start} onEdit={onEdit} onHoverTile={() => {}} tray={TRAY} />
+        <WordEditor key={stepIndex} cells={cells} unit={UNIT} disabled={done} room={done ? step.goal : step.start} onEdit={onEdit} onHoverTile={() => {}} tray={TRAY} swipe={swipe} />
         {geo && plan && idle && (
           <GhostMove key={`${stepIndex}:${cells[0].map(slotKey).join(',')}`} plan={plan.ghost} content={cells[0]} geo={geo} touch={touch} still={!!reduce} />
         )}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useReducedMotion } from 'motion/react';
+import { useReduceMotion } from '../prefs';
 import { smooth } from './kit';
 import type { CelebrationModule } from './scene';
 import { wordWidth } from './wordPoints';
@@ -42,7 +42,7 @@ function cssColor(name: string, fallback: string): [number, number, number] {
  */
 export function Celebration({ start, goal, load, perfect, strokes, best, hints = 0, freezeAt, onClose }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduceMotion();
   const [title, setTitle] = useState<string | null>(null);
   const [shown, setShown] = useState(false);
   const [leaving, setLeaving] = useState(false);

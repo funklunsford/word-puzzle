@@ -5,6 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <title>Strokes</title>
+    <meta name="description" content="Turn one word into another, stroke by stroke. A new word puzzle every day." />
+    <!-- The link preview when a result is shared (public/og.png, drawn by drawPreviewCard in src/share.ts). -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Strokes" />
+    <meta property="og:title" content="Strokes: a daily word puzzle" />
+    <meta property="og:description" content="Turn one word into another, stroke by stroke. A new puzzle every day." />
+    <meta property="og:url" content="https://funklunsford.github.io/strokes/" />
+    <meta property="og:image" content="https://funklunsford.github.io/strokes/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Strokes, written in coloured strokes, over a row of coloured squares" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- The theme (light or dark) and motion before anything is drawn: the player's choice, else the device's (see src/theme.ts, src/prefs.ts). -->
+    <script>
+      (function () {
+        var choice = 'system';
+        try {
+          choice = localStorage.getItem('strokes:theme') || 'system';
+        } catch (e) {}
+        var dark = choice === 'dark' || (choice !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        // Less motion, likewise (see src/prefs.ts).
+        var motion = 'system';
+        try {
+          motion = JSON.parse(localStorage.getItem('strokes:prefs') || '{}').motion || 'system';
+        } catch (e) {}
+        var less = motion === 'less' || (motion !== 'full' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        document.documentElement.dataset.motion = less ? 'less' : 'full';
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

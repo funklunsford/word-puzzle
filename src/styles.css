@@ -33,38 +33,37 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #17161c;
-    --surface: #212029;
-    --ink: #ece9f1;
-    --muted: #8e8a99;
-    --line: #34323d;
-    --gold: #f0c04a;
-    --ink-pot: #9fb2f0;
-    --ink-fill: #4a63c8;
-    --feather: #e6dfd0;
-    --spicy: #ff7a4d;
-    --remove: #ff6b6b;
-    --ok: #93c27f;
-    --ledge: #0e0d12;
-    --pastel-1: #f5c45e;
-    --pastel-2: #c8a8ea;
-    --pastel-3: #9fcfb3;
-    --pastel-4: #a9b9ec;
+/* Dark: the player's choice in Settings, or the device's (data-theme is set in index.html; see src/theme.ts). */
+:root[data-theme='dark'] {
+  --bg: #17161c;
+  --surface: #212029;
+  --ink: #ece9f1;
+  --muted: #8e8a99;
+  --line: #34323d;
+  --gold: #f0c04a;
+  --ink-pot: #9fb2f0;
+  --ink-fill: #4a63c8;
+  --feather: #e6dfd0;
+  --spicy: #ff7a4d;
+  --remove: #ff6b6b;
+  --ok: #93c27f;
+  --ledge: #0e0d12;
+  --pastel-1: #f5c45e;
+  --pastel-2: #c8a8ea;
+  --pastel-3: #9fcfb3;
+  --pastel-4: #a9b9ec;
 
-    --t-LV: #8fa6bf;
-    --t-H: #d98a68;
-    --t-LD: #a9bf8e;
-    --t-LB: #7f9c6a;
-    --t-SB: #6fb0a3;
-    --t-BV: #dcb064;
-    --t-SC: #c18aa8;
-    --t-C: #a596c4;
-    --t-P: #d6908f;
+  --t-LV: #8fa6bf;
+  --t-H: #d98a68;
+  --t-LD: #a9bf8e;
+  --t-LB: #7f9c6a;
+  --t-SB: #6fb0a3;
+  --t-BV: #dcb064;
+  --t-SC: #c18aa8;
+  --t-C: #a596c4;
+  --t-P: #d6908f;
 
-    color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 
 * {
@@ -509,6 +508,175 @@ select,
   text-align: center;
 }
 
+.masthead {
+  position: relative;
+}
+
+/* The gear, in the header's top-right corner. */
+.masthead-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.gear-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--ledge);
+  cursor: pointer;
+}
+
+.gear-btn::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+}
+
+.gear-btn[aria-expanded='true'] {
+  border-color: var(--ink);
+}
+
+.gear-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gear-btn:hover .gear-icon {
+    stroke: var(--ink);
+  }
+}
+
+/* Settings: a setting's name, its choices side by side, and a line of explanation. */
+.setting {
+  margin: 14px 0 4px;
+}
+
+.setting-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.segmented {
+  display: flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.segmented button {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.segmented button.on {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 2px 0 var(--ledge);
+}
+
+.setting-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* A setting that's on or off: its name and what it does, and a switch. The whole row flips it. */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.setting-label + .toggle {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.toggle-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.toggle-label {
+  display: block;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.toggle .setting-note {
+  display: block;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.switch[aria-checked='true'] {
+  background: var(--ok);
+}
+
+.switch .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.2s;
+}
+
+.switch[aria-checked='true'] .knob {
+  transform: translateX(20px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .masthead-art {
   width: min(520px, 100%);
   height: auto;
@@ -779,10 +947,8 @@ select,
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hardcore-btn.on {
-    animation: none;
-  }
+:root[data-motion='less'] .hardcore-btn.on {
+  animation: none;
 }
 
 /* How to play: a pop-up over the game (first visit, or the ? button). */
@@ -1301,10 +1467,8 @@ select,
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pip.used {
-    animation: none;
-  }
+:root[data-motion='less'] .pip.used {
+  animation: none;
 }
 
 .how {
@@ -1325,15 +1489,59 @@ select,
   color: var(--ink);
 }
 
-.share-text {
-  margin: 0;
+/* A button that reads as a link, inside a sentence ("or share it"). */
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* Sharing: the picture card, the text grid to paste, and Share / Copy text / Save image. */
+.share-preview {
+  display: grid;
+  place-items: center;
+  margin: 12px 0 10px;
+}
+
+.share-preview img,
+.share-loading {
+  display: block;
+  height: min(44dvh, 400px);
+  aspect-ratio: 4 / 5;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--ledge);
+}
+
+.share-loading {
+  background: var(--line);
+  opacity: 0.5;
+}
+
+.share-grid {
+  max-height: 168px;
+  overflow: auto;
+  margin: 0 0 14px;
   padding: 8px 12px;
   border: 1px dashed var(--line);
   border-radius: 10px;
+  font: inherit;
   font-size: 13px;
-  white-space: pre-line;
-  text-align: left;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: var(--ink);
   user-select: text;
+}
+
+.share-grid.select {
+  border-style: solid;
+  border-color: var(--ink);
 }
 
 .result-next,
@@ -1624,22 +1832,19 @@ select,
   background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
-/* Reduced motion: no slides, springs or scaling; keep colour and opacity changes. */
-@media (prefers-reduced-motion: reduce) {
-  .tray-tile,
-  .tray-tile.taken,
-  .tray-tile svg,
-  .pill,
-  .key,
-  .tile,
-  .word-layer {
-    transition: none;
-    transform: none !important;
-  }
+/* Less motion (Settings, or the device's setting; see prefs.ts): no slides, springs or scaling;
+   keep colour and opacity changes. */
+:root[data-motion='less'] :is(.tray-tile, .tray-tile.taken, .tray-tile svg, .pill, .key, .tile, .word-layer) {
+  transition: none;
+  transform: none !important;
+}
 
-  .word-cells.opened {
-    animation-duration: 0.3s;
-  }
+:root[data-motion='less'] :is(.switch, .switch .knob) {
+  transition: none;
+}
+
+:root[data-motion='less'] .word-cells.opened {
+  animation-duration: 0.3s;
 }
 
 /* ---------- Phones (.maze.compact: under 600 px wide) ----------
