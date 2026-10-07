@@ -2048,6 +2048,13 @@ select,
   height: 100%;
 }
 
+/* The Perfect bubbles: a clear canvas over the stage (the board shows through until the stage fades in). */
+.celebration canvas.party {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 @keyframes celebration-in {
   from {
     opacity: 0;

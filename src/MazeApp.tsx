@@ -19,7 +19,7 @@ import { GearIcon, Settings } from './components/maze/Settings';
 import { ShareSheet } from './components/maze/ShareSheet';
 import type { ShareResult } from './share';
 import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
-import { Celebration } from './celebration/Celebration';
+import { Celebration, inkSources } from './celebration/Celebration';
 import { DAYS, celebrationFor, dayFor, dayNumber, loadDaily, localDate } from './daily/daily';
 import { WordEditor } from './components/maze/WordEditor';
 import { Glyph, GlyphWord } from './components/Glyph';
@@ -208,6 +208,8 @@ export function MazeApp() {
   const [inFlight, setInFlight] = useState(0);
   const [bankPop, setBankPop] = useState(0);
   const boardRef = useRef<HTMLElement>(null);
+  /** The word's strokes on the board, for the Perfect bubbles to come out of. */
+  const wordInk = useCallback(() => inkSources(boardRef.current?.querySelector('.word-cells')), []);
   const bankRef = useRef<HTMLSpanElement>(null);
   const reduce = useReduceMotion(prefs.motion);
   // How to play pops up on a player's very first visit only (or with ?help in the address, for testing).
@@ -898,6 +900,7 @@ export function MazeApp() {
           goal={puzzle.goal}
           load={scene}
           perfect={celebrating.perfect}
+          from={wordInk}
           strokes={won ? spent : celebrating.perfect ? best : best + 1}
           hints={won ? hintsUsed : 0}
           best={best}

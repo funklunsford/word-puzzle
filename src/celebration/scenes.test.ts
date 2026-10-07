@@ -6,9 +6,10 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import type { DailyPuzzle } from '../daily/daily';
 import type { Pt } from '../ink';
-import { CONFETTI, confettiScene } from './confetti';
+import { CONFETTI, confettiScene, type BubbleSource } from './confetti';
+import { plainScene } from './plain';
 import type { CelebrationModule, Scene } from './scene';
-import { wordStrokes, wordWidth } from './wordPoints';
+import { wordStrokes } from './wordPoints';
 
 const modules = import.meta.glob<CelebrationModule>('../daily/days/*.ts', { eager: true });
 const sources = import.meta.glob<string>('../daily/days/*.ts', { eager: true, query: '?raw', import: 'default' });
@@ -137,10 +138,10 @@ function along(word: string): Pt[] {
   );
 }
 
-/** The share of a word's strokes that the frame draws over (the word drawn at `scale`). */
-function coverage(scene: Scene, word: string, scale = 1) {
+/** The share of a word's strokes that the frame draws over. */
+function coverage(scene: Scene, word: string) {
   const { tris, dots } = drawn(scene);
-  const pts = along(word).map(([x, y]): Pt => [x * scale, y * scale]);
+  const pts = along(word);
   const covered = pts.filter((p) => tris.some((t) => inside(p, t)) || dots.some((d) => Math.hypot(d[0] - p[0], d[1] - p[1]) < 0.06));
   return covered.length / pts.length;
 }
@@ -259,25 +260,26 @@ describe('daily celebrations', () => {
 });
 
 describe('the Perfect bubbles', () => {
-  const WORD = 'TAME';
-  const make = (small = false, showWord = false) => confettiScene(THREE, { small, cssColor, word: WORD, showWord });
-  /** Screen units per word unit, with the word across 70% of the screen (as the celebration frames it). */
-  const scaleFor = (aspect: number) => (2 * aspect * 0.7) / wordWidth(WORD);
-  const asScene = (c: ReturnType<typeof make>, aspect: number): Scene => ({ objects: c.objects, margin: 0, update: (t) => c.update(t, aspect, scaleFor(aspect)), dispose: c.dispose });
-  /** The farthest a frame's drawing reaches from the word's strokes, in screen units (its centres, roughly). */
+  /** A word on the board, as the bubbles are told of it: points along four letters' strokes, a little above the middle. */
+  const sources = (aspect: number): BubbleSource[] =>
+    Array.from({ length: 80 }, (_, i) => ({ x: (((i % 40) / 39) * 1.2 - 0.6) * Math.min(aspect, 1), y: 0.25 + (i < 40 ? 0 : 0.18), color: [((i * 37) % 10) / 10, 0.5, 0.4] }));
+  const make = (aspect: number, small = false, light = true) => confettiScene(THREE, { small, light, sources: sources(aspect) });
+  const asScene = (c: ReturnType<typeof make>, aspect: number): Scene => ({ objects: c.objects, margin: 0, update: (t) => c.update(t, aspect), dispose: c.dispose });
+  /** How far the bubbles have come from the word, the middle one of them (their centres, roughly). */
   const reach = (s: Scene, aspect: number) => {
-    const word = along(WORD).map(([x, y]): Pt => [x * scaleFor(aspect), y * scaleFor(aspect)]);
+    const from = sources(aspect);
     const centres = drawn(s).tris.map((tri): Pt => [(tri[0][0] + tri[1][0] + tri[2][0]) / 3, (tri[0][1] + tri[1][1] + tri[2][1]) / 3]);
-    return Math.max(0, ...centres.map(([x, y]) => Math.min(...word.map(([wx, wy]) => Math.hypot(x - wx, y - wy)))));
+    const d = centres.map(([x, y]) => Math.min(...from.map((q) => Math.hypot(x - q.x, y - q.y)))).sort((a, b) => a - b);
+    return d[Math.floor(d.length / 2)] ?? 0;
   };
 
   it('draws the same frame for the same moment, in any order and from a fresh start', () => {
     const times = [0, 0.1, 0.6, 1.3, CONFETTI.handoff, 2.5, CONFETTI.length + 1];
-    for (const [aspect, showWord] of [[1.6, false], [0.46, true]] as const) {
-      const a = asScene(make(false, showWord), aspect);
+    for (const aspect of [1.6, 0.46]) {
+      const a = asScene(make(aspect), aspect);
       const first = times.map((t) => (a.update(t), snapshot(a)));
       const again = [...times].reverse().map((t) => (a.update(t), snapshot(a))).reverse();
-      const b = asScene(make(false, showWord), aspect);
+      const b = asScene(make(aspect), aspect);
       times.forEach((t, i) => {
         expect(again[i], `t = ${t}, played backwards`).toBe(first[i]);
         expect((b.update(t), snapshot(b)), `t = ${t}, a second copy`).toBe(first[i]);
@@ -287,14 +289,14 @@ describe('the Perfect bubbles', () => {
 
   it('bursts out of the word, floats away from it on screen, and is gone by its end', () => {
     for (const aspect of [1.6, 0.46]) {
-      const s = asScene(make(), aspect);
+      const s = asScene(make(aspect), aspect);
       s.update(0.12);
       expect(drawn(s).tris.length).toBeGreaterThan(40);
-      expect(reach(s, aspect)).toBeLessThan(0.3);
+      expect(reach(s, aspect)).toBeLessThan(0.1);
       s.update(1.2);
       const { tris } = drawn(s);
       expect(tris.length).toBeGreaterThan(40);
-      expect(reach(s, aspect)).toBeGreaterThan(0.4);
+      expect(reach(s, aspect)).toBeGreaterThan(0.2);
       const xs = tris.flat().map((p) => p[0]);
       expect(xs.filter((x) => Math.abs(x) <= aspect + 0.05).length / xs.length).toBeGreaterThan(0.95);
       s.update(CONFETTI.length);
@@ -302,21 +304,24 @@ describe('the Perfect bubbles', () => {
     }
   });
 
-  it('draws the word itself when asked (with no scene of the day), and keeps it to the end', () => {
-    const s = asScene(make(false, true), 1.6);
-    for (const t of [0, CONFETTI.length + 1]) {
-      s.update(t);
-      expect(coverage(s, WORD, scaleFor(1.6)), `t = ${t}`).toBeGreaterThan(0.9);
-    }
-  });
-
   it('keeps to the budget, draws less on a phone, and frees everything it made', () => {
-    const big = measure(asScene(make(false, true), 1.6));
-    const small = measure(asScene(make(true), 0.46));
+    const big = measure(asScene(make(1.6), 1.6));
+    const small = measure(asScene(make(0.46, true), 0.46));
     expect(big.meshes).toBeLessThanOrEqual(BUDGET.meshes);
     expect(big.vertices).toBeLessThanOrEqual(BUDGET.vertices);
     expect(big.instances).toBeLessThanOrEqual(BUDGET.instances);
     expect(small.instances).toBeLessThan(0.7 * big.instances);
-    expect(disposesAll(asScene(make(false, true), 1.6))).toBe(true);
+    expect(disposesAll(asScene(make(1.6), 1.6))).toBe(true);
+  });
+});
+
+describe('the plain celebration (a puzzle with no scene of the day)', () => {
+  it('shows the goal word, still, and frees what it made', () => {
+    const s = plainScene(THREE, { word: 'TAME', cssColor });
+    for (const t of [0, 3, 10]) {
+      s.update();
+      expect(coverage(s, 'TAME'), `t = ${t}`).toBeGreaterThan(0.9);
+    }
+    expect(disposesAll(s)).toBe(true);
   });
 });
