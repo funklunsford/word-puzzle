@@ -41,14 +41,17 @@ function letterStrokes(a: string, b: string): number {
 /** One step's squares: 0 for a letter kept, else its strokes (1, 2, 3+). */
 export const stepSquares = (from: string, to: string) => [...to].map((ch, i) => Math.min(3, letterStrokes(from[i], ch)));
 
+/** The squares for 0 (kept), 1, 2 and 3 strokes; colour-blind, 2 is blue, so no square leans on red against orange. */
 const EMOJI = ['⬜', '🟨', '🟧', '🟥'];
+const EMOJI_CB = ['⬜', '🟨', '🟦', '🟥'];
 
 /** The text to paste: a header, a row of squares per step with its strokes, and the link. */
-export function shareText(r: ShareResult, url = SITE): string {
+export function shareText(r: ShareResult, colorBlind = false, url = SITE): string {
   const perfect = r.strokes <= r.best;
   const head = `Strokes${r.number ? ` No. ${r.number}` : ''}${r.hardcore ? ' 🔥' : ''}`;
   const score = `${r.start} → ${r.goal} · ${r.strokes} ${r.strokes === 1 ? 'stroke' : 'strokes'}${perfect ? ' ⭐' : ` (lowest ${r.best})`}${r.hints ? ` · ${r.hints} ${r.hints === 1 ? 'hint' : 'hints'}` : ''}`;
-  const rows = r.steps.map((s) => `${stepSquares(s.from, s.to).map((n) => EMOJI[n]).join('')} ${s.cost}`);
+  const emoji = colorBlind ? EMOJI_CB : EMOJI;
+  const rows = r.steps.map((s) => `${stepSquares(s.from, s.to).map((n) => emoji[n]).join('')} ${s.cost}`);
   return [head, score, ...rows, url].join('\n');
 }
 
@@ -66,6 +69,9 @@ const PAPER = {
   spicy: '#e4572e',
   squares: ['#efeae0', '#f2c65a', '#e8913a', '#d9542f'],
   squareLedges: ['#ddd6c8', '#d6a63a', '#c9752a', '#b54224'],
+  /** Colour-blind: yellow, blue, red (light, middle, dark to red-green colour blindness too). */
+  squaresCB: ['#efeae0', '#f2c65a', '#3f7fd6', '#b8402a'],
+  squareLedgesCB: ['#ddd6c8', '#d6a63a', '#2f63ad', '#8f2f1e'],
   tiles: { LV: '#3f5a74', H: '#b0583a', LD: '#6f8c58', LB: '#4e6b3f', SB: '#3f7f73', BV: '#b98a2f', SC: '#8a4f70', C: '#6b5b8f', P: '#a8545d' } as Record<string, string>,
 };
 
@@ -129,14 +135,14 @@ function cardBase(ctx: CanvasRenderingContext2D, w: number, h: number, m: number
 }
 
 /** A heat square: the game's tile shape, with its ledge. */
-function square(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, heat: number) {
+function square(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, heat: number, colorBlind = false) {
   const r = size * 0.22;
   const ledge = Math.max(3, size * 0.07);
   roundRect(ctx, x, y + ledge, size, size, r);
-  ctx.fillStyle = PAPER.squareLedges[heat];
+  ctx.fillStyle = (colorBlind ? PAPER.squareLedgesCB : PAPER.squareLedges)[heat];
   ctx.fill();
   roundRect(ctx, x, y, size, size, r);
-  ctx.fillStyle = PAPER.squares[heat];
+  ctx.fillStyle = (colorBlind ? PAPER.squaresCB : PAPER.squares)[heat];
   ctx.fill();
 }
 
@@ -145,7 +151,7 @@ function square(ctx: CanvasRenderingContext2D, x: number, y: number, size: numbe
  * word in ink, a row of squares per step under the letters it changed, the goal word in ink), and
  * the link.
  */
-export async function drawResultCard(r: ShareResult, canvas = document.createElement('canvas')): Promise<HTMLCanvasElement> {
+export async function drawResultCard(r: ShareResult, colorBlind = false, canvas = document.createElement('canvas')): Promise<HTMLCanvasElement> {
   await document.fonts?.ready;
   const W = 1080;
   const H = 1350;
@@ -214,7 +220,7 @@ export async function drawResultCard(r: ShareResult, canvas = document.createEle
   word(r.start, 0);
   r.steps.forEach((s, i) => {
     const y = rowY(i + 1);
-    stepSquares(s.from, s.to).forEach((n, k) => square(ctx, col(k), y, size, n));
+    stepSquares(s.from, s.to).forEach((n, k) => square(ctx, col(k), y, size, n, colorBlind));
     ctx.fillStyle = PAPER.muted;
     ctx.font = `800 ${Math.max(26, Math.round(size * 0.44))}px ${FONT}`;
     ctx.textAlign = 'left';

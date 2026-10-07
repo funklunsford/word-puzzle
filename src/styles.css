@@ -607,6 +607,76 @@ select,
   color: var(--muted);
 }
 
+/* A setting that's on or off: its name and what it does, and a switch. The whole row flips it. */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.setting-label + .toggle {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.toggle-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.toggle-label {
+  display: block;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.toggle .setting-note {
+  display: block;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.switch[aria-checked='true'] {
+  background: var(--ok);
+}
+
+.switch .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.2s;
+}
+
+.switch[aria-checked='true'] .knob {
+  transform: translateX(20px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .masthead-art {
   width: min(520px, 100%);
   height: auto;
@@ -877,10 +947,8 @@ select,
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hardcore-btn.on {
-    animation: none;
-  }
+:root[data-motion='less'] .hardcore-btn.on {
+  animation: none;
 }
 
 /* How to play: a pop-up over the game (first visit, or the ? button). */
@@ -1399,10 +1467,8 @@ select,
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pip.used {
-    animation: none;
-  }
+:root[data-motion='less'] .pip.used {
+  animation: none;
 }
 
 .how {
@@ -1766,22 +1832,19 @@ select,
   background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
-/* Reduced motion: no slides, springs or scaling; keep colour and opacity changes. */
-@media (prefers-reduced-motion: reduce) {
-  .tray-tile,
-  .tray-tile.taken,
-  .tray-tile svg,
-  .pill,
-  .key,
-  .tile,
-  .word-layer {
-    transition: none;
-    transform: none !important;
-  }
+/* Less motion (Settings, or the device's setting; see prefs.ts): no slides, springs or scaling;
+   keep colour and opacity changes. */
+:root[data-motion='less'] :is(.tray-tile, .tray-tile.taken, .tray-tile svg, .pill, .key, .tile, .word-layer) {
+  transition: none;
+  transform: none !important;
+}
 
-  .word-cells.opened {
-    animation-duration: 0.3s;
-  }
+:root[data-motion='less'] :is(.switch, .switch .knob) {
+  transition: none;
+}
+
+:root[data-motion='less'] .word-cells.opened {
+  animation-duration: 0.3s;
 }
 
 /* ---------- Phones (.maze.compact: under 600 px wide) ----------

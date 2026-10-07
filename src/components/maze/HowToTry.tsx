@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { usePrefs, useReduceMotion } from '../../prefs';
 import { LETTERS, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, strokeCenterline } from '../../ink';
 import { recognize, slotKey } from '../../strokes';
@@ -34,7 +35,8 @@ interface Geo {
  * player has a go, and again whenever they leave it alone for a moment.
  */
 export function HowToTry({ touch }: { touch: boolean }) {
-  const reduce = useReducedMotion();
+  const reduce = useReduceMotion();
+  const { swipe } = usePrefs();
   const [stepIndex, setStepIndex] = useState(0);
   const [startCells, setStartCells] = useState(() => [fresh(STEPS[0].start)]);
   const [cells, setCells] = useState(startCells);
@@ -128,7 +130,7 @@ export function HowToTry({ touch }: { touch: boolean }) {
         )}
       </p>
       <div className="how-try-box" ref={box} onPointerDownCapture={busy} onPointerUpCapture={rest} onPointerCancelCapture={rest}>
-        <WordEditor key={stepIndex} cells={cells} unit={UNIT} disabled={done} room={done ? step.goal : step.start} onEdit={onEdit} onHoverTile={() => {}} tray={TRAY} />
+        <WordEditor key={stepIndex} cells={cells} unit={UNIT} disabled={done} room={done ? step.goal : step.start} onEdit={onEdit} onHoverTile={() => {}} tray={TRAY} swipe={swipe} />
         {geo && plan && idle && (
           <GhostMove key={`${stepIndex}:${cells[0].map(slotKey).join(',')}`} plan={plan.ghost} content={cells[0]} geo={geo} touch={touch} still={!!reduce} />
         )}

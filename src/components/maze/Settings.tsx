@@ -1,15 +1,69 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { motion } from 'motion/react';
 import type { ThemeChoice } from '../../theme';
+import type { MotionChoice, Prefs } from '../../prefs';
 
 const THEMES: { choice: ThemeChoice; label: string }[] = [
   { choice: 'system', label: 'System' },
   { choice: 'light', label: 'Light' },
   { choice: 'dark', label: 'Dark' },
 ];
+const MOTIONS: { choice: MotionChoice; label: string }[] = [
+  { choice: 'system', label: 'System' },
+  { choice: 'less', label: 'Less' },
+  { choice: 'full', label: 'Full' },
+];
 
-/** The settings pop-up (the gear): for now, light or dark. Escape, the ×, Done or a tap outside closes it. */
-export function Settings({ theme, onTheme, onClose }: { theme: ThemeChoice; onTheme: (choice: ThemeChoice) => void; onClose: () => void }) {
+/** One of a few choices, as a row of buttons (a radio group). */
+function Segmented<T extends string>({ label, options, value, onChange, note }: { label: string; options: { choice: T; label: string }[]; value: T; onChange: (v: T) => void; note: string }) {
+  const id = useId();
+  return (
+    <div className="setting">
+      <span className="setting-label" id={id}>
+        {label}
+      </span>
+      <div className="segmented" role="radiogroup" aria-labelledby={id}>
+        {options.map((o) => (
+          <button key={o.choice} role="radio" aria-checked={value === o.choice} className={value === o.choice ? 'on' : ''} onClick={() => onChange(o.choice)}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <p className="setting-note">{note}</p>
+    </div>
+  );
+}
+
+/** On or off, with a line on what it does. A tap anywhere on the row flips it. */
+function Toggle({ label, note, on, onChange }: { label: string; note: string; on: boolean; onChange: (on: boolean) => void }) {
+  const id = useId();
+  return (
+    <label className="toggle">
+      <span className="toggle-text">
+        <span className="toggle-label" id={`${id}-l`}>
+          {label}
+        </span>
+        <span className="setting-note" id={`${id}-n`}>
+          {note}
+        </span>
+      </span>
+      <button role="switch" aria-checked={on} aria-labelledby={`${id}-l`} aria-describedby={`${id}-n`} className="switch" onClick={() => onChange(!on)}>
+        <span className="knob" />
+      </button>
+    </label>
+  );
+}
+
+interface Props {
+  theme: ThemeChoice;
+  onTheme: (choice: ThemeChoice) => void;
+  prefs: Prefs;
+  onPrefs: (patch: Partial<Prefs>) => void;
+  onClose: () => void;
+}
+
+/** The settings pop-up (the gear). Escape, the ×, Done or a tap outside closes it. */
+export function Settings({ theme, onTheme, prefs, onPrefs, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
@@ -37,18 +91,43 @@ export function Settings({ theme, onTheme, onClose }: { theme: ThemeChoice; onTh
             ×
           </button>
         </div>
+        <Segmented label="Appearance" options={THEMES} value={theme} onChange={onTheme} note="System follows your device's light or dark mode." />
+        <Segmented
+          label="Motion"
+          options={MOTIONS}
+          value={prefs.motion}
+          onChange={(motion) => onPrefs({ motion })}
+          note="Less: strokes snap instead of springing, and a win shows its finished picture. System follows your device."
+        />
         <div className="setting">
-          <span className="setting-label" id="theme-label">
-            Appearance
-          </span>
-          <div className="segmented" role="radiogroup" aria-labelledby="theme-label">
-            {THEMES.map(({ choice, label }) => (
-              <button key={choice} role="radio" aria-checked={theme === choice} className={theme === choice ? 'on' : ''} onClick={() => onTheme(choice)}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <p className="setting-note">System follows your device's light or dark mode.</p>
+          <span className="setting-label">Playing</span>
+          <Toggle
+            label="Swipe to turn"
+            note="Off: double-tap or double-click a stroke to turn it, in the tray or in a letter."
+            on={prefs.swipe}
+            onChange={(swipe) => onPrefs({ swipe })}
+          />
+          <Toggle
+            label="Letter guide"
+            note="The A to Z under the word, lighting up the letters a stroke is in."
+            on={prefs.letters}
+            onChange={(letters) => onPrefs({ letters })}
+          />
+          <Toggle
+            label="Definitions"
+            note="Each word's meaning, above it. You can still tap a word in your path to look it up."
+            on={prefs.definitions}
+            onChange={(definitions) => onPrefs({ definitions })}
+          />
+        </div>
+        <div className="setting">
+          <span className="setting-label">Sharing</span>
+          <Toggle
+            label="Colour-blind squares"
+            note="Shared results use yellow, blue and red, so no square needs telling orange from red."
+            on={prefs.colorBlind}
+            onChange={(colorBlind) => onPrefs({ colorBlind })}
+          />
         </div>
         <button className="pill help-go" onClick={onClose}>
           Done

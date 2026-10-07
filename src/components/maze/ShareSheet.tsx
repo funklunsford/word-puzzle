@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { drawResultCard, shareText, type ShareResult } from '../../share';
+import { usePrefs } from '../../prefs';
 
 /**
  * Share a result: the picture card and the text grid, with Share (the phone's share sheet, card and
@@ -13,7 +14,8 @@ export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: 
   const file = useRef<File | null>(null);
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
-  const text = shareText(result);
+  const { colorBlind } = usePrefs();
+  const text = shareText(result, colorBlind);
   const name = `strokes-${result.number ?? 'result'}.png`;
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: 
   }, [onClose]);
   useEffect(() => {
     let live = true;
-    drawResultCard(result).then((canvas) => {
+    drawResultCard(result, colorBlind).then((canvas) => {
       if (!live) return;
       setImage(canvas.toDataURL('image/png'));
       canvas.toBlob((blob) => {

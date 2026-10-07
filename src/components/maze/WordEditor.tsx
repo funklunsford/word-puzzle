@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
+import { animate, motion, useMotionValue } from 'motion/react';
+import { useReduceMotion } from '../../prefs';
 import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, lookCenterline, opticalOffset, strokeCenterline, type Pt } from '../../ink';
 import { EMPTY_CELL_X, formedLooks, onlyFit, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
@@ -151,6 +152,8 @@ interface Props {
   hinted?: number[];
   /** The strokes in the tray (all of them by default; How to play's practice offers a few). */
   tray?: readonly TileId[];
+  /** A swipe turns a stroke as it's placed (Settings can turn this off: then a double-tap or double-click turns one). */
+  swipe?: boolean;
 }
 
 /** How far above a fingertip a held stroke rides (px), so the finger doesn't hide it. */
@@ -234,7 +237,7 @@ const TWISTS = new Set(
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
  * slot from where it was released or flies back to its tray tile.
  */
-export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS }: Props) {
+export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS, swipe = true }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<{ cell: number; key: string } | null>(null);
   /** A stroke flying home to its tray tile after the drag ended (removed, or not placed). */
@@ -245,7 +248,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   const trayEls = useRef(new Map<TileId, HTMLElement>());
   const landings = useRef(new Map<string, Landing>());
   const rootRef = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduceMotion();
   const coarse = useMedia(COARSE);
 
   // On phones the four cells share the row's width, and the unit is whatever that makes it.
@@ -439,7 +442,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     const restLocal = rest && toCell(overCell, rest.x, rest.y);
     if (aim.armed && restLocal) aim = { ...aim, settled: true, ax: restLocal.lx, ay: restLocal.ly };
     else if (aim.armed && creeping) aim = { ...aim, ax: rawLocal.lx, ay: rawLocal.ly };
-    if (aim.armed) {
+    if (aim.armed && swipe) {
       const dx = rawLocal.lx - aim.ax;
       const dy = rawLocal.ly - aim.ay;
       const len = Math.hypot(dx, dy);
@@ -957,7 +960,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? 'swipe to turn' : noFit ? 'no fit' : (letter ?? 'no letter')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (swipe ? 'swipe to turn' : 'turn it first') : noFit ? 'no fit' : (letter ?? 'no letter')}
               </span>
             </div>
           );

@@ -19,6 +19,12 @@ describe('sharing a result', () => {
     expect(text).not.toMatch(/PINT|PINE/);
   });
 
+  it('swaps orange for blue for colour-blind players', () => {
+    const steps = [{ from: 'PINE', to: 'DUNE', cost: 3 }, { from: 'PINT', to: 'PINE', cost: 3 }];
+    const rows = shareText({ start: 'PINK', goal: 'DUNE', strokes: 6, best: 8, hints: 0, hardcore: false, steps }, true).split('\n').slice(2, 4);
+    expect(rows).toEqual(['🟦🟦⬜⬜ 3', '⬜⬜⬜🟥 3']);
+  });
+
   it('says how far off the lowest a solve was, and the hints', () => {
     const text = shareText({ start: 'PINK', goal: 'DUNE', strokes: 9, best: 8, hints: 1, hardcore: false, steps: [] });
     expect(text.split('\n').slice(0, 2)).toEqual(['Strokes', 'PINK → DUNE · 9 strokes (lowest 8) · 1 hint']);

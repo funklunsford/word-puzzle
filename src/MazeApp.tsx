@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, MotionConfig, motion } from 'motion/react';
+import { PrefsContext, followSystemMotion, loadPrefs, motionConfig, savePrefs, useReduceMotion, type Prefs } from './prefs';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, recognize, wordDistance } from './strokes';
 import { dataUrl } from './data';
@@ -167,6 +168,16 @@ export function MazeApp() {
   const themeRef = useRef(theme);
   themeRef.current = theme;
   useEffect(() => followSystemTheme(() => themeRef.current), []);
+  // The rest of the settings: motion, swipe to turn, the letter guide, definitions, colour-blind squares.
+  const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
+  const prefsRef = useRef(prefs);
+  prefsRef.current = prefs;
+  useEffect(() => followSystemMotion(() => prefsRef.current.motion), []);
+  const changePrefs = (patch: Partial<Prefs>) => {
+    const next = { ...prefsRef.current, ...patch };
+    setPrefs(next);
+    savePrefs(next);
+  };
   const chooseTheme = (choice: ThemeChoice) => {
     setTheme(choice);
     saveTheme(choice);
@@ -198,7 +209,7 @@ export function MazeApp() {
   const [bankPop, setBankPop] = useState(0);
   const boardRef = useRef<HTMLElement>(null);
   const bankRef = useRef<HTMLSpanElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReduceMotion(prefs.motion);
   // How to play pops up on a player's very first visit only (or with ?help in the address, for testing).
   const [help, setHelp] = useState(() => !seenHelp() || new URLSearchParams(location.search).has('help'));
   useEffect(() => markHelpSeen(), []);
@@ -494,7 +505,8 @@ export function MazeApp() {
   const justOpened = !won && !stepEdits && !!lastDoor;
 
   return (
-    <MotionConfig reducedMotion="user">
+    <PrefsContext.Provider value={prefs}>
+    <MotionConfig reducedMotion={motionConfig(prefs.motion)}>
       <div
         className={`maze${side ? ' side' : ''}${compact ? ' compact' : ''}`}
         style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}
@@ -593,9 +605,9 @@ export function MazeApp() {
                   <ul className="how">
                     <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
-                      <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it, or swipe as you place it.</li>
+                      <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it{prefs.swipe ? ', or swipe as you place it' : ''}.</li>
                     ) : (
-                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, double-click it, or swipe as you place it.</li>
+                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, double-click it{prefs.swipe ? ', or swipe as you place it' : ''}.</li>
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
@@ -627,7 +639,7 @@ export function MazeApp() {
               <span className="label">You are in</span>
               {/* The word's meaning sits right above it, and changes as each new word is made. */}
               <AnimatePresence mode="wait" initial={false}>
-                {defs?.[room] && (
+                {prefs.definitions && defs?.[room] && (
                   <motion.p
                     key={room}
                     className="definition"
@@ -650,20 +662,27 @@ export function MazeApp() {
               room={room}
               onEdit={onEdit}
               onHoverTile={setHoverTile}
+              swipe={prefs.swipe}
               onMiss={(why) =>
-                setNotice(why === 'turn' ? 'That fits there turned the other way: swipe as you drop it.' : "That stroke doesn't fit in that letter.")
+                setNotice(
+                  why === 'turn'
+                    ? `That fits there turned the other way: ${prefs.swipe ? 'swipe as you drop it' : 'turn it in the tray first'}.`
+                    : "That stroke doesn't fit in that letter.",
+                )
               }
             />
-            <div className="letters" aria-label="Letters by stroke">
-              {Object.keys(LETTERS).map((ch) => (
-                <span
-                  key={ch}
-                  className={`ref-letter${lettersWithTile ? (lettersWithTile.has(ch) ? ' match' : ' dim') : ''}`}
-                >
-                  <Glyph letter={ch} size={13} />
-                </span>
-              ))}
-            </div>
+            {prefs.letters && (
+              <div className="letters" aria-label="Letters by stroke">
+                {Object.keys(LETTERS).map((ch) => (
+                  <span
+                    key={ch}
+                    className={`ref-letter${lettersWithTile ? (lettersWithTile.has(ch) ? ' match' : ' dim') : ''}`}
+                  >
+                    <Glyph letter={ch} size={13} />
+                  </span>
+                ))}
+              </div>
+            )}
           </section>
 
           {won ? (
@@ -870,7 +889,7 @@ export function MazeApp() {
           )}
         </aside>
       </div>
-      <AnimatePresence>{settings && <Settings theme={theme} onTheme={chooseTheme} onClose={closeSettings} />}</AnimatePresence>
+      <AnimatePresence>{settings && <Settings theme={theme} onTheme={chooseTheme} prefs={prefs} onPrefs={changePrefs} onClose={closeSettings} />}</AnimatePresence>
       <AnimatePresence>{sharing && <ShareSheet result={sharing} onClose={closeShare} />}</AnimatePresence>
       {inkFlights}
       {celebrating && (
@@ -887,5 +906,6 @@ export function MazeApp() {
         />
       )}
     </MotionConfig>
+    </PrefsContext.Provider>
   );
 }

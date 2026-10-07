@@ -17,7 +17,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Strokes, written in coloured strokes, over a row of coloured squares" />
     <meta name="twitter:card" content="summary_large_image" />
-    <!-- The theme (light or dark) before anything is drawn: the player's choice, else the device's (see src/theme.ts). -->
+    <!-- The theme (light or dark) and motion before anything is drawn: the player's choice, else the device's (see src/theme.ts, src/prefs.ts). -->
     <script>
       (function () {
         var choice = 'system';
@@ -26,6 +26,13 @@
         } catch (e) {}
         var dark = choice === 'dark' || (choice !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        // Less motion, likewise (see src/prefs.ts).
+        var motion = 'system';
+        try {
+          motion = JSON.parse(localStorage.getItem('strokes:prefs') || '{}').motion || 'system';
+        } catch (e) {}
+        var less = motion === 'less' || (motion !== 'full' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        document.documentElement.dataset.motion = less ? 'less' : 'full';
       })();
     </script>
   </head>

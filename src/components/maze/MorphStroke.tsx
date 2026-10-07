@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
+import { animate, motion, useMotionValue } from 'motion/react';
+import { useReduceMotion } from '../../prefs';
 import type { TileId } from '../../glyphs';
 import { inkMorph, inkPath, strokeCenterline, type Pt } from '../../ink';
 
@@ -30,7 +31,7 @@ interface Props {
  * straighten again when it breaks.
  */
 export function MorphStroke({ tile, rot, x = 0, y = 0, seed, minHalfWidth, squeeze = 1, fill, look, from }: Props) {
-  const reduce = useReducedMotion();
+  const reduce = useReduceMotion();
   const own = useMemo(() => strokeCenterline(tile, rot, squeeze), [tile, rot, squeeze]);
   // The look it eases towards or back from (kept after the letter breaks, to ease back out of it).
   const shape = useRef<Pt[] | null>(look ?? (Array.isArray(from) ? from : null));
