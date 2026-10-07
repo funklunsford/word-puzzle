@@ -1,20 +1,33 @@
-# Familiar words added for the maze's shape (2026-10-06), hand-picked from ENABLE: each one links
-# everyday words that were cut off from the main maze (CHEW, HUGE, VIEW, YEAH…), most of them as a
-# pocket (part of the maze that hangs off the rest by a single word). Not every one is in SCOWL
-# size 50. Used by scripts/familiar.ts; edit this list to add or drop words, then rebuild.
+# Words added for the maze's shape (2026-10-06), hand-picked from ENABLE: each one links words that
+# were cut off from the main maze (CHEW, HUGE, VIEW, YEAH…), most of them as a pocket (part of the
+# maze that hangs off the rest by a single word). Most are familiar; OLIO, VELD, ARIL, DEVA, PIMA,
+# PHON and TAIN are less common, picked by the owner for the pockets they add. Not every one is in
+# SCOWL size 50. Used by scripts/familiar.ts; edit this list to add or drop words, then rebuild.
+ARIL
 AXEL
 COCO
+DEVA
 DOJO
+FILO
 GHEE
 GOGO
+KENO
+LIMA
 LOCI
 LUGE
 LULU
 LUNA
 LUTZ
 MAKO
+MOJO
+OLIO
 PHEW
+PHON
+PIMA
 PRIG
+TAIN
 TREY
 TZAR
+VELD
+WONK
 YECH
