@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { animate, motion, useMotionValue } from 'motion/react';
 import { useReduceMotion } from '../../prefs';
-import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, xExtent, type Placement, type TileId } from '../../glyphs';
+import { LETTERS, ORIENTS, TILES, TILE_IDS, TRAY_TURN, drawnScale, drawnWidth, xExtent, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, lookCenterline, opticalOffset, strokeCenterline, type Pt } from '../../ink';
 import { EMPTY_CELL_X, formedLooks, onlyFit, recognize, slotKey, slotsFor, type Slot } from '../../strokes';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
@@ -74,11 +74,6 @@ const pointing = (t: TileId, rot: number) => {
 
 /** The quarter turn nearest to `turn` (unwrapped, so turn − quarter is the leftover twist). */
 const quarter = (turn: number) => Math.round(turn / 90) * 90;
-
-/** The orientations each stroke takes in some letter: what tapping it in the tray cycles through on a touch screen. */
-const ORIENTS = Object.fromEntries(
-  TILE_IDS.map((t) => [t, [...new Set(Object.values(LETTERS).flatMap((g) => g.parts.filter((p) => p.tile === t).map((p) => norm(p.rot ?? 0))))].sort((a, b) => a - b)]),
-) as Record<TileId, number[]>;
 
 type Source = { kind: 'tray' } | { kind: 'cell'; cell: number; index: number; key: string };
 
@@ -265,18 +260,10 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     return () => ro.disconnect();
   }, [compact]);
 
-  // How each stroke sits in the tray: a way it goes into letters (an arc as C, not on its side), and
-  // it goes in the way it's turned. On a touch screen double-tapping a chevron, arc or bowl turns it
-  // there; with a mouse, a swipe turns it as it's placed (see locate).
-  const [trayTurn, setTrayTurn] = useState(
-    () =>
-      Object.fromEntries(
-        TILE_IDS.map((t) => {
-          const display = TILES[t].display ?? 0;
-          return [t, ORIENTS[t].includes(display) ? display : ORIENTS[t][0]];
-        }),
-      ) as Record<TileId, number>,
-  );
+  // How each stroke sits in the tray (TRAY_TURN at first), and it goes in the way it's turned. On a
+  // touch screen double-tapping a chevron, arc or bowl turns it there; with a mouse, a swipe turns it
+  // as it's placed (see locate).
+  const [trayTurn, setTrayTurn] = useState(() => ({ ...TRAY_TURN }));
   const turnInTray = (t: TileId) =>
     setTrayTurn((s) => ({ ...s, [t]: ORIENTS[t][(ORIENTS[t].indexOf(s[t]) + 1) % ORIENTS[t].length] }));
   // A single tap wiggles a turnable stroke (a hint that it turns); a second tap soon after turns it.

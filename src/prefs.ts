@@ -15,7 +15,7 @@ export interface Prefs {
   letters: boolean;
   /** The current word's meaning under it. */
   definitions: boolean;
-  /** Shared squares in yellow, blue and red, so no square has to be told from its neighbour by red and orange alone. */
+  /** The result card's squares in yellow, blue and red, so none has to be told from another by red and orange alone. */
   colorBlind: boolean;
 }
 

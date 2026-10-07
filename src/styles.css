@@ -1501,7 +1501,7 @@ select,
   cursor: pointer;
 }
 
-/* Sharing: the picture card, the text grid to paste, and Share / Copy text / Save image. */
+/* Sharing: the picture card, with Share / Copy image / Save image. */
 .share-preview {
   display: grid;
   place-items: center;
@@ -1511,10 +1511,9 @@ select,
 .share-preview img,
 .share-loading {
   display: block;
-  height: min(44dvh, 400px);
+  width: min(100%, calc(min(60dvh, 500px) * 0.8));
+  height: auto;
   aspect-ratio: 4 / 5;
-  max-width: 100%;
-  object-fit: contain;
   border-radius: 14px;
   box-shadow: 0 4px 0 var(--ledge);
 }
@@ -1524,24 +1523,9 @@ select,
   opacity: 0.5;
 }
 
-.share-grid {
-  max-height: 168px;
-  overflow: auto;
-  margin: 0 0 14px;
-  padding: 8px 12px;
-  border: 1px dashed var(--line);
-  border-radius: 10px;
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  color: var(--ink);
-  user-select: text;
-}
-
-.share-grid.select {
-  border-style: solid;
-  border-color: var(--ink);
+.share-note {
+  margin: 0 0 10px;
+  text-align: center;
 }
 
 .result-next,
@@ -2062,6 +2046,13 @@ select,
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* The Perfect confetti: a clear canvas over the stage (the board shows through until the stage fades in). */
+.celebration canvas.party {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 @keyframes celebration-in {

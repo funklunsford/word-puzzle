@@ -121,8 +121,9 @@ exports two things:
     - halfway through resolving;
     - `settled + 0.6`.
   - Check each at 1280×800 and at 375×812, in dark and in light mode.
-  - `&perfect` adds the confetti that plays first after a lowest-strokes solve, over {START}; the
-    scene starts as it falls away. Check that {START} reads under it, e.g. `/?day={DATE}&perfect=1.0`.
+  - `&perfect` adds the confetti that comes first after a lowest-strokes solve: it pops out of the
+    word on the board, and the scene fades in over the board as it falls away (fully in at 1.7 s).
+    Check that {START} reads as it arrives, e.g. `/?day={DATE}&perfect=1.8`.
 - **Fix anything that doesn't read:** a muddled change, an illegible {GOAL}, colours lost on either
   background, or anything that jumps.
 
