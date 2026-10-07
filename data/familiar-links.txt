@@ -1,0 +1,20 @@
+# Familiar words added for the maze's shape (2026-10-06), hand-picked from ENABLE: each one links
+# everyday words that were cut off from the main maze (CHEW, HUGE, VIEW, YEAH…), most of them as a
+# pocket (part of the maze that hangs off the rest by a single word). Not every one is in SCOWL
+# size 50. Used by scripts/familiar.ts; edit this list to add or drop words, then rebuild.
+AXEL
+COCO
+DOJO
+GHEE
+GOGO
+LOCI
+LUGE
+LULU
+LUNA
+LUTZ
+MAKO
+PHEW
+PRIG
+TREY
+TZAR
+YECH

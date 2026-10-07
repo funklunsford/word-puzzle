@@ -5,6 +5,7 @@
 // - {DATE}.ts: its win celebration (a CelebrationModule, see src/celebration/scene.ts).
 
 import type { CelebrationModule } from '../celebration/scene';
+import type { KeptDifficulty } from '../difficulty';
 import type { Need, Puzzle } from '../maze';
 
 export interface DailyPuzzle {
@@ -14,6 +15,8 @@ export interface DailyPuzzle {
   inkPots: { pots: string[]; best: number; walk: string[] };
   need: Need;
   tricky: boolean;
+  /** How tricky it is (see src/difficulty.ts); days chosen before 2026-10-07 don't say. */
+  difficulty?: KeptDifficulty;
   /** Words on a lowest-stroke route, with their strokes from the start (see routeWords): hardcore mode keeps to them. */
   onRoute: Record<string, number>;
 }

@@ -256,19 +256,25 @@ function stepCost(from: string[], to: string[]): number {
   return cost;
 }
 
-/**
- * Strokes for one step between words a and b (same length) as the editor allows them: Infinity if
- * it can't be done within STEP_LIMIT. Never less than strokeDiff, sometimes more. The same either
- * way round (each order of strokes undoes in reverse); both are checked, as the maze's doors open both ways.
- */
-export function wordDistance(a: string, b: string): number {
+/** Strokes for a step from word a to word b, in that direction only (Infinity beyond STEP_LIMIT). */
+export function oneWayCost(a: string, b: string): number {
   if (a.length !== b.length) return Infinity;
   if (a === b) return 0;
   if (strokeDiff(a, b) > STEP_LIMIT) return Infinity;
   const from: string[] = [];
   const to: string[] = [];
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) (from.push(a[i]), to.push(b[i]));
-  return Math.max(stepCost(from, to), stepCost(to, from));
+  return stepCost(from, to);
+}
+
+/**
+ * Strokes for one step between words a and b (same length) as the editor allows them: Infinity if
+ * it can't be done within STEP_LIMIT. Never less than strokeDiff, sometimes more. The same either
+ * way round (each order of strokes undoes in reverse; a test checks every pair of maze words); both
+ * are checked, as the maze's doors open both ways.
+ */
+export function wordDistance(a: string, b: string): number {
+  return Math.max(oneWayCost(a, b), oneWayCost(b, a));
 }
 
 /** Words reachable from `word` in one step (at most STEP_LIMIT stroke edits). */

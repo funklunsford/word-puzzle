@@ -23,17 +23,21 @@ four seconds, then it holds until they tap.
 
 ## 1. Choose the puzzle
 
-- Run `npm run daily -- {DATE}`. It lists ten candidates for that date, with their routes and
-  definitions. The script has already cycled through the puzzle pool for you:
+- Run `npm run daily -- {DATE}`. It lists ten candidates for that date, with their routes,
+  definitions and what makes each tricky (how often a simulated player makes par, how far ahead
+  you must plan, its traps, and the pockets beside its route). The script has already cycled
+  through the puzzle pool for you:
   - no pair is used twice (either way round);
   - no start or goal word comes back within 30 days;
-  - difficulty follows the week;
+  - difficulty follows the week: the easiest third of the pool early in the week, the hardest by
+    the weekend;
   - the kind of route varies from day to day.
 - **Choose the one whose two words make the clearest picture of change.** The best pairs are vivid
   or concrete, and the change between them can be shown without words, like WILD → TAME or
   COLD → WARM. Avoid pairs where either word is unpleasant, or where the change would be awkward
   to show to everyone.
   - Choose only from the list. If none is good, take the least awkward one.
+  - Between pairs that are equally good pictures, prefer one with a trap into a pocket.
 - Check it in with `npm run daily -- {DATE} {START} {GOAL}`. This writes
   `src/daily/days/{DATE}.json` and prints the fields this prompt uses:
   - `{DATE}`, `{NUMBER}`, `{START}`, `{GOAL}`, `{ROUTE}`, `{BEST}`;

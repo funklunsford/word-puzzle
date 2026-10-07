@@ -6,8 +6,9 @@
 //   http://app.aspell.net/create?max_size=40&spelling=US&max_variant=0&diacritic=strip&download=wordlist&encoding=utf-8&format=inline
 // (and the same with max_size=50). Every 4-letter word up to size 40 ("medium": everyday words)
 // is kept; from size 50 only the hand-reviewed familiar words in data/familiar-extra.txt are added
-// (size 50 also brings in rare ones like KITH and TYRO). Lowercase entries only (capitalised ones
-// are names and abbreviations), also valid in ENABLE, minus a blocklist. Writes
+// (size 50 also brings in rare ones like KITH and TYRO), and the hand-picked words in
+// data/familiar-links.txt that join cut-off words to the maze. Lowercase entries only (capitalised
+// ones are names and abbreviations), also valid in ENABLE, minus a blocklist. Writes
 // data/familiar-4.txt with SCOWL's notice on top, and data/everyday-4.txt: the ones also in size
 // 35 ("small": the most everyday words), which puzzles start and end on.
 
@@ -29,6 +30,7 @@ const size40 = scowl(base);
 const size50 = scowl(wider);
 const size35 = scowl(core);
 const extra = parseWordList(readFileSync(new URL('../data/familiar-extra.txt', import.meta.url), 'utf8'));
+const links = parseWordList(readFileSync(new URL('../data/familiar-links.txt', import.meta.url), 'utf8'));
 const missing = extra.filter((w) => !size50.words.has(w));
 if (missing.length) throw new Error(`not in the size-50 list: ${missing.join(' ')}`);
 const notice = size40.notice;
@@ -39,12 +41,13 @@ const enable = new Set(
     .map((w) => w.trim().toUpperCase()),
 );
 const blocked = new Set(BLOCKLIST);
-const words = [...new Set([...size40.words, ...extra])].filter((w) => enable.has(w) && !blocked.has(w)).sort();
+const words = [...new Set([...size40.words, ...extra, ...links])].filter((w) => enable.has(w) && !blocked.has(w)).sort();
 
 const header = [
   'Familiar 4-letter words for the stroke maze, built by scripts/familiar.ts: lowercase 4-letter',
-  'words up to SCOWL size 40, plus the reviewed size-50 words in data/familiar-extra.txt, also in',
-  'ENABLE, minus a small blocklist. The size-40 list notice follows (size 50 has the same terms).',
+  'words up to SCOWL size 40, plus the reviewed size-50 words in data/familiar-extra.txt and the',
+  'linking words in data/familiar-links.txt, also in ENABLE, minus a small blocklist. The size-40',
+  'list notice follows (size 50 has the same terms).',
   '',
   ...notice,
 ].map((l) => `# ${l}`.trimEnd());

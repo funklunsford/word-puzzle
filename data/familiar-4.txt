@@ -1,6 +1,7 @@
 # Familiar 4-letter words for the stroke maze, built by scripts/familiar.ts: lowercase 4-letter
-# words up to SCOWL size 40, plus the reviewed size-50 words in data/familiar-extra.txt, also in
-# ENABLE, minus a small blocklist. The size-40 list notice follows (size 50 has the same terms).
+# words up to SCOWL size 40, plus the reviewed size-50 words in data/familiar-extra.txt and the
+# linking words in data/familiar-links.txt, also in ENABLE, minus a small blocklist. The size-40
+# list notice follows (size 50 has the same terms).
 #
 # Custom wordlist generated from https://app.aspell.net/create using
 # the English Speller Database (ESDB) with parameters:
@@ -115,6 +116,7 @@ AWED
 AWES
 AWRY
 AXED
+AXEL
 AXES
 AXIS
 AXLE
@@ -335,6 +337,7 @@ COAL
 COAT
 COAX
 COBS
+COCO
 CODA
 CODE
 CODS
@@ -470,6 +473,7 @@ DOER
 DOES
 DOFF
 DOGS
+DOJO
 DOLE
 DOLL
 DOLT
@@ -721,6 +725,7 @@ GENE
 GENT
 GERM
 GETS
+GHEE
 GIBE
 GIFT
 GIGS
@@ -750,6 +755,7 @@ GOAT
 GOBS
 GODS
 GOES
+GOGO
 GOLD
 GOLF
 GONE
@@ -1083,6 +1089,7 @@ LOAM
 LOAN
 LOBE
 LOBS
+LOCI
 LOCK
 LOCO
 LODE
@@ -1113,15 +1120,19 @@ LOWS
 LUAU
 LUBE
 LUCK
+LUGE
 LUGS
 LULL
+LULU
 LUMP
+LUNA
 LUNG
 LURE
 LURK
 LUSH
 LUST
 LUTE
+LUTZ
 LYNX
 LYRE
 MACE
@@ -1132,6 +1143,7 @@ MAIL
 MAIM
 MAIN
 MAKE
+MAKO
 MALE
 MALL
 MALT
@@ -1389,6 +1401,7 @@ PESO
 PEST
 PETS
 PEWS
+PHEW
 PICK
 PIED
 PIER
@@ -1450,6 +1463,7 @@ PRAM
 PRAY
 PREP
 PREY
+PRIG
 PRIM
 PROD
 PROF
@@ -1918,6 +1932,7 @@ TRAP
 TRAY
 TREE
 TREK
+TREY
 TRIG
 TRIM
 TRIO
@@ -1946,6 +1961,7 @@ TWOS
 TYKE
 TYPE
 TYPO
+TZAR
 UGLY
 ULNA
 UMPS
@@ -2114,6 +2130,7 @@ YAWN
 YEAH
 YEAR
 YEAS
+YECH
 YELL
 YELP
 YENS

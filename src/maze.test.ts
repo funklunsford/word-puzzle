@@ -79,7 +79,7 @@ describe('the puzzle pool', () => {
     expect([...ONE_STROKE].sort()).toEqual(['C', 'I', 'V']);
   });
 
-  it('centres on 9 strokes, evenly across 8, 9 and 10', () => {
+  it('centres on 10 strokes, evenly across 9, 10 and 11', () => {
     expect(pool.length).toBeGreaterThanOrEqual(300);
     const [lo, hi] = PUZZLE_SHAPE.best;
     for (const { puzzle } of pool) expect(puzzle.best).toBeGreaterThanOrEqual(lo), expect(puzzle.best).toBeLessThanOrEqual(hi);
@@ -107,9 +107,11 @@ describe('the puzzle pool', () => {
     }
   });
 
-  it('has no obvious puzzles: the straightforward approach never makes par', () => {
-    for (const { puzzle: p, tricky } of pool) expect(isObvious(words, adj, p.start, p.goal, p.best), `${p.start} → ${p.goal}`).toBe(!tricky);
-    expect(pool.filter((x) => x.tricky).length / pool.length).toBeCloseTo(POOL_MIX.tricky, 2);
+  it('has no obvious puzzles: the straightforward approach never makes par (src/difficulty.test.ts checks the rest)', () => {
+    for (const { puzzle: p, tricky } of pool) {
+      expect(tricky, `${p.start} → ${p.goal}`).toBe(true);
+      expect(isObvious(words, adj, p.start, p.goal, p.best), `${p.start} → ${p.goal}`).toBe(false);
+    }
   });
 });
 
