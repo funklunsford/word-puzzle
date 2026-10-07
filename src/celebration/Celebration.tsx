@@ -9,9 +9,9 @@ interface Props {
   goal: string;
   /** The day's celebration, if the puzzle has one (loaded when it plays). */
   load?: () => Promise<CelebrationModule>;
-  /** Solved in the lowest possible strokes: bubbles and sparkles burst out of the word first, then the day's celebration. */
+  /** Solved in the lowest possible strokes: confetti and sparkles pop out of the word first, then the day's celebration. */
   perfect: boolean;
-  /** Where the word's strokes are on screen, for the bubbles to come out of (asked as they start; see inkSources). */
+  /** Where the word's strokes are on screen, for the confetti to pop out of (asked as it starts; see inkSources). */
   from?: () => Source[];
   /** The player's strokes, and the lowest possible. */
   strokes: number;
@@ -62,8 +62,8 @@ function cssColor(name: string, fallback: string): [number, number, number] {
 
 /**
  * The win celebration, drawn live with three.js (loaded only when it plays). For a solve in the
- * lowest possible strokes, bubbles and sparkles burst out of the word first (see confetti.ts); then the
- * day's own scene shows the start word becoming the goal word. A tap skips the bubbles, or carries on; so do
+ * lowest possible strokes, confetti and sparkles pop out of the word on the board first (see confetti.ts);
+ * then the day's own scene shows the start word becoming the goal word. A tap skips the confetti, or carries on; so do
  * Enter and Space. Escape always carries on.
  */
 export function Celebration({ start, goal, load, perfect, from, strokes, best, hints = 0, freezeAt, onClose }: Props) {
@@ -72,7 +72,7 @@ export function Celebration({ start, goal, load, perfect, from, strokes, best, h
   const [title, setTitle] = useState<string | null>(null);
   const [shown, setShown] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  /** Skips the bubbles, if they're still playing; false when there's nothing left but to close. */
+  /** Skips the confetti, if it's still playing; false when there's nothing left but to close. */
   const skip = useRef<() => boolean>(() => false);
 
   useEffect(() => {
@@ -87,8 +87,8 @@ export function Celebration({ start, goal, load, perfect, from, strokes, best, h
       const ratio = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2);
 
       // Two layers, each on its own canvas. The stage: the day's scene, framed on its words (or, with
-      // none, the goal word still). Over it, for a Perfect solve, the bubbles: on a clear canvas, so
-      // they burst out of the word on the board, and the stage fades in as they pop away.
+      // none, the goal word still). Over it, for a Perfect solve, the confetti: on a clear canvas, so
+      // it pops out of the word on the board, and the stage fades in as it falls away.
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
       renderer.setPixelRatio(ratio);
       el.prepend(renderer.domElement);
@@ -100,7 +100,7 @@ export function Celebration({ start, goal, load, perfect, from, strokes, best, h
       const page = new THREE.Color().setRGB(...cssColor('--bg', '#17161c'), THREE.SRGBColorSpace);
       const rect = el.getBoundingClientRect();
       const toScreen = (q: Source) => ({ x: (q.x - rect.left - rect.width / 2) / (rect.height / 2), y: (rect.top + rect.height / 2 - q.y) / (rect.height / 2), color: q.color });
-      const party = perfect ? C.confettiScene(THREE, { small, sources: (from?.() ?? []).map(toScreen), light: page.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5 }) : null;
+      const party = perfect ? C.confettiScene(THREE, { small, sources: (from?.() ?? []).map(toScreen) }) : null;
       const partyRenderer = party ? new THREE.WebGLRenderer({ antialias: true, alpha: true }) : null;
       const partyScene = new THREE.Scene();
       const partyCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, -10, 10);
@@ -112,7 +112,7 @@ export function Celebration({ start, goal, load, perfect, from, strokes, best, h
         renderer.domElement.after(partyRenderer.domElement);
       }
 
-      // The timeline: the bubbles from 0, and the day's scene from D0 (fading in as the bubbles pop away).
+      // The timeline: the confetti from 0, and the day's scene from D0 (fading in as the confetti falls away).
       const timing = day?.theme.timing;
       const D0 = party ? C.CONFETTI.handoff : 0;
       const end = timing ? D0 + timing.settled : C.CONFETTI.length - 0.6;
@@ -166,7 +166,7 @@ export function Celebration({ start, goal, load, perfect, from, strokes, best, h
         if (!clock.live && !dirty) return;
         dirty = false;
         const t = now();
-        // The stage, faded in over the board as the bubbles give way to it.
+        // The stage, faded in over the board as the confetti gives way to it.
         renderer.domElement.style.opacity = String(party ? smooth(D0 - 0.45, D0, t) : 1);
         art.update(Math.max(0, t - D0));
         renderer.setClearColor(bg.copy(storm).lerp(page, smooth(calm, end, t)));

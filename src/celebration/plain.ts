@@ -1,5 +1,5 @@
 // The celebration for a puzzle with no day's scene of its own (only a Perfect solve celebrates one):
-// the goal word, still, a ribbon per stroke in the strokes' colours, for the bubbles to give way to.
+// the goal word, still, a ribbon per stroke in the strokes' colours, for the confetti to give way to.
 
 import type * as THREE_NS from 'three';
 import type { Three } from './scene';

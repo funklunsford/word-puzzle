@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import type { DailyPuzzle } from '../daily/daily';
 import type { Pt } from '../ink';
-import { CONFETTI, confettiScene, type BubbleSource } from './confetti';
+import { CONFETTI, confettiScene, type BurstSource } from './confetti';
 import { plainScene } from './plain';
 import type { CelebrationModule, Scene } from './scene';
 import { wordStrokes } from './wordPoints';
@@ -259,13 +259,13 @@ describe('daily celebrations', () => {
   }
 });
 
-describe('the Perfect bubbles', () => {
-  /** A word on the board, as the bubbles are told of it: points along four letters' strokes, a little above the middle. */
-  const sources = (aspect: number): BubbleSource[] =>
+describe('the Perfect confetti', () => {
+  /** A word on the board, as the confetti is told of it: points along four letters' strokes, a little above the middle. */
+  const sources = (aspect: number): BurstSource[] =>
     Array.from({ length: 80 }, (_, i) => ({ x: (((i % 40) / 39) * 1.2 - 0.6) * Math.min(aspect, 1), y: 0.25 + (i < 40 ? 0 : 0.18), color: [((i * 37) % 10) / 10, 0.5, 0.4] }));
-  const make = (aspect: number, small = false, light = true) => confettiScene(THREE, { small, light, sources: sources(aspect) });
+  const make = (aspect: number, small = false) => confettiScene(THREE, { small, sources: sources(aspect) });
   const asScene = (c: ReturnType<typeof make>, aspect: number): Scene => ({ objects: c.objects, margin: 0, update: (t) => c.update(t, aspect), dispose: c.dispose });
-  /** How far the bubbles have come from the word, the middle one of them (their centres, roughly). */
+  /** How far the confetti has come from the word, the middle piece of it (its centres, roughly). */
   const reach = (s: Scene, aspect: number) => {
     const from = sources(aspect);
     const centres = drawn(s).tris.map((tri): Pt => [(tri[0][0] + tri[1][0] + tri[2][0]) / 3, (tri[0][1] + tri[1][1] + tri[2][1]) / 3]);
@@ -287,12 +287,14 @@ describe('the Perfect bubbles', () => {
     }
   });
 
-  it('bursts out of the word, floats away from it on screen, and is gone by its end', () => {
+  it('pops out of the word, flies away from it on screen, and is gone by its end', () => {
     for (const aspect of [1.6, 0.46]) {
       const s = asScene(make(aspect), aspect);
-      s.update(0.12);
+      s.update(0.04);
       expect(drawn(s).tris.length).toBeGreaterThan(40);
-      expect(reach(s, aspect)).toBeLessThan(0.1);
+      expect(reach(s, aspect)).toBeLessThan(0.12);
+      s.update(0.6);
+      expect(reach(s, aspect)).toBeGreaterThan(0.3);
       s.update(1.2);
       const { tris } = drawn(s);
       expect(tris.length).toBeGreaterThan(40);
