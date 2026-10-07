@@ -1,12 +1,11 @@
-// Sharing a result, Wordle-style: a spoiler-free grid to paste into a text (which letters each step
-// changed, and how many strokes it took), and a picture card for social posts. Both link back.
-//
-// The grid shows a solve's shape, never its words: one row per step, a square per letter,
-// coloured by how many strokes went into that letter, and the step's strokes after it. (A stroke
-// moved from one letter to another colours both, so a row's squares can add up to more than it cost.)
+// Sharing a result: a picture card with the link back (no text to paste). The card shows the solve's
+// shape, never its words: the start and goal in ink, and between them a row of squares per step, a
+// square per letter, coloured by how many strokes went into that letter, with the step's strokes
+// beside it. (A stroke moved from one letter to another colours both, so a row's squares can add up
+// to more than it cost.) There's also the link preview for the site itself (og.png).
 
-import { LETTERS, drawnScale, drawnWidth } from './glyphs';
-import { inkOutline, inkSeed } from './ink';
+import { LETTERS, TILE_IDS, TRAY_TURN, drawnScale, drawnWidth, type TileId } from './glyphs';
+import { inkOutline, inkSeed, opticalOffset } from './ink';
 import { letterDiff } from './strokes';
 
 export interface ShareResult {
@@ -40,20 +39,6 @@ function letterStrokes(a: string, b: string): number {
 
 /** One step's squares: 0 for a letter kept, else its strokes (1, 2, 3+). */
 export const stepSquares = (from: string, to: string) => [...to].map((ch, i) => Math.min(3, letterStrokes(from[i], ch)));
-
-/** The squares for 0 (kept), 1, 2 and 3 strokes; colour-blind, 2 is blue, so no square leans on red against orange. */
-const EMOJI = ['⬜', '🟨', '🟧', '🟥'];
-const EMOJI_CB = ['⬜', '🟨', '🟦', '🟥'];
-
-/** The text to paste: a header, a row of squares per step with its strokes, and the link. */
-export function shareText(r: ShareResult, colorBlind = false, url = SITE): string {
-  const perfect = r.strokes <= r.best;
-  const head = `Strokes${r.number ? ` No. ${r.number}` : ''}${r.hardcore ? ' 🔥' : ''}`;
-  const score = `${r.start} → ${r.goal} · ${r.strokes} ${r.strokes === 1 ? 'stroke' : 'strokes'}${perfect ? ' ⭐' : ` (lowest ${r.best})`}${r.hints ? ` · ${r.hints} ${r.hints === 1 ? 'hint' : 'hints'}` : ''}`;
-  const emoji = colorBlind ? EMOJI_CB : EMOJI;
-  const rows = r.steps.map((s) => `${stepSquares(s.from, s.to).map((n) => emoji[n]).join('')} ${s.cost}`);
-  return [head, score, ...rows, url].join('\n');
-}
 
 // ---------- The picture card ----------
 
@@ -248,7 +233,40 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
   return canvas;
 }
 
-/** The link-preview card (1200×630, for og:image): the wordmark and what the game is. */
+/** Two colours mixed, as CSS's color-mix in sRGB: `k` of `a`, the rest `b`. */
+function mixHex(a: string, b: string, k: number) {
+  const ch = (h: string, i: number) => parseInt(h.slice(1 + 2 * i, 3 + 2 * i), 16);
+  return `rgb(${[0, 1, 2].map((i) => Math.round(ch(a, i) * k + ch(b, i) * (1 - k))).join(' ')})`;
+}
+
+/** A stroke's tile from the tray, `size` px square, centred on cx, cy: as the game draws it (see .tray-tile). */
+function trayTile(ctx: CanvasRenderingContext2D, tile: TileId, cx: number, cy: number, size: number) {
+  const color = PAPER.tiles[tile];
+  const k = size / 56; // the game's tile is 56 px at most
+  const [x, y, r] = [cx - size / 2, cy - size / 2, 14 * k];
+  roundRect(ctx, x, y + 4 * k, size, size, r);
+  ctx.fillStyle = mixHex(color, PAPER.ledge, 0.35);
+  ctx.fill();
+  roundRect(ctx, x, y, size, size, r);
+  ctx.fillStyle = mixHex(color, PAPER.surface, 0.12);
+  ctx.fill();
+  ctx.strokeStyle = mixHex(color, PAPER.line, 0.3);
+  ctx.lineWidth = 1.5 * k;
+  ctx.stroke();
+  // The stroke, inked as in the tray (40 px for 2.4 units there), centred by eye.
+  const rot = TRAY_TURN[tile];
+  const minHalf = 0.6 / (40 / 2.4);
+  const unit = (size - 14 * k) / 2.4;
+  const [ox, oy] = opticalOffset(tile, rot, minHalf);
+  ctx.save();
+  ctx.translate(cx + ox * unit, cy + oy * unit);
+  ctx.scale(unit, unit);
+  ctx.fillStyle = color;
+  ctx.fill(new Path2D(inkOutline(tile, rot, inkSeed({ tile, x: 0, y: 0, rot }), minHalf)));
+  ctx.restore();
+}
+
+/** The link-preview card (1200×630, for og:image): the wordmark, what the game is, and the tray of strokes. */
 export async function drawPreviewCard(canvas = document.createElement('canvas')): Promise<HTMLCanvasElement> {
   await document.fonts?.ready;
   const W = 1200;
@@ -257,16 +275,17 @@ export async function drawPreviewCard(canvas = document.createElement('canvas'))
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
   cardBase(ctx, W, H, 40);
-  drawWord(ctx, 'STROKES', W / 2, 150, 64);
+  drawWord(ctx, 'STROKES', W / 2, 96, 56);
   ctx.textAlign = 'center';
   ctx.fillStyle = PAPER.ink;
-  ctx.font = `800 46px ${FONT}`;
-  ctx.fillText('Turn one word into another, stroke by stroke.', W / 2, 392);
+  ctx.font = `800 44px ${FONT}`;
+  ctx.fillText('Turn one word into another, stroke by stroke.', W / 2, 300);
   ctx.fillStyle = PAPER.muted;
-  ctx.font = `600 34px ${FONT}`;
-  ctx.fillText('A new puzzle every day.', W / 2, 452);
-  // A row of the squares a shared result is made of.
-  const heats = [0, 1, 0, 2, 0, 3, 0, 1, 2];
-  heats.forEach((n, i) => square(ctx, W / 2 + (i - (heats.length - 1) / 2) * 66 - 26, 500, 52, n));
+  ctx.font = `600 32px ${FONT}`;
+  ctx.fillText('A new puzzle every day.', W / 2, 350);
+  // The tray: every stroke the letters are made of.
+  const size = 92;
+  const gap = 16;
+  TILE_IDS.forEach((t, i) => trayTile(ctx, t, W / 2 + (i - (TILE_IDS.length - 1) / 2) * (size + gap), 454, size));
   return canvas;
 }

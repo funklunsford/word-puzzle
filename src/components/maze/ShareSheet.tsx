@@ -1,22 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { drawResultCard, shareText, type ShareResult } from '../../share';
+import { SITE, drawResultCard, type ShareResult } from '../../share';
 import { usePrefs } from '../../prefs';
 
 /**
- * Share a result: the picture card and the text grid, with Share (the phone's share sheet, card and
- * text together), Copy text and Save image. The card is drawn as the sheet opens, so Share can hand
- * it over in the tap itself (iPhones refuse a share that waits).
+ * Share a result: the picture card, with the link back to the game. Share hands the phone's share
+ * sheet the card and the link together; Copy image and Save image are there for anywhere else (the
+ * link is on the card too). The card is drawn as the sheet opens, so Share can hand it over in the
+ * tap itself (iPhones refuse a share that waits).
  */
 export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const { colorBlind } = usePrefs();
   const [image, setImage] = useState<string | null>(null);
   const file = useRef<File | null>(null);
   const [copied, setCopied] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
-  const { colorBlind } = usePrefs();
-  const text = shareText(result, colorBlind);
+  const [note, setNote] = useState<string | null>(null);
   const name = `strokes-${result.number ?? 'result'}.png`;
+  const title = `Strokes${result.number ? ` No. ${result.number}` : ''}`;
+  const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -39,19 +41,21 @@ export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: 
   }, []);
 
   const copy = async () => {
+    if (!file.current) return;
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': file.current })]);
       setCopied(true);
+      setNote(null);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      setCopyFailed(true); // the text is on screen to copy by hand
+      setNote("Copying isn't allowed here: save the image instead.");
     }
   };
   const share = () => {
-    const data: ShareData = { text };
-    if (file.current && navigator.canShare?.({ files: [file.current] })) data.files = [file.current];
+    // The card and the link; where a phone can't take a picture, the link alone.
+    const data: ShareData = file.current && navigator.canShare?.({ files: [file.current] }) ? { files: [file.current], url: SITE, title } : { url: SITE, title };
     navigator.share(data).catch((e: Error) => {
-      if (e?.name !== 'AbortError') copy();
+      if (e?.name !== 'AbortError') setNote("Sharing didn't work here: copy or save the image instead.");
     });
   };
   const save = () => {
@@ -84,17 +88,18 @@ export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: 
         <div className="share-preview">
           {image ? <img src={image} alt={`Strokes result card: ${result.start} to ${result.goal} in ${result.strokes} strokes`} /> : <div className="share-loading" />}
         </div>
-        <pre className={`share-grid${copyFailed ? ' select' : ''}`}>{text}</pre>
-        {copyFailed && <p className="setting-note">Copying isn't allowed here: select the text above to copy it.</p>}
+        {note && <p className="setting-note share-note">{note}</p>}
         <div className="pill-row">
           {'share' in navigator && (
-            <button className="pill" onClick={share}>
+            <button className="pill" onClick={share} disabled={!image}>
               Share
             </button>
           )}
-          <button className="pill quiet" onClick={copy}>
-            {copied ? 'Copied!' : 'Copy text'}
-          </button>
+          {canCopy && (
+            <button className="pill quiet" onClick={copy} disabled={!image}>
+              {copied ? 'Copied!' : 'Copy image'}
+            </button>
+          )}
           <button className="pill quiet" onClick={save} disabled={!image}>
             Save image
           </button>

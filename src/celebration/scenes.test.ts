@@ -8,7 +8,7 @@ import type { DailyPuzzle } from '../daily/daily';
 import type { Pt } from '../ink';
 import { CONFETTI, confettiScene } from './confetti';
 import type { CelebrationModule, Scene } from './scene';
-import { wordStrokes } from './wordPoints';
+import { wordStrokes, wordWidth } from './wordPoints';
 
 const modules = import.meta.glob<CelebrationModule>('../daily/days/*.ts', { eager: true });
 const sources = import.meta.glob<string>('../daily/days/*.ts', { eager: true, query: '?raw', import: 'default' });
@@ -137,10 +137,10 @@ function along(word: string): Pt[] {
   );
 }
 
-/** The share of a word's strokes that the frame draws over. */
-function coverage(scene: Scene, word: string) {
+/** The share of a word's strokes that the frame draws over (the word drawn at `scale`). */
+function coverage(scene: Scene, word: string, scale = 1) {
   const { tris, dots } = drawn(scene);
-  const pts = along(word);
+  const pts = along(word).map(([x, y]): Pt => [x * scale, y * scale]);
   const covered = pts.filter((p) => tris.some((t) => inside(p, t)) || dots.some((d) => Math.hypot(d[0] - p[0], d[1] - p[1]) < 0.06));
   return covered.length / pts.length;
 }
@@ -258,17 +258,26 @@ describe('daily celebrations', () => {
   }
 });
 
-describe('the Perfect confetti', () => {
-  const make = (small = false) => confettiScene(THREE, { small, cssColor });
-  const asScene = (c: ReturnType<typeof make>, aspect: number): Scene => ({ objects: c.objects, margin: 0, update: (t) => c.update(t, aspect), dispose: c.dispose });
+describe('the Perfect bubbles', () => {
+  const WORD = 'TAME';
+  const make = (small = false, showWord = false) => confettiScene(THREE, { small, cssColor, word: WORD, showWord });
+  /** Screen units per word unit, with the word across 70% of the screen (as the celebration frames it). */
+  const scaleFor = (aspect: number) => (2 * aspect * 0.7) / wordWidth(WORD);
+  const asScene = (c: ReturnType<typeof make>, aspect: number): Scene => ({ objects: c.objects, margin: 0, update: (t) => c.update(t, aspect, scaleFor(aspect)), dispose: c.dispose });
+  /** The farthest a frame's drawing reaches from the word's strokes, in screen units (its centres, roughly). */
+  const reach = (s: Scene, aspect: number) => {
+    const word = along(WORD).map(([x, y]): Pt => [x * scaleFor(aspect), y * scaleFor(aspect)]);
+    const centres = drawn(s).tris.map((tri): Pt => [(tri[0][0] + tri[1][0] + tri[2][0]) / 3, (tri[0][1] + tri[1][1] + tri[2][1]) / 3]);
+    return Math.max(0, ...centres.map(([x, y]) => Math.min(...word.map(([wx, wy]) => Math.hypot(x - wx, y - wy)))));
+  };
 
   it('draws the same frame for the same moment, in any order and from a fresh start', () => {
     const times = [0, 0.1, 0.6, 1.3, CONFETTI.handoff, 2.5, CONFETTI.length + 1];
-    for (const aspect of [1.6, 0.46]) {
-      const a = asScene(make(), aspect);
+    for (const [aspect, showWord] of [[1.6, false], [0.46, true]] as const) {
+      const a = asScene(make(false, showWord), aspect);
       const first = times.map((t) => (a.update(t), snapshot(a)));
       const again = [...times].reverse().map((t) => (a.update(t), snapshot(a))).reverse();
-      const b = asScene(make(), aspect);
+      const b = asScene(make(false, showWord), aspect);
       times.forEach((t, i) => {
         expect(again[i], `t = ${t}, played backwards`).toBe(first[i]);
         expect((b.update(t), snapshot(b)), `t = ${t}, a second copy`).toBe(first[i]);
@@ -276,27 +285,38 @@ describe('the Perfect confetti', () => {
     }
   });
 
-  it('fills the screen while it flies, stays on a phone screen, and is gone by its end', () => {
+  it('bursts out of the word, floats away from it on screen, and is gone by its end', () => {
     for (const aspect of [1.6, 0.46]) {
       const s = asScene(make(), aspect);
-      s.update(1.0);
+      s.update(0.12);
+      expect(drawn(s).tris.length).toBeGreaterThan(40);
+      expect(reach(s, aspect)).toBeLessThan(0.3);
+      s.update(1.2);
       const { tris } = drawn(s);
-      expect(tris.length).toBeGreaterThan(100);
+      expect(tris.length).toBeGreaterThan(40);
+      expect(reach(s, aspect)).toBeGreaterThan(0.4);
       const xs = tris.flat().map((p) => p[0]);
-      // Mostly on screen across the width (a little flies past the edges).
-      expect(xs.filter((x) => Math.abs(x) <= aspect + 0.1).length / xs.length).toBeGreaterThan(0.9);
+      expect(xs.filter((x) => Math.abs(x) <= aspect + 0.05).length / xs.length).toBeGreaterThan(0.95);
       s.update(CONFETTI.length);
       expect(drawn(s).tris.length).toBe(0);
     }
   });
 
+  it('draws the word itself when asked (with no scene of the day), and keeps it to the end', () => {
+    const s = asScene(make(false, true), 1.6);
+    for (const t of [0, CONFETTI.length + 1]) {
+      s.update(t);
+      expect(coverage(s, WORD, scaleFor(1.6)), `t = ${t}`).toBeGreaterThan(0.9);
+    }
+  });
+
   it('keeps to the budget, draws less on a phone, and frees everything it made', () => {
-    const big = measure(asScene(make(), 1.6));
+    const big = measure(asScene(make(false, true), 1.6));
     const small = measure(asScene(make(true), 0.46));
     expect(big.meshes).toBeLessThanOrEqual(BUDGET.meshes);
     expect(big.vertices).toBeLessThanOrEqual(BUDGET.vertices);
     expect(big.instances).toBeLessThanOrEqual(BUDGET.instances);
     expect(small.instances).toBeLessThan(0.7 * big.instances);
-    expect(disposesAll(asScene(make(), 1.6))).toBe(true);
+    expect(disposesAll(asScene(make(false, true), 1.6))).toBe(true);
   });
 });

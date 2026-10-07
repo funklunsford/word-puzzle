@@ -124,7 +124,7 @@ export function Settings({ theme, onTheme, prefs, onPrefs, onClose }: Props) {
           <span className="setting-label">Sharing</span>
           <Toggle
             label="Colour-blind squares"
-            note="Shared results use yellow, blue and red, so no square needs telling orange from red."
+            note="Your result card's squares use yellow, blue and red, so none needs telling orange from red."
             on={prefs.colorBlind}
             onChange={(colorBlind) => onPrefs({ colorBlind })}
           />

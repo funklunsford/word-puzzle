@@ -9,7 +9,7 @@ interface Props {
   goal: string;
   /** The day's celebration, if the puzzle has one (loaded when it plays). */
   load?: () => Promise<CelebrationModule>;
-  /** Solved in the lowest possible strokes: confetti and sparkles burst first, then the day's celebration. */
+  /** Solved in the lowest possible strokes: bubbles and sparkles burst out of the word first, then the day's celebration. */
   perfect: boolean;
   /** The player's strokes, and the lowest possible. */
   strokes: number;
@@ -20,9 +20,6 @@ interface Props {
   freezeAt?: number;
   onClose: () => void;
 }
-
-/** The confetti plays on a dark stage when there's no day's scene (and so no opening colour of its own). */
-const STAGE = '#141019';
 
 /** The page's colour for a CSS custom property (theme-aware), as r, g, b in 0–1 (sRGB). */
 function cssColor(name: string, fallback: string): [number, number, number] {
@@ -36,8 +33,8 @@ function cssColor(name: string, fallback: string): [number, number, number] {
 
 /**
  * The win celebration, drawn live with three.js (loaded only when it plays). For a solve in the
- * lowest possible strokes, confetti and sparkles burst first (see confetti.ts); then the day's own
- * scene shows the start word becoming the goal word. A tap skips the confetti, or carries on; so do
+ * lowest possible strokes, bubbles and sparkles burst out of the word first (see confetti.ts); then the
+ * day's own scene shows the start word becoming the goal word. A tap skips the bubbles, or carries on; so do
  * Enter and Space. Escape always carries on.
  */
 export function Celebration({ start, goal, load, perfect, strokes, best, hints = 0, freezeAt, onClose }: Props) {
@@ -46,7 +43,7 @@ export function Celebration({ start, goal, load, perfect, strokes, best, hints =
   const [title, setTitle] = useState<string | null>(null);
   const [shown, setShown] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  /** Skips the confetti, if it's still playing; false when there's nothing left but to close. */
+  /** Skips the bubbles, if they're still playing; false when there's nothing left but to close. */
   const skip = useRef<() => boolean>(() => false);
 
   useEffect(() => {
@@ -62,17 +59,19 @@ export function Celebration({ start, goal, load, perfect, strokes, best, hints =
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2));
       el.prepend(renderer.domElement);
 
-      // Two layers: the day's scene, framed on its words, and the confetti over the whole screen.
+      // Two layers: the day's scene, framed on its words, and the bubbles over the whole screen. They
+      // come out of the word on screen as they burst: the day's start word, or (with no day's scene)
+      // the goal, which the bubbles' layer then draws itself.
       const scene = new THREE.Scene();
       const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -10, 10);
       const art = day?.scene(THREE, { start, goal, theme: day.theme, small, cssColor });
       for (const o of art?.objects ?? []) scene.add(o);
-      const party = perfect ? C.confettiScene(THREE, { small, cssColor }) : null;
+      const party = perfect ? C.confettiScene(THREE, { small, cssColor, word: art ? start : goal, showWord: !art }) : null;
       const partyScene = new THREE.Scene();
       const partyCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, -10, 10);
       for (const o of party?.objects ?? []) partyScene.add(o);
 
-      // The timeline: the confetti from 0, and the day's scene from D0 (as the confetti falls away).
+      // The timeline: the bubbles from 0, and the day's scene from D0 (as the bubbles pop away).
       const timing = day?.theme.timing;
       const D0 = party ? C.CONFETTI.handoff : 0;
       const end = timing ? D0 + timing.settled : C.CONFETTI.length - 0.6;
@@ -83,6 +82,8 @@ export function Celebration({ start, goal, load, perfect, strokes, best, hints =
       const margin = art?.margin ?? 0.4;
       let w = 0;
       let h = 0;
+      /** Screen units (the bubbles' layer: 2 to the height) per word unit. */
+      let wordScale = 0;
       let dirty = true;
       const resize = () => {
         w = el.clientWidth;
@@ -94,6 +95,7 @@ export function Celebration({ start, goal, load, perfect, strokes, best, hints =
         camera.top = (h / 2) * unitsPerPx;
         camera.bottom = (-h / 2) * unitsPerPx;
         camera.updateProjectionMatrix();
+        wordScale = 2 / (unitsPerPx * h);
         partyCamera.left = -w / h;
         partyCamera.right = w / h;
         partyCamera.updateProjectionMatrix();
@@ -114,9 +116,10 @@ export function Celebration({ start, goal, load, perfect, strokes, best, hints =
       resize();
       window.addEventListener('resize', resize);
 
-      // The background: the day's opening colour (or the dark stage), calming to the page's own.
+      // The background: the day's opening colour, calming to the page's own. (With no day's scene,
+      // the bubbles play on the page's colour, where the word they draw reads in its own colours.)
       const page = new THREE.Color().setRGB(...cssColor('--bg', '#17161c'), THREE.SRGBColorSpace);
-      const storm = new THREE.Color(day?.theme.stormBg ?? STAGE);
+      const storm = day ? new THREE.Color(day.theme.stormBg) : page.clone();
       const calm = timing ? D0 + timing.calm : end - 1;
       const bg = new THREE.Color();
       let shownNow = false;
@@ -129,8 +132,9 @@ export function Celebration({ start, goal, load, perfect, strokes, best, hints =
         art?.update(Math.max(0, t - D0));
         renderer.setClearColor(bg.copy(storm).lerp(page, smooth(calm, end, t)));
         renderer.render(scene, camera);
-        if (party && t < C.CONFETTI.length) {
-          party.update(t, w / h);
+        // (With no day's scene, the bubbles' layer stays: it's drawing the word.)
+        if (party && (t < C.CONFETTI.length || !art)) {
+          party.update(t, w / h, wordScale);
           renderer.autoClear = false;
           renderer.render(partyScene, partyCamera);
           renderer.autoClear = true;

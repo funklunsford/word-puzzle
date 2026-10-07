@@ -121,8 +121,9 @@ exports two things:
     - halfway through resolving;
     - `settled + 0.6`.
   - Check each at 1280×800 and at 375×812, in dark and in light mode.
-  - `&perfect` adds the confetti that plays first after a lowest-strokes solve, over {START}; the
-    scene starts as it falls away. Check that {START} reads under it, e.g. `/?day={DATE}&perfect=1.0`.
+  - `&perfect` adds the bubbles that burst out of {START} first after a lowest-strokes solve; the
+    scene starts as they pop away. They come from where `wordStrokes(start)` puts {START}, so draw it
+    there at the start. Check that {START} reads under them, e.g. `/?day={DATE}&perfect=1.0`.
 - **Fix anything that doesn't read:** a muddled change, an illegible {GOAL}, colours lost on either
   background, or anything that jumps.
 

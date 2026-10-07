@@ -332,9 +332,9 @@ export function MazeApp() {
   // (A path that started from this puzzle's start: while a new puzzle swaps in, the old word can
   // equal the new goal for a moment, which isn't a win.)
   const won = !!puzzle && room === puzzle.goal && trail[0]?.word === puzzle.start;
-  // Reaching the goal celebrates: confetti for a solve in the lowest possible strokes, then the
+  // Reaching the goal celebrates: bubbles for a solve in the lowest possible strokes, then the
   // daily's own scene. In development, ?celebrate opens it at once (?celebrate=2.2 holds it at 2.2
-  // seconds), and ?perfect adds the confetti (?perfect=1.2 holds the whole thing at 1.2 seconds).
+  // seconds), and ?perfect adds the bubbles (?perfect=1.2 holds the whole thing at 1.2 seconds).
   const scene = current?.date ? celebrationFor(current.date) : undefined;
   const perfect = won && spent <= best;
   const [celebrating, setCelebrating] = useState<{ perfect: boolean; freezeAt?: number } | null>(null);

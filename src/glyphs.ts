@@ -150,6 +150,21 @@ export const LETTERS: Record<string, LetterGlyph> = {
   Z: { width: 1, parts: [p('H', 0.5, 0), p('H', 0.5, 2), p('LD', 0.5, 1)] },
 };
 
+const norm = (deg: number) => ((deg % 360) + 360) % 360;
+
+/** The orientations each stroke takes in some letter: what tapping it in the tray cycles through on a touch screen. */
+export const ORIENTS = Object.fromEntries(
+  TILE_IDS.map((t) => [t, [...new Set(Object.values(LETTERS).flatMap((g) => g.parts.filter((p) => p.tile === t).map((p) => norm(p.rot ?? 0))))].sort((a, b) => a - b)]),
+) as Record<TileId, number[]>;
+
+/** How each stroke first sits in the tray: a way it goes into letters (an arc as C, not on its side). */
+export const TRAY_TURN = Object.fromEntries(
+  TILE_IDS.map((t) => {
+    const display = TILES[t].display ?? 0;
+    return [t, ORIENTS[t].includes(display) ? display : ORIENTS[t][0]];
+  }),
+) as Record<TileId, number>;
+
 /**
  * How a formed letter is drawn: `place` scales its strokes' positions (squeeze and spread), `shape`
  * narrows each stroke (squeeze only).
