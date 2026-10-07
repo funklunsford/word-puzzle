@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
+import maze5Json from '../public/mazes-5.json';
 import { STRATEGIES, distancesFrom, findPockets, isTricky, keep, measure, parChance, type KeptDifficulty } from './difficulty';
 import { isObvious, type Graph, type Need, type Puzzle } from './maze';
 import { wordDistance } from './strokes';
 
-const maze = mazeJson as unknown as { words: string[]; doors: number[][]; puzzles: { puzzle: Puzzle; need: Need; tricky: boolean; difficulty: KeptDifficulty }[] };
-const { words } = maze;
+type MazeJson = { words: string[]; doors: number[][]; puzzles: { puzzle: Puzzle; need: Need; tricky: boolean; difficulty: KeptDifficulty }[] };
 // The maze's own doors, as shipped (scripts/mazes.ts builds them).
-const adj: Graph = maze.doors.map((flat) => Array.from({ length: flat.length / 2 }, (_, k) => ({ to: flat[2 * k], cost: flat[2 * k + 1] })));
+const doorsOf = (m: MazeJson): Graph => m.doors.map((flat) => Array.from({ length: flat.length / 2 }, (_, k) => ({ to: flat[2 * k], cost: flat[2 * k + 1] })));
+const maze = mazeJson as unknown as MazeJson;
+const { words } = maze;
+const adj = doorsOf(maze);
 const pockets = findPockets(adj);
 
 /** A graph from undirected edges, every door costing 1. */
@@ -74,7 +77,10 @@ describe('a puzzle the straightforward way solves', () => {
   });
 });
 
-describe('the puzzle pool', () => {
+describe.each([
+  { letters: 4, maze, words, adj, pockets },
+  { letters: 5, maze: maze5Json as unknown as MazeJson, words: (maze5Json as unknown as MazeJson).words, adj: doorsOf(maze5Json as unknown as MazeJson), pockets: findPockets(doorsOf(maze5Json as unknown as MazeJson)) },
+])('the $letters-letter puzzle pool', ({ maze, words, adj, pockets }) => {
   it('is all tricky, and every puzzle passes a pocket', () => {
     for (const { puzzle } of maze.puzzles) {
       const d = measure(words, adj, puzzle, pockets);

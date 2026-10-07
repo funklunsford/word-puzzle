@@ -92,16 +92,31 @@ export function routeWords(words: string[], adj: Graph, start: string, goal: str
 export const PUZZLE_SHAPE = { best: [9, 11], steps: [3, 8] } as const;
 
 /**
- * A random puzzle: a start with a few doors, and a goal PUZZLE_SHAPE away. `endpoint` limits which
+ * The shape by word length. Five-letter words (the desktop game) sit much farther apart (33 strokes
+ * between two words typically, against 19), so their puzzles run longer: 12–15 strokes, over 4–8 words.
+ */
+export const PUZZLE_SHAPES: Record<number, { best: readonly [number, number]; steps: readonly [number, number] }> = {
+  4: PUZZLE_SHAPE,
+  5: { best: [12, 15], steps: [4, 8] },
+};
+
+/**
+ * A random puzzle: a start with a few doors, and a goal `shape` away (by word length). `endpoint` limits which
  * words a puzzle may start and end on (the words in between are any in the maze).
  */
-export function randomPuzzle(words: string[], adj: Graph, random = Math.random, endpoint: (word: string) => boolean = () => true): Puzzle {
+export function randomPuzzle(
+  words: string[],
+  adj: Graph,
+  random = Math.random,
+  endpoint: (word: string) => boolean = () => true,
+  shape = PUZZLE_SHAPES[words[0]?.length] ?? PUZZLE_SHAPE,
+): Puzzle {
   const starts = words.map((_, i) => i).filter((i) => adj[i].length >= 3 && endpoint(words[i]));
   for (;;) {
     const s = starts[Math.floor(random() * starts.length)];
     const { dist, hops } = dijkstra(adj, s);
     // The best total is picked first, evenly across the range (goals at the far end outnumber the rest).
-    const { best, steps } = PUZZLE_SHAPE;
+    const { best, steps } = shape;
     const target = best[0] + Math.floor(random() * (best[1] - best[0] + 1));
     const goals = words
       .map((_, i) => i)
@@ -155,6 +170,12 @@ export type Need = 'none' | 'letter' | 'stone';
  * vowels only change through I. (Every puzzle is tricky and passes a pocket: see src/difficulty.ts.)
  */
 export const POOL_MIX: { need: Record<Need, number> } = { need: { none: 0.3, letter: 0.5, stone: 0.2 } };
+
+/**
+ * The 5-letter pool takes the need mix as it comes: puzzles that need no C, I or V are rare there
+ * (about 7% of tricky ones with a pocket), so 30% can't be had; it's balanced by best total alone.
+ */
+export const POOL_MIXES: Record<number, { need: Record<Need, number> } | null> = { 4: POOL_MIX, 5: null };
 
 /** The puzzle's need, with a shortest route that shows it (one that avoids the hubs where it can). */
 export function classifyNeed(words: string[], adj: Graph, start: string, goal: string, best: number): { need: Need; path: string[] } {

@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-07",
+  "puzzle": {
+    "start": "SNARE",
+    "goal": "SHOUT",
+    "best": 14,
+    "path": [
+      "SNARE",
+      "SHARE",
+      "SHIRE",
+      "SHIRT",
+      "SHORT",
+      "SHOUT"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 3,
+    "traps": [
+      {
+        "at": "SHARE",
+        "door": "SHAPE",
+        "loses": 2,
+        "pocket": false
+      },
+      {
+        "at": "SNARE",
+        "door": "SHAPE",
+        "loses": 2,
+        "pocket": false
+      },
+      {
+        "at": "SNARE",
+        "door": "SNARL",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.02
+  },
+  "inkPots": {
+    "pots": [
+      "SHORE",
+      "SHAPE",
+      "SHARK"
+    ],
+    "best": 13,
+    "walk": [
+      "SNARE",
+      "SHARE",
+      "SHIRE",
+      "SHORE",
+      "SHORT",
+      "SHOUT"
+    ]
+  },
+  "onRoute": {
+    "SHARE": 2,
+    "SHIRE": 5,
+    "SHIRT": 8,
+    "SHORE": 8,
+    "SHORT": 11,
+    "SHOUT": 14,
+    "SNARE": 0
+  }
+}

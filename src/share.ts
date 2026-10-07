@@ -152,7 +152,9 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
   ctx.fillStyle = PAPER.muted;
   ctx.font = `700 28px ${FONT}`;
   const when = r.date ? new Date(`${r.date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '';
-  ctx.fillText([r.number ? `No. ${r.number}` : '', when].filter(Boolean).join(' · ').toUpperCase(), cx, 206);
+  // (The desktop game's 5-letter puzzles say so: a phone's 4-letter puzzle that day is another one.)
+  const letters = r.start.length;
+  ctx.fillText([r.number ? `No. ${r.number}` : '', letters !== 4 ? `${letters} letters` : '', when].filter(Boolean).join(' · ').toUpperCase(), cx, 206);
 
   // The score.
   const perfect = r.strokes <= r.best;
@@ -196,7 +198,7 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
   const gap = Math.round(size * 0.22);
   const ladderH = rows * size + (rows - 1) * gap;
   const y0 = top + (bottom - top - ladderH) / 2;
-  const rowW = 4 * size + 3 * gap;
+  const rowW = letters * size + (letters - 1) * gap;
   const tag = size * 1.1; // room for each step's "+2", to the right
   const x0 = cx - (rowW + tag) / 2 + tag / 2 - size * 0.3;
   const col = (k: number) => x0 + k * (size + gap);
@@ -210,7 +212,7 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
     ctx.font = `800 ${Math.max(26, Math.round(size * 0.44))}px ${FONT}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`+${s.cost}`, col(4) + size * 0.12, y + size / 2 + 1);
+    ctx.fillText(`+${s.cost}`, col(letters) + size * 0.12, y + size / 2 + 1);
   });
   if (!r.steps.length) {
     ctx.fillStyle = PAPER.muted;

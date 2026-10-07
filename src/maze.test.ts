@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
-import { ONE_STROKE, POOL_MIX, PUZZLE_SHAPE, buildGraph, classifyNeed, hubStep, isObvious, randomPuzzle, solve, steppingStone, type Need } from './maze';
+import maze5Json from '../public/mazes-5.json';
+import { ONE_STROKE, POOL_MIX, PUZZLE_SHAPE, PUZZLE_SHAPES, buildGraph, classifyNeed, hubStep, isObvious, randomPuzzle, solve, steppingStone, type Need } from './maze';
 import { STEP_LIMIT, wordDistance } from './strokes';
 
 const { words, puzzle } = mazeJson as { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] } };
@@ -72,16 +73,32 @@ describe('maze graph', () => {
   });
 });
 
-describe('the puzzle pool', () => {
-  const pool = (mazeJson as unknown as { puzzles: { puzzle: { start: string; goal: string; best: number; path: string[] }; need: Need; tricky: boolean }[] }).puzzles;
+type PoolJson = { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] }; puzzles: { puzzle: { start: string; goal: string; best: number; path: string[] }; need: Need; tricky: boolean }[] };
 
+describe('the puzzle pool', () => {
   it('treats C, I and V, the one-stroke letters, as the hubs', () => {
     expect([...ONE_STROKE].sort()).toEqual(['C', 'I', 'V']);
   });
 
-  it('centres on 10 strokes, evenly across 9, 10 and 11', () => {
+  it('mixes what puzzles need from C, I and V as planned, so not every maze needs them', () => {
+    const pool = (mazeJson as unknown as PoolJson).puzzles;
+    for (const need of ['none', 'letter', 'stone'] as Need[]) {
+      expect(pool.filter((x) => x.need === need).length / pool.length, need).toBeCloseTo(POOL_MIX.need[need], 2);
+    }
+  });
+});
+
+describe.each([
+  { letters: 4, json: mazeJson as unknown as PoolJson },
+  { letters: 5, json: maze5Json as unknown as PoolJson },
+])('the $letters-letter puzzle pool', ({ letters, json }) => {
+  const pool = json.puzzles;
+  const poolWords = json.words;
+  const poolAdj = letters === 4 ? adj : buildGraph(poolWords);
+  const [lo, hi] = PUZZLE_SHAPES[letters].best;
+
+  it('spreads its lowest strokes evenly across its range', () => {
     expect(pool.length).toBeGreaterThanOrEqual(300);
-    const [lo, hi] = PUZZLE_SHAPE.best;
     for (const { puzzle } of pool) expect(puzzle.best).toBeGreaterThanOrEqual(lo), expect(puzzle.best).toBeLessThanOrEqual(hi);
     const mean = pool.reduce((t, x) => t + x.puzzle.best, 0) / pool.length;
     expect(mean).toBeCloseTo((lo + hi) / 2, 1);
@@ -89,29 +106,28 @@ describe('the puzzle pool', () => {
     for (let b = lo; b <= hi; b++) expect(per(b)).toBe(pool.length / (hi - lo + 1));
   });
 
-  it('mixes what puzzles need from C, I and V as planned, so not every maze needs them', () => {
-    for (const need of ['none', 'letter', 'stone'] as Need[]) {
-      expect(pool.filter((x) => x.need === need).length / pool.length, need).toBeCloseTo(POOL_MIX.need[need], 2);
-    }
-  });
-
   it('tags each puzzle truly, and stores a shortest route that shows it', () => {
     for (const { puzzle: p, need } of pool) {
       const label = `${p.start} → ${p.goal}`;
-      expect(classifyNeed(words, adj, p.start, p.goal, p.best).need, label).toBe(need);
+      expect(p.start.length, label).toBe(letters);
+      expect(classifyNeed(poolWords, poolAdj, p.start, p.goal, p.best).need, label).toBe(need);
       expect([p.path[0], p.path.at(-1)], label).toEqual([p.start, p.goal]);
       expect(p.path.slice(1).reduce((t, w, i) => t + wordDistance(p.path[i], w), 0), label).toBe(p.best);
       const steps = p.path.slice(1).map((w, i) => [p.path[i], w]);
       if (need === 'none') expect(steps.some(([a, b]) => hubStep(a, b)), label).toBe(false);
       if (need === 'letter') expect(p.path.slice(1, -1).some((w) => steppingStone(w, p.start, p.goal)), label).toBe(false);
     }
-  });
+  }, 60_000);
 
   it('has no obvious puzzles: the straightforward approach never makes par (src/difficulty.test.ts checks the rest)', () => {
     for (const { puzzle: p, tricky } of pool) {
       expect(tricky, `${p.start} → ${p.goal}`).toBe(true);
-      expect(isObvious(words, adj, p.start, p.goal, p.best), `${p.start} → ${p.goal}`).toBe(false);
+      expect(isObvious(poolWords, poolAdj, p.start, p.goal, p.best), `${p.start} → ${p.goal}`).toBe(false);
     }
+  });
+
+  it('solves its reference puzzle the same way the script did', () => {
+    expect(solve(poolWords, poolAdj, json.puzzle.start, json.puzzle.goal)).toEqual(json.puzzle);
   });
 });
 

@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import familiarText from '../data/familiar-4.txt?raw';
+import familiar5Text from '../data/familiar-5.txt?raw';
 import enableText from '../data/enable1.txt?raw';
 import mazeJson from '../public/mazes.json';
+import maze5Json from '../public/mazes-5.json';
 import definitionsJson from '../public/definitions.json';
+import definitions5Json from '../public/definitions-5.json';
 import { STEP_LIMIT, wordDistance } from './strokes';
 import { BLOCKLIST, parseWordList } from './wordlist';
 
 const familiar = parseWordList(familiarText);
+const familiar5 = parseWordList(familiar5Text);
 const enable = new Set(enableText.split('\n').map((w: string) => w.trim().toUpperCase()));
 const maze = mazeJson as { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] } };
 
@@ -22,6 +26,22 @@ describe('familiar word list', () => {
 
   it('keeps the SCOWL notice its license requires', () => {
     expect(familiarText).toContain('Copyright 2000-2026 by Kevin Atkinson');
+  });
+});
+
+describe("the desktop game's 5-letter word list", () => {
+  it('has only valid, unblocked 5-letter words, with the SCOWL notice', () => {
+    expect(familiar5.length).toBeGreaterThan(3000);
+    for (const w of familiar5) {
+      expect(w).toMatch(/^[A-Z]{5}$/);
+      expect(enable.has(w), w).toBe(true);
+    }
+    expect(familiar5.filter((w) => BLOCKLIST.includes(w))).toEqual([]);
+    expect(familiar5Text).toContain('Copyright 2000-2026 by Kevin Atkinson');
+  });
+
+  it('is the 5-letter maze’s rooms', () => {
+    expect((maze5Json as { words: string[] }).words).toEqual(familiar5);
   });
 });
 
@@ -45,11 +65,12 @@ describe('the maze', () => {
   });
 });
 
-describe('definitions', () => {
-  const defs = definitionsJson as unknown as Record<string, [string, string, string?] | string>;
-
+describe.each([
+  { letters: 4, words: familiar, defs: definitionsJson as unknown as Record<string, [string, string, string?] | string> },
+  { letters: 5, words: familiar5, defs: definitions5Json as unknown as Record<string, [string, string, string?] | string> },
+])('definitions, $letters letters', ({ words, defs }) => {
   it('defines every maze word, with a part of speech and a short, clean definition', () => {
-    for (const w of familiar) {
+    for (const w of words) {
       const d = defs[w];
       expect(Array.isArray(d), w).toBe(true);
       const [pos, text] = d as [string, string];

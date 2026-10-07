@@ -1,7 +1,8 @@
 // Build the stroke maze over familiar 4-letter words: a pool of puzzles the game picks from on each
-// load, plus the original fixed puzzle (WILD → TAME), kept as a reference and for tests.
+// load, plus the original fixed puzzle (WILD → TAME), kept as a reference and for tests. With
+// --letters 5, the desktop game's maze over 5-letter words (public/mazes-5.json; SHARP → BLUNT).
 //
-//   npx vite-node scripts/mazes.ts
+//   npx vite-node scripts/mazes.ts [--letters 5]
 //
 // Rooms are the words in data/familiar-4.txt (see scripts/familiar.ts); a door joins two words
 // that are at most STEP_LIMIT stroke edits apart (see src/maze.ts). The puzzle's `best` is the
@@ -10,14 +11,19 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { findPockets, isTricky, keep, measure, parChance, type Difficulty } from '../src/difficulty';
 import { placePots, potRoute, potValues } from '../src/inkpots';
-import { POOL_MIX, PUZZLE_SHAPE, buildGraph, classifyNeed, randomPuzzle, routeWords, seededRandom, solve, type Need } from '../src/maze';
+import { POOL_MIXES, PUZZLE_SHAPES, buildGraph, classifyNeed, randomPuzzle, routeWords, seededRandom, solve, type Need } from '../src/maze';
 import { parseWordList } from '../src/wordlist';
 
-// Opposites make a nice maze: 14 strokes over 5 rooms, all everyday words.
-const START = 'WILD';
-const GOAL = 'TAME';
+const at = process.argv.indexOf('--letters');
+const LETTERS = at >= 0 ? Number(process.argv[at + 1]) : 4;
+if (![4, 5].includes(LETTERS)) throw new Error('usage: vite-node scripts/mazes.ts [--letters 5]');
+const suffix = LETTERS === 4 ? '' : `-${LETTERS}`;
 
-const words = parseWordList(readFileSync(new URL('../data/familiar-4.txt', import.meta.url), 'utf8'));
+// Opposites make a nice maze: WILD → TAME, 13 strokes over 5 rooms, all everyday words. Most
+// 5-letter opposites can't reach each other (BLACK, WHITE); SHARP → BLUNT can, in 20.
+const [START, GOAL] = LETTERS === 4 ? ['WILD', 'TAME'] : ['SHARP', 'BLUNT'];
+
+const words = parseWordList(readFileSync(new URL(`../data/familiar-${LETTERS}.txt`, import.meta.url), 'utf8'));
 
 console.time('graph');
 const adj = buildGraph(words);
@@ -46,19 +52,24 @@ const inkPots = { pots, best: ink.best, walk: ink.walk };
 // pronoun or archaic form), so a puzzle never opens on HAST, SOPS or SENT; the words between are any.
 // Every puzzle is tricky (no rule of thumb makes par) and passes a pocket: a word on a lowest-stroke
 // route opens onto part of the maze that only leads back (see src/difficulty.ts). Its mix is set by
-// quota (POOL_MIX in src/maze.ts), evenly across the best totals (9, 10 and 11).
+// quota (POOL_MIXES in src/maze.ts), evenly across the best totals (9, 10 and 11; 12 to 15 for
+// 5-letter words, whose pool is balanced by best total alone).
 const POOL = 420;
-const { need: NEED } = POOL_MIX;
-const everyday = new Set(parseWordList(readFileSync(new URL('../data/everyday-4.txt', import.meta.url), 'utf8')));
-const definitions = JSON.parse(readFileSync(new URL('../public/definitions.json', import.meta.url), 'utf8'));
+const SHAPE = PUZZLE_SHAPES[LETTERS];
+const MIX = POOL_MIXES[LETTERS];
+const everyday = new Set(parseWordList(readFileSync(new URL(`../data/everyday-${LETTERS}.txt`, import.meta.url), 'utf8')));
+const definitions = JSON.parse(readFileSync(new URL(`../public/definitions${suffix}.json`, import.meta.url), 'utf8'));
 const endpoint = (w: string) => {
   const d = definitions[w];
   return everyday.has(w) && Array.isArray(d) && d.length === 2 && ['n.', 'v.', 'adj.'].includes(d[0]) && !/old-fashioned|\(past of/.test(d[1]) && !/[^s]s$/i.test(w);
 };
-// Quota per cell: (best, need)
-const bests = Array.from({ length: PUZZLE_SHAPE.best[1] - PUZZLE_SHAPE.best[0] + 1 }, (_, i) => PUZZLE_SHAPE.best[0] + i);
+// Quota per cell: (best, need), or (best) alone when the mix isn't set
+const bests = Array.from({ length: SHAPE.best[1] - SHAPE.best[0] + 1 }, (_, i) => SHAPE.best[0] + i);
 const quota = new Map<string, number>();
-for (const b of bests) for (const need of Object.keys(NEED) as Need[]) quota.set(`${b}|${need}`, Math.round((POOL / bests.length) * NEED[need]));
+for (const b of bests) {
+  if (!MIX) quota.set(`${b}|any`, Math.round(POOL / bests.length));
+  else for (const need of Object.keys(MIX.need) as Need[]) quota.set(`${b}|${need}`, Math.round((POOL / bests.length) * MIX.need[need]));
+}
 const target = [...quota.values()].reduce((t, n) => t + n, 0);
 const random = seededRandom(7);
 const seen = new Set<string>();
@@ -78,7 +89,7 @@ while (puzzles.length < target) {
   const difficulty: Difficulty = measure(words, adj, p, pockets);
   if (!isTricky(difficulty) || !difficulty.pocketsBeside) continue;
   const { need, path } = classifyNeed(words, adj, p.start, p.goal, p.best);
-  const cell = `${p.best}|${need}`;
+  const cell = `${p.best}|${MIX ? need : 'any'}`;
   tries.set(cell, (tries.get(cell) ?? 0) + 1);
   if (!quota.get(cell)) continue;
   quota.set(cell, quota.get(cell)! - 1);
@@ -103,4 +114,4 @@ console.log(`e.g. ${puzzles.slice(0, 8).map((x) => `${x.puzzle.start} → ${x.pu
 // The graph itself goes along too: each word's doors as [to, cost, to, cost, ...] (word indexes),
 // so the game never has to search a step's cost (hints, words within reach, hardcore).
 const doors = adj.map((a) => a.flatMap((e) => [e.to, e.cost]));
-writeFileSync(new URL('../public/mazes.json', import.meta.url), JSON.stringify({ words, doors, puzzle, inkPots, onRoute: routeWords(words, adj, START, GOAL), puzzles }));
+writeFileSync(new URL(`../public/mazes${suffix}.json`, import.meta.url), JSON.stringify({ words, doors, puzzle, inkPots, onRoute: routeWords(words, adj, START, GOAL), puzzles }));

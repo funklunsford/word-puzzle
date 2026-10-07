@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../../public/mazes.json';
+import maze5Json from '../../public/mazes-5.json';
 import { potRoute } from '../inkpots';
-import { PUZZLE_SHAPE, buildGraph, classifyNeed, isObvious, routeWords, solve } from '../maze';
+import { PUZZLE_SHAPES, buildGraph, classifyNeed, isObvious, routeWords, solve } from '../maze';
 import { STEP_LIMIT, wordDistance } from '../strokes';
-import { DAYS, LAUNCH, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
+import { DAYS, DAYS_5, LAUNCH, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
 
-const puzzles = import.meta.glob<DailyPuzzle>('./days/*.json', { eager: true, import: 'default' });
-const days = Object.entries(puzzles).map(([path, day]) => ({ file: path.slice(path.lastIndexOf('/') + 1), day }));
-const { words } = mazeJson as { words: string[] };
-const adj = buildGraph(words);
+const files = (glob: Record<string, DailyPuzzle>) => Object.entries(glob).map(([path, day]) => ({ file: path.slice(path.lastIndexOf('/') + 1), day }));
+/** Each game's days, against its own words: the 4-letter one, and the desktop's 5-letter one. */
+const games = [
+  { letters: 4, days: files(import.meta.glob<DailyPuzzle>('./days/*.json', { eager: true, import: 'default' })), words: (mazeJson as { words: string[] }).words },
+  { letters: 5, days: files(import.meta.glob<DailyPuzzle>('./days-5/*.json', { eager: true, import: 'default' })), words: (maze5Json as { words: string[] }).words },
+];
 
 describe('picking the day', () => {
   it("uses the player's own date, not UTC's", () => {
@@ -35,53 +38,61 @@ describe('picking the day', () => {
 describe('the daily puzzles', () => {
   it('starts on the launch day, one file per date, named for it', () => {
     expect(DAYS[0]).toBe(LAUNCH);
-    for (const { file, day } of days) expect(file).toBe(`${day.date}.json`);
+    expect(DAYS_5[0] >= LAUNCH).toBe(true);
+    for (const { days } of games) for (const { file, day } of days) expect(file).toBe(`${day.date}.json`);
   });
 
-  it('never repeats a pair, either way round', () => {
-    const pairs = days.map(({ day }) => [day.puzzle.start, day.puzzle.goal].sort().join('|'));
-    expect(new Set(pairs).size).toBe(pairs.length);
-  });
-
-  for (const { day } of days) {
-    const { start, goal, best, path } = day.puzzle;
-    describe(`${day.date}: ${start} → ${goal}`, () => {
-      it('still has the lowest strokes it says, by a route that works, with the current words', () => {
-        expect(solve(words, adj, start, goal)?.best).toBe(best);
-        expect(path[0]).toBe(start);
-        expect(path[path.length - 1]).toBe(goal);
-        let cost = 0;
-        for (let i = 1; i < path.length; i++) {
-          expect(words).toContain(path[i]);
-          const step = wordDistance(path[i - 1], path[i]);
-          expect(step).toBeLessThanOrEqual(STEP_LIMIT);
-          cost += step;
-        }
-        expect(cost).toBe(best);
+  for (const { letters, days, words } of games) {
+    const adj = buildGraph(words);
+    describe(`${letters} letters`, () => {
+      it('never repeats a pair, either way round', () => {
+        const pairs = days.map(({ day }) => [day.puzzle.start, day.puzzle.goal].sort().join('|'));
+        expect(new Set(pairs).size).toBe(pairs.length);
       });
 
-      it('lists the words on its lowest-stroke routes, for hardcore', () => {
-        expect(day.onRoute).toEqual(routeWords(words, adj, start, goal));
-        for (const w of path) expect(day.onRoute[w], w).toBeDefined();
-        expect(day.onRoute[goal]).toBe(best);
-      });
+      for (const { day } of days) {
+        const { start, goal, best, path } = day.puzzle;
+        describe(`${day.date}: ${start} → ${goal}`, () => {
+          it('still has the lowest strokes it says, by a route that works, with the current words', () => {
+            expect(start.length).toBe(letters);
+            expect(solve(words, adj, start, goal)?.best).toBe(best);
+            expect(path[0]).toBe(start);
+            expect(path[path.length - 1]).toBe(goal);
+            let cost = 0;
+            for (let i = 1; i < path.length; i++) {
+              expect(words).toContain(path[i]);
+              const step = wordDistance(path[i - 1], path[i]);
+              expect(step).toBeLessThanOrEqual(STEP_LIMIT);
+              cost += step;
+            }
+            expect(cost).toBe(best);
+          });
 
-      it('has ink pots that still give the best it says', () => {
-        expect(potRoute(words, adj, start, goal, day.inkPots.pots).best).toBe(day.inkPots.best);
-      });
+          it('lists the words on its lowest-stroke routes, for hardcore', () => {
+            expect(day.onRoute).toEqual(routeWords(words, adj, start, goal));
+            for (const w of path) expect(day.onRoute[w], w).toBeDefined();
+            expect(day.onRoute[goal]).toBe(best);
+          });
 
-      it('is labelled with what it asks of the player', () => {
-        expect(classifyNeed(words, adj, start, goal, best).need).toBe(day.need);
-        expect(!isObvious(words, adj, start, goal, best)).toBe(day.tricky);
-      });
+          it('has ink pots that still give the best it says', () => {
+            expect(potRoute(words, adj, start, goal, day.inkPots.pots).best).toBe(day.inkPots.best);
+          });
 
-      // The first daily is the original puzzle, WILD → TAME (lowest 13); the rest come from the pool.
-      if (day.date !== LAUNCH)
-        it("fits the pool's rules: tricky, and 8 to 10 strokes", () => {
-          expect(day.tricky).toBe(true);
-          expect(best).toBeGreaterThanOrEqual(PUZZLE_SHAPE.best[0]);
-          expect(best).toBeLessThanOrEqual(PUZZLE_SHAPE.best[1]);
+          it('is labelled with what it asks of the player', () => {
+            expect(classifyNeed(words, adj, start, goal, best).need).toBe(day.need);
+            if (day.tricky) expect(isObvious(words, adj, start, goal, best)).toBe(false);
+          });
+
+          // The first 4-letter daily is the original puzzle, WILD → TAME (lowest 13); the rest come from the pool.
+          if (letters !== 4 || day.date !== LAUNCH)
+            it("fits the pool's rules: tricky, at the game's length", () => {
+              const shape = PUZZLE_SHAPES[letters];
+              expect(day.tricky).toBe(true);
+              expect(best).toBeGreaterThanOrEqual(shape.best[0]);
+              expect(best).toBeLessThanOrEqual(shape.best[1]);
+            });
         });
+      }
     });
   }
 });

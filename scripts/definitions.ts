@@ -1,6 +1,6 @@
 // Build a short definition for every word in the maze, from WordNet.
 //
-//   npx vite-node scripts/definitions.ts <path-to-wordnet-dict-dir>
+//   npx vite-node scripts/definitions.ts <path-to-wordnet-dict-dir> [--letters 5]
 //
 // WordNet 3.0 (Princeton University) is free to use and redistribute with its notice, which is kept
 // in data/WORDNET-LICENSE.txt and in the output's "_license". The dict dir is the folder holding
@@ -13,14 +13,18 @@
 // Inflected words are
 // looked up by their base form (GODS → god, WENT → go). Words WordNet doesn't cover, mostly
 // function words like THAT and YOUR, come from data/definitions-extra.tsv, which can also override
-// a poor pick. Writes public/definitions.json: { WORD: [part of speech, definition, base form?] }.
+// a poor pick. Writes public/definitions.json: { WORD: [part of speech, definition, base form?] }
+// (public/definitions-5.json for the 5-letter list, with --letters 5).
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseWordList } from '../src/wordlist';
 
-const dir = process.argv[2];
-if (!dir) throw new Error('usage: vite-node scripts/definitions.ts <path-to-wordnet-dict-dir>');
+const args = process.argv.slice(2);
+const at = args.indexOf('--letters');
+const LETTERS = at >= 0 ? Number(args.splice(at, 2)[1]) : 4;
+const dir = args[0];
+if (!dir || ![4, 5].includes(LETTERS)) throw new Error('usage: vite-node scripts/definitions.ts <path-to-wordnet-dict-dir> [--letters 5]');
 
 const POS = [
   { file: 'noun', tag: 'n.', rules: [['s', ''], ['ses', 's'], ['xes', 'x'], ['zes', 'z'], ['ches', 'ch'], ['shes', 'sh'], ['men', 'man'], ['ies', 'y']] },
@@ -116,7 +120,7 @@ function define(word: string): [string, string, string?] | null {
   return best.base === lower ? [best.tag, best.gloss] : [best.tag, best.gloss, best.base];
 }
 
-const words = parseWordList(readFileSync(new URL('../data/familiar-4.txt', import.meta.url), 'utf8'));
+const words = parseWordList(readFileSync(new URL(`../data/familiar-${LETTERS}.txt`, import.meta.url), 'utf8'));
 const extra = new Map(
   parseWordList(readFileSync(new URL('../data/definitions-extra.tsv', import.meta.url), 'utf8')).map((line) => {
     const [word, tag, definition] = line.split('\t');
@@ -133,5 +137,5 @@ for (const w of words) {
   if (d) out[w] = d;
   else missing.push(w);
 }
-writeFileSync(new URL('../public/definitions.json', import.meta.url), JSON.stringify(out));
+writeFileSync(new URL(LETTERS === 4 ? '../public/definitions.json' : `../public/definitions-${LETTERS}.json`, import.meta.url), JSON.stringify(out));
 console.log(`defined ${words.length - missing.length} of ${words.length} words${missing.length ? `; missing: ${missing.join(' ')}` : ''}`);

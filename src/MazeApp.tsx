@@ -20,8 +20,9 @@ import { ShareSheet } from './components/maze/ShareSheet';
 import type { ShareResult } from './share';
 import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
 import { Celebration, inkSources } from './celebration/Celebration';
-import { DAYS, celebrationFor, dayFor, dayNumber, loadDaily, localDate } from './daily/daily';
-import { WordEditor } from './components/maze/WordEditor';
+import { celebrationFor, dayFor, dayNumber, daysFor, loadDaily, localDate } from './daily/daily';
+import { CELL_W, WordEditor } from './components/maze/WordEditor';
+import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
 
 /** A puzzle's ink pots: where they are, the best score with them, and a route that gets it. */
@@ -76,6 +77,9 @@ interface Visit {
 const COLUMN_W = 640;
 const SIDE_W = 260;
 const SIDE_MIN = 1000;
+/** The 5-letter game's wider column (so five letters keep the size four have), and where the card fits beside it. */
+const COLUMN_W_5 = 760;
+const SIDE_MIN_5 = 1100;
 /** Below this width the layout is the phone one: compact header and score, bigger word (see .maze.compact). */
 const COMPACT_MAX = 600;
 
@@ -89,10 +93,11 @@ interface Result {
   /** Each step's words and strokes, for the share grid. */
   steps: ShareResult['steps'];
 }
-const resultKey = (date: string) => `strokes:result:${date}`;
-const loadResult = (date: string): Result | null => {
+/** Where a daily's result is kept: the 4- and 5-letter games keep theirs apart. */
+const resultKey = (date: string, letters: WordLength) => `strokes:result${letters === 5 ? '5' : ''}:${date}`;
+const loadResult = (date: string, letters: WordLength): Result | null => {
   try {
-    const r = JSON.parse(localStorage.getItem(resultKey(date)) ?? 'null');
+    const r = JSON.parse(localStorage.getItem(resultKey(date, letters)) ?? 'null');
     // (Results kept before the grid have only each step's strokes: they share without it.)
     return r && { ...r, steps: Array.isArray(r.steps) ? r.steps.filter((s: unknown) => typeof s === 'object') : [] };
   } catch {
@@ -141,6 +146,8 @@ function useWindowSize() {
 }
 
 export function MazeApp() {
+  /** This visit's game: 5-letter words on a desktop, 4 elsewhere (see src/letters.ts). Chosen once. */
+  const [letters] = useState<WordLength>(loadLetters);
   const [data, setData] = useState<MazeData | null>(null);
   const [room, setRoom] = useState('');
   const [cells, setCells] = useState<Placement[][]>([]);
@@ -240,8 +247,10 @@ export function MazeApp() {
     let live = true;
     const today = localDate();
     const asked = new URLSearchParams(location.search).get('day');
-    const date = asked && DAYS.includes(asked) && (import.meta.env.DEV || asked <= today) ? asked : dayFor(today);
-    Promise.all([fetch(dataUrl('mazes.json')).then((r) => r.json() as Promise<MazeData>), loadDaily(date)]).then(([d, day]) => {
+    const days = daysFor(letters);
+    const date = asked && days.includes(asked) && (import.meta.env.DEV || asked <= today) ? asked : dayFor(today, days);
+    const maze = letters === 5 ? 'mazes-5.json' : 'mazes.json';
+    Promise.all([fetch(dataUrl(maze)).then((r) => r.json() as Promise<MazeData>), loadDaily(date, letters)]).then(([d, day]) => {
       if (!live) return;
       const pick: Pick = { puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date, onRoute: day.onRoute };
       setData(d);
@@ -249,7 +258,7 @@ export function MazeApp() {
       setCurrent(flags.freshPuzzle ? pickPuzzle(d) : pick);
     });
     // Definitions are a nicety: the game plays without them if they don't load.
-    fetch(dataUrl('definitions.json'))
+    fetch(dataUrl(letters === 5 ? 'definitions-5.json' : 'definitions.json'))
       .then((r) => r.json())
       .then((d) => live && setDefs(d))
       .catch(() => {});
@@ -337,7 +346,8 @@ export function MazeApp() {
   // Reaching the goal celebrates: confetti for a solve in the lowest possible strokes, then the
   // daily's own scene. In development, ?celebrate opens it at once (?celebrate=2.2 holds it at 2.2
   // seconds), and ?perfect adds the confetti (?perfect=1.2 holds the whole thing at 1.2 seconds).
-  const scene = current?.date ? celebrationFor(current.date) : undefined;
+  // (The 5-letter days have no scenes of their own: a Perfect gets the confetti, then the goal word.)
+  const scene = current?.date && letters === 4 ? celebrationFor(current.date) : undefined;
   const perfect = won && spent <= best;
   const [celebrating, setCelebrating] = useState<{ perfect: boolean; freezeAt?: number } | null>(null);
   useEffect(() => {
@@ -347,10 +357,10 @@ export function MazeApp() {
     const date = current?.date;
     if (!date) return;
     const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail) };
-    const before = loadResult(date);
+    const before = loadResult(date, letters);
     if (!before || result.strokes < before.strokes || (result.strokes === before.strokes && result.hints < before.hints)) {
       try {
-        localStorage.setItem(resultKey(date), JSON.stringify(result));
+        localStorage.setItem(resultKey(date, letters), JSON.stringify(result));
       } catch {
         // storage blocked: shown this visit only
       }
@@ -359,7 +369,7 @@ export function MazeApp() {
   }, [won]);
   /** Today's result from an earlier visit (or this one), if any. */
   const [saved, setSaved] = useState<Result | null>(null);
-  useEffect(() => setSaved(current?.date ? loadResult(current.date) : null), [current?.date]);
+  useEffect(() => setSaved(current?.date ? loadResult(current.date, letters) : null), [current?.date, letters]);
   /** The result being shared (the share sheet is open). */
   const [sharing, setSharing] = useState<ShareResult | null>(null);
   const shareBtn = useRef<HTMLButtonElement>(null);
@@ -465,10 +475,13 @@ export function MazeApp() {
   if (!data || !puzzle || !room) return <div className="maze loading">Loading…</div>;
 
   // The main column (score, board, step controls) with the path card beside it when there's room.
-  const side = width >= SIDE_MIN;
-  const column = Math.min(width - 32, COLUMN_W);
-  // Board padding, gaps between letter tiles and their own padding come off before sizing the word.
-  const unit = Math.max(13, Math.min(32, (column - 36 - 30 - 48) / 16));
+  const columnW = letters === 5 ? COLUMN_W_5 : COLUMN_W;
+  const side = width >= (letters === 5 ? SIDE_MIN_5 : SIDE_MIN);
+  const column = Math.min(width - 32, columnW);
+  // Board padding, the gaps between letter tiles (10 px) and their own padding (12 px) come off
+  // before sizing the word, whose letters are CELL_W units wide each.
+  const n = puzzle.start.length;
+  const unit = Math.max(13, Math.min(32, (column - 36 - 10 * (n - 1) - 12 * n) / (CELL_W * n)));
   const visited = new Set(trail.map((v) => v.word));
   const shownHint = hint && hint.room === room && !won ? hint : null;
   const askHint = () => {
@@ -510,8 +523,8 @@ export function MazeApp() {
     <PrefsContext.Provider value={prefs}>
     <MotionConfig reducedMotion={motionConfig(prefs.motion)}>
       <div
-        className={`maze${side ? ' side' : ''}${compact ? ' compact' : ''}`}
-        style={side ? { gridTemplateColumns: `minmax(0, ${COLUMN_W}px) ${SIDE_W}px` } : undefined}
+        className={`maze${side ? ' side' : ''}${compact ? ' compact' : ''}${letters === 5 ? ' five' : ''}`}
+        style={side ? { gridTemplateColumns: `minmax(0, ${columnW}px) ${SIDE_W}px` } : undefined}
       >
         <Masthead
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
@@ -523,7 +536,7 @@ export function MazeApp() {
           }
           dateline={
             current?.date &&
-            `No. ${dayNumber(current.date)} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
+            `No. ${dayNumber(current.date)}${letters === 5 ? ' · 5 letters' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
           }
         />
 
