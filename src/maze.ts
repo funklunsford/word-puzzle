@@ -149,13 +149,12 @@ export function steppingStone(word: string, start: string, goal: string): boolea
 export type Need = 'none' | 'letter' | 'stone';
 
 /**
- * The pool's mix, filled by quota evenly across the best totals (see scripts/mazes.ts):
- * - tricky: the share of puzzles the straightforward approach can't solve at par (see isObvious);
- * - need: the share needing the one-stroke letters each way (see Need). A stepping stone is fine now
- *   and then, but not in every maze. 'letter' puzzles are the most varied; 'none' puzzles can't
- *   change a vowel, since vowels only change through I.
+ * The pool's mix, filled by quota evenly across the best totals (see scripts/mazes.ts): the share
+ * needing the one-stroke letters each way (see Need). A stepping stone is fine now and then, but not
+ * in every maze. 'letter' puzzles are the most varied; 'none' puzzles can't change a vowel, since
+ * vowels only change through I. (Every puzzle is tricky and passes a pocket: see src/difficulty.ts.)
  */
-export const POOL_MIX: { tricky: number; need: Record<Need, number> } = { tricky: 1, need: { none: 0.3, letter: 0.5, stone: 0.2 } };
+export const POOL_MIX: { need: Record<Need, number> } = { need: { none: 0.3, letter: 0.5, stone: 0.2 } };
 
 /** The puzzle's need, with a shortest route that shows it (one that avoids the hubs where it can). */
 export function classifyNeed(words: string[], adj: Graph, start: string, goal: string, best: number): { need: Need; path: string[] } {

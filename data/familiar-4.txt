@@ -1,6 +1,7 @@
 # Familiar 4-letter words for the stroke maze, built by scripts/familiar.ts: lowercase 4-letter
-# words up to SCOWL size 40, plus the reviewed size-50 words in data/familiar-extra.txt, also in
-# ENABLE, minus a small blocklist. The size-40 list notice follows (size 50 has the same terms).
+# words up to SCOWL size 40, plus the reviewed size-50 words in data/familiar-extra.txt and the
+# linking words in data/familiar-links.txt, also in ENABLE, minus a small blocklist. The size-40
+# list notice follows (size 50 has the same terms).
 #
 # Custom wordlist generated from https://app.aspell.net/create using
 # the English Speller Database (ESDB) with parameters:
@@ -95,6 +96,7 @@ AREA
 ARES
 ARIA
 ARID
+ARIL
 ARKS
 ARMS
 ARMY
@@ -115,6 +117,7 @@ AWED
 AWES
 AWRY
 AXED
+AXEL
 AXES
 AXIS
 AXLE
@@ -335,6 +338,7 @@ COAL
 COAT
 COAX
 COBS
+COCO
 CODA
 CODE
 CODS
@@ -442,6 +446,7 @@ DENS
 DENT
 DENY
 DESK
+DEVA
 DEWY
 DIAL
 DICE
@@ -470,6 +475,7 @@ DOER
 DOES
 DOFF
 DOGS
+DOJO
 DOLE
 DOLL
 DOLT
@@ -616,6 +622,7 @@ FIGS
 FILE
 FILL
 FILM
+FILO
 FIND
 FINE
 FINK
@@ -721,6 +728,7 @@ GENE
 GENT
 GERM
 GETS
+GHEE
 GIBE
 GIFT
 GIGS
@@ -750,6 +758,7 @@ GOAT
 GOBS
 GODS
 GOES
+GOGO
 GOLD
 GOLF
 GONE
@@ -978,6 +987,7 @@ KEEN
 KEEP
 KEGS
 KELP
+KENO
 KEPT
 KETO
 KEYS
@@ -1063,6 +1073,7 @@ LIFT
 LIKE
 LILT
 LILY
+LIMA
 LIMB
 LIME
 LIMO
@@ -1083,6 +1094,7 @@ LOAM
 LOAN
 LOBE
 LOBS
+LOCI
 LOCK
 LOCO
 LODE
@@ -1113,15 +1125,19 @@ LOWS
 LUAU
 LUBE
 LUCK
+LUGE
 LUGS
 LULL
+LULU
 LUMP
+LUNA
 LUNG
 LURE
 LURK
 LUSH
 LUST
 LUTE
+LUTZ
 LYNX
 LYRE
 MACE
@@ -1132,6 +1148,7 @@ MAIL
 MAIM
 MAIN
 MAKE
+MAKO
 MALE
 MALL
 MALT
@@ -1199,6 +1216,7 @@ MOBS
 MOCK
 MODE
 MODS
+MOJO
 MOLD
 MOLE
 MOLT
@@ -1301,6 +1319,7 @@ OILY
 OINK
 OKAY
 OKRA
+OLIO
 OMEN
 OMIT
 ONCE
@@ -1389,6 +1408,8 @@ PESO
 PEST
 PETS
 PEWS
+PHEW
+PHON
 PICK
 PIED
 PIER
@@ -1397,6 +1418,7 @@ PIGS
 PIKE
 PILE
 PILL
+PIMA
 PINE
 PING
 PINK
@@ -1450,6 +1472,7 @@ PRAM
 PRAY
 PREP
 PREY
+PRIG
 PRIM
 PROD
 PROF
@@ -1812,6 +1835,7 @@ TACT
 TADS
 TAGS
 TAIL
+TAIN
 TAKE
 TALC
 TALE
@@ -1918,6 +1942,7 @@ TRAP
 TRAY
 TREE
 TREK
+TREY
 TRIG
 TRIM
 TRIO
@@ -1946,6 +1971,7 @@ TWOS
 TYKE
 TYPE
 TYPO
+TZAR
 UGLY
 ULNA
 UMPS
@@ -1972,6 +1998,7 @@ VEEP
 VEER
 VEIL
 VEIN
+VELD
 VEND
 VENT
 VERB
@@ -2088,6 +2115,7 @@ WOKE
 WOKS
 WOLF
 WOMB
+WONK
 WONT
 WOOD
 WOOF
@@ -2114,6 +2142,7 @@ YAWN
 YEAH
 YEAR
 YEAS
+YECH
 YELL
 YELP
 YENS

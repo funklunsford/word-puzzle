@@ -8,8 +8,9 @@
 // cheapest route from START to GOAL in total strokes (Dijkstra).
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { findPockets, isTricky, keep, measure, parChance, type Difficulty } from '../src/difficulty';
 import { placePots, potRoute, potValues } from '../src/inkpots';
-import { POOL_MIX, PUZZLE_SHAPE, buildGraph, classifyNeed, isObvious, randomPuzzle, routeWords, seededRandom, solve, type Need } from '../src/maze';
+import { POOL_MIX, PUZZLE_SHAPE, buildGraph, classifyNeed, randomPuzzle, routeWords, seededRandom, solve, type Need } from '../src/maze';
 import { parseWordList } from '../src/wordlist';
 
 // Opposites make a nice maze: 14 strokes over 5 rooms, all everyday words.
@@ -25,6 +26,8 @@ console.timeEnd('graph');
 const degree = adj.map((a) => a.length);
 const connected = degree.filter((d) => d > 0).length;
 console.log(`${words.length} words, ${connected} with at least one door, median doors ${[...degree].sort((a, b) => a - b)[degree.length >> 1]}`);
+const pockets = findPockets(adj);
+console.log(`${pockets.sizes.length} pockets (parts of the maze hanging off the rest by one word), ${pockets.sizes.reduce((a, b) => a + b, 0)} words in them`);
 
 const puzzle = solve(words, adj, START, GOAL);
 if (!puzzle) throw new Error(`${GOAL} must be reachable from ${START}, and both must be in the word list`);
@@ -38,29 +41,24 @@ const label = (v: number) => (v > 0 ? 'saves a stroke' : v === 0 ? 'break-even' 
 console.log(`ink pots: ${pots.map((p) => `${p} (${label(value[words.indexOf(p)])})`).join(', ')}; best with pots ${ink.best}   ${ink.walk.join(' → ')}`);
 const inkPots = { pots, best: ink.best, walk: ink.walk };
 
-// The pool the game picks a puzzle from on each load. Starts and goals are everyday base words
-// (in data/everyday-4.txt, defined as a noun, verb or adjective rather than a plural, past tense,
+// The pool the dailies are chosen from. Starts and goals are everyday base words (in
+// data/everyday-4.txt, defined as a noun, verb or adjective rather than a plural, past tense,
 // pronoun or archaic form), so a puzzle never opens on HAST, SOPS or SENT; the words between are any.
-// Its mix is set by quota (POOL_MIX in src/maze.ts), evenly across the best totals (9, 10 and 11).
+// Every puzzle is tricky (no rule of thumb makes par) and passes a pocket: a word on a lowest-stroke
+// route opens onto part of the maze that only leads back (see src/difficulty.ts). Its mix is set by
+// quota (POOL_MIX in src/maze.ts), evenly across the best totals (9, 10 and 11).
 const POOL = 420;
-const { tricky: TRICKY, need: NEED } = POOL_MIX;
+const { need: NEED } = POOL_MIX;
 const everyday = new Set(parseWordList(readFileSync(new URL('../data/everyday-4.txt', import.meta.url), 'utf8')));
 const definitions = JSON.parse(readFileSync(new URL('../public/definitions.json', import.meta.url), 'utf8'));
 const endpoint = (w: string) => {
   const d = definitions[w];
   return everyday.has(w) && Array.isArray(d) && d.length === 2 && ['n.', 'v.', 'adj.'].includes(d[0]) && !/old-fashioned|\(past of/.test(d[1]) && !/[^s]s$/i.test(w);
 };
-// Quota per cell: (best, need, tricky or obvious)
+// Quota per cell: (best, need)
 const bests = Array.from({ length: PUZZLE_SHAPE.best[1] - PUZZLE_SHAPE.best[0] + 1 }, (_, i) => PUZZLE_SHAPE.best[0] + i);
 const quota = new Map<string, number>();
-for (const b of bests) {
-  for (const need of Object.keys(NEED) as Need[]) {
-    const n = Math.round((POOL / bests.length) * NEED[need]);
-    const tricky = Math.round(n * TRICKY);
-    quota.set(`${b}|${need}|tricky`, tricky);
-    quota.set(`${b}|${need}|obvious`, n - tricky);
-  }
-}
+for (const b of bests) for (const need of Object.keys(NEED) as Need[]) quota.set(`${b}|${need}`, Math.round((POOL / bests.length) * NEED[need]));
 const target = [...quota.values()].reduce((t, n) => t + n, 0);
 const random = seededRandom(7);
 const seen = new Set<string>();
@@ -75,10 +73,12 @@ while (puzzles.length < target) {
   }
   const p = randomPuzzle(words, adj, random, endpoint);
   if (seen.has(p.start + p.goal) || seen.has(p.goal + p.start)) continue;
-  const kind = isObvious(words, adj, p.start, p.goal, p.best) ? 'obvious' : 'tricky';
-  if (![...quota].some(([k, n]) => n > 0 && k.startsWith(`${p.best}|`) && k.endsWith(`|${kind}`))) continue;
+  if (![...quota].some(([k, n]) => n > 0 && k.startsWith(`${p.best}|`))) continue;
+  // The cheap measures first: only a tricky puzzle that passes a pocket goes on.
+  const difficulty: Difficulty = measure(words, adj, p, pockets);
+  if (!isTricky(difficulty) || !difficulty.pocketsBeside) continue;
   const { need, path } = classifyNeed(words, adj, p.start, p.goal, p.best);
-  const cell = `${p.best}|${need}|${kind}`;
+  const cell = `${p.best}|${need}`;
   tries.set(cell, (tries.get(cell) ?? 0) + 1);
   if (!quota.get(cell)) continue;
   quota.set(cell, quota.get(cell)! - 1);
@@ -86,12 +86,17 @@ while (puzzles.length < target) {
   const puzzle = { ...p, path };
   const potWords = placePots(words, adj, p.start, p.goal, p.best, path, random);
   const { bound: _bound, ...plan } = potRoute(words, adj, p.start, p.goal, potWords);
-  puzzles.push({ puzzle, need, tricky: kind === 'tricky', inkPots: plan, onRoute: routeWords(words, adj, p.start, p.goal) });
+  puzzles.push({ puzzle, need, tricky: true, difficulty: keep(difficulty, parChance(words, adj, puzzle)), inkPots: plan, onRoute: routeWords(words, adj, p.start, p.goal) });
 }
 console.timeEnd('pool');
 const mean = puzzles.reduce((t, x) => t + x.puzzle.best, 0) / puzzles.length;
 const share = (need: Need) => `${Math.round((100 * puzzles.filter((x) => x.need === need).length) / puzzles.length)}%`;
 console.log(`pool: ${puzzles.length} puzzles from ${attempts} candidates, best ${mean.toFixed(2)} on average; needs no C/I/V ${share('none')}, C/I/V in start or goal ${share('letter')}, a stepping stone ${share('stone')}`);
+const chances = puzzles.map((x) => x.difficulty.parChance).sort((a, b) => a - b);
+const depths = [1, 2, 3, 4].map((k) => puzzles.filter((x) => x.difficulty.depth === k).length);
+console.log(`difficulty: par chance median ${chances[chances.length >> 1]} (from ${chances[0]} to ${chances[chances.length - 1]}); depth 2/3/4+: ${depths.slice(1).join('/')}; with a trap ${puzzles.filter((x) => x.difficulty.traps.length).length}, a trap into a pocket ${puzzles.filter((x) => x.difficulty.pocketTrap).length}`);
+const endpoints = new Set(puzzles.flatMap((x) => [x.puzzle.start, x.puzzle.goal]));
+console.log(`${endpoints.size} different start and goal words`);
 console.log(`candidates seen per cell: ${[...tries].sort().map(([k, n]) => `${k} ${n}`).join(', ')}`);
 console.log(`e.g. ${puzzles.slice(0, 8).map((x) => `${x.puzzle.start} → ${x.puzzle.goal} (${x.puzzle.best}, ${x.need})`).join(', ')}`);
 

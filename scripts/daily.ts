@@ -5,18 +5,20 @@
 //   npm run daily -- 2026-10-09 COLD WARM    # check that pair in as that date's puzzle
 //
 // Candidates come from the puzzle pool (public/mazes.json, see scripts/mazes.ts), so every one is
-// tricky, starts and ends on everyday words, and fits the pool's rules. The script cycles through
-// it: never a pair already used (either way round), no start or goal word from the last 30 days,
-// the day's difficulty from a weekly rhythm (lowest strokes 9 early in the week, 11 by the
-// weekend), and the kind of route (see classifyNeed in src/maze.ts) the last week has had least
-// of. The same date and history always give the same candidates.
+// tricky, passes a pocket, starts and ends on everyday words, and fits the pool's rules. The script
+// cycles through it: never a pair already used (either way round), no start or goal word from the
+// last 30 days, the day's difficulty from a weekly rhythm (the easiest third of the pool early in the
+// week, the hardest by the weekend, by how often a simulated player makes par: see
+// src/difficulty.ts), and the kind of route (see classifyNeed in src/maze.ts) the last week has had
+// least of. The same date and history always give the same candidates.
 //
 // Checking in writes src/daily/days/{DATE}.json and prints what the celebration prompt needs (see
 // docs/daily-celebration-prompt.md). The history is the day files themselves.
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { findPockets, isTricky, keep, measure, parChance, type KeptDifficulty } from '../src/difficulty';
 import { placePots, potRoute } from '../src/inkpots';
-import { POOL_MIX, buildGraph, classifyNeed, isObvious, routeWords, seededRandom, solve, type Need, type Puzzle } from '../src/maze';
+import { POOL_MIX, buildGraph, classifyNeed, routeWords, seededRandom, solve, type Need, type Puzzle } from '../src/maze';
 import type { DailyPuzzle } from '../src/daily/daily';
 import { dayNumber } from '../src/daily/daily';
 
@@ -25,8 +27,10 @@ const LOG = new URL('../src/daily/LOG.md', import.meta.url);
 const CANDIDATES = 10;
 /** Start and goal words rest this long before they come back. */
 const REST_DAYS = 30;
-/** Lowest strokes by weekday, Sunday first: easier early in the week, hardest by the weekend. */
-const RHYTHM = [10, 9, 9, 10, 10, 11, 11];
+/** How hard each weekday's puzzle is, Sunday first: easier early in the week, hardest by the weekend. */
+type Band = 'easy' | 'middle' | 'hard';
+const RHYTHM: Band[] = ['middle', 'easy', 'easy', 'middle', 'middle', 'hard', 'hard'];
+const THIRD: Record<Band, string> = { easy: 'easiest third', middle: 'middle third', hard: 'hardest third' };
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const NEED_TEXT: Record<Need, string> = {
   none: 'needs no C, I or V',
@@ -50,6 +54,23 @@ const weekday = (date: string) => new Date(`${date}T00:00:00Z`).getUTCDay();
 const hash = (s: string) => [...s].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7);
 const define = (w: string) => (definitions[w] ? `${definitions[w][0]} ${definitions[w][1]}` : '(no definition)');
 const pairKey = (p: { start: string; goal: string }) => [p.start, p.goal].sort().join('|');
+const percent = (x: number) => `${Math.round(100 * x)}%`;
+
+/** The pool in thirds by difficulty: hardest first (least often at par, then the deepest plan, then the most traps). */
+const harder = (a: PoolEntry, b: PoolEntry) => {
+  const [x, y] = [a.difficulty!, b.difficulty!];
+  return x.parChance - y.parChance || y.depth - x.depth || y.traps.length - x.traps.length || pairKey(a.puzzle).localeCompare(pairKey(b.puzzle));
+};
+const ranked = data.puzzles.filter((p) => p.difficulty).sort(harder);
+const bandOf = new Map<string, Band>(ranked.map((p, i) => [pairKey(p.puzzle), i < ranked.length / 3 ? 'hard' : i < (2 * ranked.length) / 3 ? 'middle' : 'easy']));
+
+/** What makes a puzzle tricky, in a line. */
+function describe(d: KeptDifficulty | undefined) {
+  if (!d) return 'tricky';
+  const plan = d.depth > 3 ? 'plan more than 3 steps ahead' : `plan ${d.depth} steps ahead`;
+  const traps = d.traps.length ? `traps ${d.traps.map((t) => `${t.door} from ${t.at} (loses ${t.loses}${t.pocket ? ', into a pocket' : ''})`).join(', ')}` : 'no traps';
+  return `makes par ${percent(d.parChance)} of the time; ${plan}; ${traps}; ${d.pocketsBeside} pocket${d.pocketsBeside === 1 ? '' : 's'} beside the route`;
+}
 
 const [date = days.length ? addDays(days[days.length - 1].date, 1) : '2026-10-06', start, goal, ...flags] = process.argv.slice(2);
 if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) throw new Error(`"${date}" isn't a date (YYYY-MM-DD)`);
@@ -59,7 +80,8 @@ const resting = new Set(before.filter((d) => d.date >= addDays(date, -REST_DAYS)
 
 if (!start) {
   // ---------- Candidates ----------
-  const best = RHYTHM[weekday(date)];
+  const band = RHYTHM[weekday(date)];
+  const inBand = (p: PoolEntry) => bandOf.get(pairKey(p.puzzle)) === band;
   // The kind of route the last week has had least of, against the pool's mix.
   const week = before.filter((d) => d.date >= addDays(date, -7));
   const needs = Object.keys(POOL_MIX.need) as Need[];
@@ -68,23 +90,27 @@ if (!start) {
   const fresh = data.puzzles.filter((p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal));
   const random = seededRandom(hash(date));
   const shuffled = (xs: PoolEntry[]) => xs.map((x) => ({ x, r: random() })).sort((a, b) => a.r - b.r).map((o) => o.x);
-  // The day's best and kind first; then the day's best of other kinds; then anything fresh.
+  // The day's band and kind first; then the day's band of other kinds; then anything fresh.
   const picks = [
-    ...shuffled(fresh.filter((p) => p.puzzle.best === best && p.need === need)),
-    ...shuffled(fresh.filter((p) => p.puzzle.best === best && p.need !== need)),
-    ...shuffled(fresh.filter((p) => p.puzzle.best !== best)),
+    ...shuffled(fresh.filter((p) => inBand(p) && p.need === need)),
+    ...shuffled(fresh.filter((p) => inBand(p) && p.need !== need)),
+    ...shuffled(fresh.filter((p) => !inBand(p))),
   ].slice(0, CANDIDATES);
 
-  console.log(`Daily #${dayNumber(date)}, ${WEEKDAYS[weekday(date)]} ${date}: lowest strokes ${best}, preferably one that ${NEED_TEXT[need]}.`);
-  console.log(`${fresh.filter((p) => p.puzzle.best === best).length} unused puzzles in the pool with lowest strokes ${best}.\n`);
+  const range = ranked.filter((p) => bandOf.get(pairKey(p.puzzle)) === band).map((p) => p.difficulty!.parChance);
+  console.log(
+    `Daily #${dayNumber(date)}, ${WEEKDAYS[weekday(date)]} ${date}: a puzzle from the ${THIRD[band]} of the pool (made at par ${percent(Math.min(...range))}–${percent(Math.max(...range))} of the time), preferably one that ${NEED_TEXT[need]}.`,
+  );
+  console.log(`${fresh.filter(inBand).length} unused puzzles in the pool in that third.\n`);
   picks.forEach((p, i) => {
     const { start: s, goal: g, best: b, path } = p.puzzle;
-    console.log(`${String(i + 1).padStart(2)}. ${s} → ${g}   lowest strokes ${b} in ${path.length - 1} steps, ${NEED_TEXT[p.need]}`);
+    console.log(`${String(i + 1).padStart(2)}. ${s} → ${g}   lowest strokes ${b} in ${path.length - 1} steps, ${NEED_TEXT[p.need]}${inBand(p) ? '' : ` (from the ${THIRD[bandOf.get(pairKey(p.puzzle)) ?? 'middle']})`}`);
     console.log(`    route: ${path.join(' → ')}`);
+    console.log(`    ${describe(p.difficulty)}`);
     console.log(`    ${s}: ${define(s)}`);
     console.log(`    ${g}: ${define(g)}\n`);
   });
-  if (fresh.filter((p) => p.puzzle.best === best).length < 30)
+  if (fresh.filter(inBand).length < 30)
     console.log(`The pool is running low: regenerate it with a new seed (scripts/mazes.ts), then rerun this.\n`);
   console.log(`Check one in with: npm run daily -- ${date} START GOAL`);
 } else {
@@ -100,8 +126,8 @@ if (!start) {
   let entry: PoolEntry | undefined = data.puzzles.find((p) => p.puzzle.start === S && p.puzzle.goal === G);
   if (!entry && S === data.puzzle.start && G === data.puzzle.goal) {
     // The original puzzle (WILD → TAME), kept with its route and ink pots as the game has always had them.
-    const { need, tricky } = needOf(data.words, buildGraph(data.words), data.puzzle);
-    entry = { puzzle: data.puzzle, inkPots: data.inkPots, need, tricky, onRoute: data.onRoute };
+    const { need, tricky, difficulty } = needOf(data.words, buildGraph(data.words), data.puzzle);
+    entry = { puzzle: data.puzzle, inkPots: data.inkPots, need, tricky, difficulty, onRoute: data.onRoute };
   }
   if (!entry) {
     if (!any) throw new Error(`${S} → ${G} isn't in the pool; pick a candidate, or pass --any to check in a pair by hand`);
@@ -109,10 +135,10 @@ if (!start) {
     const adj = buildGraph(words);
     const solved = solve(words, adj, S, G);
     if (!solved) throw new Error(`${G} can't be reached from ${S} (are both in the word list?)`);
-    const { need, tricky, path } = needOf(words, adj, solved);
+    const { need, tricky, difficulty, path } = needOf(words, adj, solved);
     const pots = placePots(words, adj, S, G, solved.best, path, seededRandom(hash(date)));
     const { bound: _bound, ...inkPots } = potRoute(words, adj, S, G, pots);
-    entry = { puzzle: { ...solved, path }, need, tricky, inkPots, onRoute: routeWords(words, adj, S, G) };
+    entry = { puzzle: { ...solved, path }, need, tricky, difficulty, inkPots, onRoute: routeWords(words, adj, S, G) };
   }
 
   const day: DailyPuzzle = { date, ...entry };
@@ -139,5 +165,6 @@ if (!start) {
 
 function needOf(words: string[], adj: ReturnType<typeof buildGraph>, p: Puzzle) {
   const { need, path } = classifyNeed(words, adj, p.start, p.goal, p.best);
-  return { need, path, tricky: !isObvious(words, adj, p.start, p.goal, p.best) };
+  const d = measure(words, adj, p, findPockets(adj));
+  return { need, path, tricky: isTricky(d), difficulty: keep(d, parChance(words, adj, p)) };
 }
