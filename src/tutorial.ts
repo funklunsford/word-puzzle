@@ -1,7 +1,7 @@
 // How to play's practice moves (see HowToTry): five letters to make, each teaching a move. Kept
 // apart from the component so a test can check every step can still be done with the game's rules.
 
-import { TILES, TRAY_TURN, type Placement, type TileId } from './glyphs';
+import { TRAY_TURN, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, recognize, slotKey, slotsFor } from './strokes';
 
 export type Say = { touch: string; mouse: string };
@@ -155,17 +155,15 @@ export function practiceGoals(content: Placement[], tray: readonly TileId[]): st
   return [...reachable(content, tray, 2)].filter(([ch]) => ch !== here).map(([ch]) => ch);
 }
 
-const name = (tile: TileId) => TILES[tile].name.toLowerCase();
 /** "an R", "a B": the letter's name, as said aloud. */
 export const withArticle = (letter: string) => `${'AEFHILMNORSX'.includes(letter) ? 'an' : 'a'} ${letter}`;
 
-/** What to say for a move towards `goal`. */
+/** What to say for a move towards `goal` (every stroke is just a stroke: the ghost shows which). */
 export function sayMove(g: Ghost, goal: string): Say {
   const make = `Make ${withArticle(goal)}:`;
-  if (g.kind === 'carry')
-    return same(g.from === 'tray' ? `${make} drag the ${name(g.tile)} in from the tray.` : `${make} drag the ${name(g.tile)} to its new spot.`);
-  if (g.kind === 'turn') return { touch: `${make} double-tap the ${name(g.at.tile)} to turn it.`, mouse: `${make} double-click the ${name(g.at.tile)} to turn it.` };
-  return { touch: `${make} tap the ${name(g.at.tile)} to remove it.`, mouse: `${make} click the ${name(g.at.tile)} to remove it.` };
+  if (g.kind === 'carry') return same(g.from === 'tray' ? `${make} drag the stroke shown in from the tray.` : `${make} drag the stroke shown to its new spot.`);
+  if (g.kind === 'turn') return { touch: `${make} double-tap the stroke shown to turn it.`, mouse: `${make} double-click the stroke shown to turn it.` };
+  return { touch: `${make} tap the stroke shown to remove it.`, mouse: `${make} click the stroke shown to remove it.` };
 }
 
 /** A practice step: from `start` (the letter just made) to `goal`, guided move by move. */

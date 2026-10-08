@@ -57,8 +57,8 @@ describe('more practice, after the five moves', () => {
     expect(stuck).toEqual(['X', 'Z']);
   });
 
-  it('says each move plainly, naming the letter to make', () => {
-    expect(sayMove({ kind: 'carry', tile: 'SB', from: 'tray', to: { tile: 'SB', x: 0, y: 0 } }, 'R').mouse).toBe('Make an R: drag the tail in from the tray.');
-    expect(sayMove({ kind: 'remove', at: { tile: 'H', x: 0, y: 0 } }, 'B').touch).toBe('Make a B: tap the bar to remove it.');
+  it('says each move plainly, naming the letter to make (and every stroke just a stroke)', () => {
+    expect(sayMove({ kind: 'carry', tile: 'SB', from: 'tray', to: { tile: 'SB', x: 0, y: 0 } }, 'R').mouse).toBe('Make an R: drag the stroke shown in from the tray.');
+    expect(sayMove({ kind: 'remove', at: { tile: 'H', x: 0, y: 0 } }, 'B').touch).toBe('Make a B: tap the stroke shown to remove it.');
   });
 });
