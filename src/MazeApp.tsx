@@ -544,7 +544,7 @@ export function MazeApp() {
           }
           dateline={
             current?.date &&
-            `No. ${dayNumber(current.date)}${letters === 5 ? ' · 5 letters' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
+            `No. ${dayNumber(current.date)} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
           }
         />
 
