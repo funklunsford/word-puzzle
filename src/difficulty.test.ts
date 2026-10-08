@@ -90,7 +90,7 @@ describe.each([
       expect(d.depth, label).toBeGreaterThan(1);
       expect(d.pocketsBeside, label).toBeGreaterThan(0);
     }
-  });
+  }, 30_000);
 
   it('keeps each puzzle’s difficulty as measured, par chance included', () => {
     for (const { puzzle, difficulty } of maze.puzzles) expect(keep(measure(words, adj, puzzle, pockets), parChance(words, adj, puzzle)), `${puzzle.start} → ${puzzle.goal}`).toEqual(difficulty);

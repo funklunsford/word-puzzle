@@ -558,3 +558,18 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Tests** run over both lengths: the word lists and definitions, the pools and their difficulty, the dailies, and the check that every step works both ways (no 5-letter step is one-way either); and the device rule.
 - **Projected experience:** steps are much harder to find (half the doors per word, among more possible edits) and a little easier to choose between (fewer decoys); puzzles take about 5 steps instead of 4; more of the maze is pockets and cut-off corners. Desktop and phone players get different puzzles each day.
 - **Next:** linking words for 5 letters, to join more of the maze (61% connected); the same obscure-word pass over the 4-letter list; the hand review of the 5-letter definitions; counting the 5-letter puzzle supply.
+
+## 5 letters on phones, behind a flag (2026-10-08, branch `five-letters-phones`)
+- **Why:** desktop plays and looks good at 5 letters; before phones get it, the owner tests it on a real phone. Measured at phone widths, the layout fits as is (no sideways scroll, the tray and buttons don't change, the page gets shorter); only the letters shrink, to about 78% of the 4-letter phone size.
+- **The flag** (`fiveLetters` in `src/flags.ts`, off by default): on, phones and tablets get the 5-letter game too (`chooseLetters` in `src/letters.ts`; `?letters=4` or `?letters=5` still overrides it). A link turns it on for that visit: `?flags=fiveLetters` (bookmark it to keep it). In Dev it's remembered, and toggling it reloads the page, since the game is chosen once per load. Turning it on for everyone is changing its default.
+- **Phone layout for five letters** (`.maze.compact.five`, and `CELL_W_COMPACT_5` in `WordEditor.tsx`): the cells are 2.4 units wide instead of 2.6, so the same width draws each letter bigger, and the page, board and cell padding and the gaps between cells are trimmed. No formed letter is drawn wider than 2 units, keeping the pen as clear of the cell's sides as W is at four letters: A, O, V, Y and M fill the width, and W is drawn a little narrower.
+- **Letter size**, cell width by height:
+
+  | Phone width | 4 letters | 5 letters before | 5 letters now |
+  |---|---|---|---|
+  | 360 px | 76 × 105 | 59 × 81 | 63 × 95 |
+  | 375 px | 80 × 110 | 62 × 86 | 66 × 99 |
+  | 430 px | 93 × 129 | 73 × 101 | 77 × 116 |
+
+  About 16% bigger than before, and 90% of the 4-letter size; nothing scrolls sideways down to 320 px. Tablets use the desktop layout at about the desktop's size. With the flag off, the 4-letter phone game measures exactly as before.
+- **To judge on a real phone:** picking out one of E's bars, dropping a stroke on the right spot, the longer path card, and whether a 5-step puzzle suits a phone session.
