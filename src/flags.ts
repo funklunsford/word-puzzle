@@ -7,9 +7,10 @@ export const FLAGS = {
   // Off: every load plays the day's puzzle (src/daily), with its celebration. On: a random puzzle
   // from the pool on each load.
   freshPuzzle: { label: 'New puzzle each load', on: false },
-  // Off: only a desktop gets the 5-letter game (see src/letters.ts). On: phones and tablets do too,
-  // with the word given more of a phone's width. Takes effect on the next load.
-  fiveLetters: { label: '5 letters on phones and tablets', on: false },
+  // Off: only a desktop gets the 5-letter game (see src/letters.ts). On (for everyone since
+  // 2026-10-08): phones and tablets do too, with the word given more of a phone's width. Takes
+  // effect on the next load; ?flags=-fiveLetters or ?letters=4 plays the 4-letter game.
+  fiveLetters: { label: '5 letters on phones and tablets', on: true },
 } as const;
 
 export type Flag = keyof typeof FLAGS;
