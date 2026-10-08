@@ -1,8 +1,8 @@
-// Which game a visit plays: 5-letter words on a desktop or laptop (a wide window with a mouse or
-// trackpad), 4-letter words everywhere else (phones and tablets keep today's game). Decided once per
-// load, so resizing a window never swaps games mid-play. The fiveLetters flag (src/flags.ts) gives
-// phones and tablets the 5-letter game too, and `?letters=4` or `?letters=5` overrides both, for
-// testing.
+// Which game a visit plays. By the device: 5-letter words on a desktop or laptop (a wide window
+// with a mouse or trackpad), 4-letter words on phones and tablets. The fiveLetters flag
+// (src/flags.ts, on for everyone since 2026-10-08) gives phones and tablets the 5-letter game too.
+// Decided once per load, so resizing a window never swaps games mid-play. `?letters=4` or
+// `?letters=5` overrides both, for testing.
 
 export type WordLength = 4 | 5;
 

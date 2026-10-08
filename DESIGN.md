@@ -585,3 +585,8 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - X and Z have no letter a move or two away, so practice starts again from another letter after them.
 - **The dateline** is just the number and the date ("No. 2 · Wednesday, October 7"): the 5-letter game no longer says "5 letters" there. The share card still does, since the phone's puzzle that day is a different one.
 - **Tests:** the record (each day once, streaks broken by a missed day, nothing after the day played) and times; every practice letter offered from every letter is made by doing the moves shown, two at most; the practice's lines.
+
+## 5 letters on phones for everyone (2026-10-08, branch `five-letters-on-phones`)
+- **The `fiveLetters` flag is on by default:** every device gets the 5-letter game, with its dailies (`src/daily/days-5/`), definitions and results. `?flags=-fiveLetters` or `?letters=4` still plays the 4-letter game, whose days, scenes and results are kept.
+- **Players who were on the 4-letter game** keep those results under their old keys; their 5-letter record starts fresh.
+- **Next:** the daily runbook still checks in a 4-letter day and builds its celebration scene, which only `?letters=4` shows now.
