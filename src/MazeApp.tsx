@@ -538,9 +538,27 @@ export function MazeApp() {
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
           compact={compact || height < 500}
           actions={
-            <button ref={gearBtn} className="gear-btn" aria-label="Settings" aria-haspopup="dialog" aria-expanded={settings} onClick={() => setSettings(true)}>
-              <GearIcon />
-            </button>
+            // The game's buttons in one bar: How to play, hardcore and settings.
+            <div className="toolbar">
+              <button ref={helpBtn} className="tool-btn help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
+                ?
+              </button>
+              <button
+                className={`tool-btn hardcore-btn${hardcore ? ' on' : ''}${armed ? ' armed' : ''}`}
+                aria-pressed={hardcore}
+                aria-label="Hardcore mode"
+                title={hardcore ? 'Hardcore is on: only words on a lowest-stroke route open' : 'Hardcore: only words on a lowest-stroke route open (starts the puzzle over)'}
+                onClick={toggleHardcore}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path className="flame" d="M12 2.8c.9 3.4 5.6 5.6 5.6 10.6a5.6 5.6 0 0 1-11.2 0c0-2.6 1.6-4.3 2.6-5.6.3 1.8 1.2 3 2.3 3.6-.5-3 .1-6 .7-8.6Z" />
+                  <path className="core" d="M12 13.2c1.3 1.3 2.3 2.4 2.1 3.9a2.1 2.1 0 0 1-4.2 0c0-1.4 1-2.5 2.1-3.9Z" />
+                </svg>
+              </button>
+              <button ref={gearBtn} className="tool-btn gear-btn" aria-label="Settings" aria-haspopup="dialog" aria-expanded={settings} onClick={() => setSettings(true)}>
+                <GearIcon />
+              </button>
+            </div>
           }
           dateline={
             current?.date &&
@@ -550,9 +568,6 @@ export function MazeApp() {
 
         <main className="column">
           <section className="scorecard">
-            <button ref={helpBtn} className="help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
-              ?
-            </button>
             <div className={`goal-panel${won ? ' reached' : ''}`}>
               <span className="label">{won ? 'Reached' : 'Goal'}</span>
               <GlyphWord word={puzzle.goal} size={compact ? 24 : unit * 1.3} />
@@ -646,18 +661,6 @@ export function MazeApp() {
           </AnimatePresence>
 
           <section className="board" ref={boardRef}>
-            <button
-              className={`hardcore-btn${hardcore ? ' on' : ''}${armed ? ' armed' : ''}`}
-              aria-pressed={hardcore}
-              aria-label="Hardcore mode"
-              title={hardcore ? 'Hardcore is on: only words on a lowest-stroke route open' : 'Hardcore: only words on a lowest-stroke route open (starts the puzzle over)'}
-              onClick={toggleHardcore}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path className="flame" d="M12 2.8c.9 3.4 5.6 5.6 5.6 10.6a5.6 5.6 0 0 1-11.2 0c0-2.6 1.6-4.3 2.6-5.6.3 1.8 1.2 3 2.3 3.6-.5-3 .1-6 .7-8.6Z" />
-                <path className="core" d="M12 13.2c1.3 1.3 2.3 2.4 2.1 3.9a2.1 2.1 0 0 1-4.2 0c0-1.4 1-2.5 2.1-3.9Z" />
-              </svg>
-            </button>
             <div className="board-head">
               <span className="label">You are in</span>
               {/* The word's meaning sits right above it, and changes as each new word is made. */}

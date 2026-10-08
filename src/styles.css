@@ -518,36 +518,73 @@ select,
   position: relative;
 }
 
-/* The gear, in the header's top-right corner. */
+/* The toolbar, in the header's top-right corner: How to play, hardcore and settings in one bar. */
 .masthead-actions {
   position: absolute;
   top: 0;
   right: 0;
 }
 
-.gear-btn {
+.toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--ledge);
+}
+
+/* Each looks 36px and takes a 44px tap (the bar's padding and gaps make up the rest). */
+.tool-btn {
   position: relative;
   display: grid;
   place-items: center;
   width: 36px;
   height: 36px;
   padding: 0;
+  border: 0;
   border-radius: 50%;
-  border: 2px solid var(--line);
-  background: var(--surface);
-  box-shadow: 0 3px 0 var(--ledge);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
   cursor: pointer;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
 }
 
-.gear-btn::after {
+.tool-btn::after {
   content: '';
   position: absolute;
-  inset: -6px;
+  inset: -4px;
   border-radius: 50%;
 }
 
-.gear-btn[aria-expanded='true'] {
-  border-color: var(--ink);
+/* A dialog it opened is showing. */
+.tool-btn[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--ink) 10%, var(--surface));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tool-btn:hover {
+    background: color-mix(in srgb, var(--ink) 7%, var(--surface));
+  }
+
+  .gear-btn:hover .gear-icon {
+    stroke: var(--ink);
+  }
+
+  .help-btn:hover {
+    color: var(--ink);
+  }
+}
+
+/* The ? in the icons' muted ink. */
+.help-btn {
+  color: var(--muted);
 }
 
 .gear-icon {
@@ -557,12 +594,6 @@ select,
   stroke: var(--muted);
   stroke-width: 2;
   stroke-linecap: round;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .gear-btn:hover .gear-icon {
-    stroke: var(--ink);
-  }
 }
 
 /* Settings: a setting's name, its choices side by side, and a line of explanation. */
@@ -736,7 +767,7 @@ select,
   justify-content: center;
   align-items: stretch;
   gap: 12px 20px;
-  padding: 14px 56px 16px;
+  padding: 14px 20px 16px;
   text-align: center;
   box-shadow: 0 6px 0 var(--ledge);
 }
@@ -808,23 +839,6 @@ select,
   white-space: nowrap;
 }
 
-.help-btn {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: 18px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 3px 0 var(--ledge);
-}
-
 /* In hardcore the Hint button gives way to this note, in the same space. */
 .no-hints {
   display: inline-flex;
@@ -844,42 +858,8 @@ select,
   min-width: 124px;
 }
 
-/* The ? and the flame look 36px, and take a 44px tap. */
-.help-btn::after,
-.hardcore-btn::after {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-}
-
-.help-btn[aria-expanded='true'] {
-  border-color: var(--ink);
-}
-
-/* Hardcore: a flame in the word box's top-right corner. Unlit, an outline; lit, it burns on the
-   spicy colour (only words on a lowest-stroke route open). */
-.hardcore-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border-radius: 50%;
-  border: 2px solid var(--line);
-  background: var(--surface);
-  box-shadow: 0 3px 0 var(--ledge);
-  cursor: pointer;
-  transition:
-    background 0.2s,
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
+/* Hardcore: the flame in the toolbar. Unlit, an outline; lit, it burns on the spicy colour (only
+   words on a lowest-stroke route open). */
 .hardcore-btn svg {
   width: 20px;
   height: 20px;
@@ -901,12 +881,10 @@ select,
   transition: fill 0.2s;
 }
 
-.hardcore-btn.on {
+.hardcore-btn.on,
+.hardcore-btn.on:hover {
   background: var(--spicy);
-  border-color: color-mix(in srgb, var(--spicy) 70%, var(--ink));
-  box-shadow:
-    0 3px 0 color-mix(in srgb, var(--spicy) 55%, var(--ledge)),
-    0 0 0 4px color-mix(in srgb, var(--spicy) 22%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--spicy) 22%, transparent);
   animation: ignite 0.45s ease-out;
 }
 
@@ -921,10 +899,7 @@ select,
 
 /* Asked once with progress on the board: it glows, waiting for the second tap. */
 .hardcore-btn.armed {
-  border-color: var(--spicy);
-  box-shadow:
-    0 3px 0 var(--ledge),
-    0 0 0 4px color-mix(in srgb, var(--spicy) 30%, transparent);
+  box-shadow: inset 0 0 0 2px var(--spicy);
 }
 
 .hardcore-btn.armed .flame {
@@ -944,10 +919,6 @@ select,
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .hardcore-btn:hover {
-    border-color: var(--spicy);
-  }
-
   .hardcore-btn:not(.on):hover .flame {
     stroke: var(--spicy);
   }
@@ -1161,8 +1132,6 @@ select,
   display: flex;
   flex-direction: column;
   gap: 3px;
-  /* Clear of the hardcore flame in the corner. */
-  padding-right: 44px;
 }
 
 .definition {
@@ -1849,6 +1818,23 @@ select,
   width: min(170px, 48vw);
 }
 
+/* The slim wordmark and the dateline on the left, the toolbar on the right. */
+.maze.compact .masthead {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  justify-items: start;
+  gap: 4px 8px;
+  padding: 0 6px;
+  text-align: left;
+}
+
+.maze.compact .masthead-actions {
+  position: static;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
 .maze.compact .column {
   gap: 10px;
 }
@@ -1890,19 +1876,6 @@ select,
 
 .maze.compact .score-big strong {
   font-size: 34px;
-}
-
-.maze.compact .hardcore-btn {
-  top: 8px;
-  right: 8px;
-}
-
-.maze.compact .help-btn {
-  order: 2;
-  position: relative;
-  flex: none;
-  width: 36px;
-  height: 36px;
 }
 
 .maze.compact .score-sub {
@@ -2033,7 +2006,7 @@ select,
   }
 
   .pill,
-  .help-btn,
+  .tool-btn,
   .trail-word,
   .help-card .close {
     touch-action: manipulation;
