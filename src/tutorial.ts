@@ -1,8 +1,8 @@
 // How to play's practice moves (see HowToTry): five letters to make, each teaching a move. Kept
 // apart from the component so a test can check every step can still be done with the game's rules.
 
-import type { Placement, TileId } from './glyphs';
-import { recognize, slotsFor } from './strokes';
+import { TRAY_TURN, type Placement, type TileId } from './glyphs';
+import { STEP_LIMIT, recognize, slotKey, slotsFor } from './strokes';
 
 export type Say = { touch: string; mouse: string };
 
@@ -89,4 +89,92 @@ export function applyGhost(content: Placement[], g: Ghost): Placement[] {
   if (g.kind === 'carry') return [...content.filter((p) => p !== g.from), g.to];
   if (g.kind === 'turn') return content.map((p) => (p === g.at ? { ...p, rot: ((p.rot ?? 0) + 180) % 360 } : p));
   return content.filter((p) => p !== g.at);
+}
+
+// ---------- More practice ----------
+// After the five moves, How to play offers more letters: from the letter just made to another a move
+// or two away, with the ghost showing the first move of a shortest way there (worked out with the
+// editor's own rules: a stroke goes only where it grows towards a letter).
+
+const norm = (r = 0) => ((r % 360) + 360) % 360;
+const keyOf = (content: Placement[]) => content.map((p) => slotKey(p)).sort().join(' ');
+
+/** Every move the editor allows from `content`, with the tray's strokes as they sit in it. */
+function movesFrom(content: Placement[], tray: readonly TileId[]): Ghost[] {
+  const out: Ghost[] = [];
+  for (const p of content) {
+    out.push({ kind: 'remove', at: p });
+    const rest = content.filter((q) => q !== p);
+    const slots = slotsFor(rest, p.tile).map((s) => s.placement);
+    // Turned on its spot (a stroke alone in its cell keeps its own x; see the editor's turnedInPlace).
+    const alone = content.length === 1;
+    if (slots.some((q) => (alone || q.x === p.x) && q.y === p.y && norm(q.rot) === norm((p.rot ?? 0) + 180))) out.push({ kind: 'turn', at: p });
+    for (const to of slots) if (slotKey(to) !== slotKey(p)) out.push({ kind: 'carry', tile: p.tile, from: p, to });
+  }
+  // From the tray, only the way the stroke sits there: anything else is placed, then turned.
+  for (const tile of tray)
+    for (const s of slotsFor(content, tile)) if (norm(s.placement.rot) === norm(TRAY_TURN[tile])) out.push({ kind: 'carry', tile, from: 'tray', to: s.placement });
+  return out;
+}
+
+/**
+ * Breadth first from `content`, up to `depth` moves: for each letter reached, the first move of a
+ * shortest way to it, and how many moves that way takes.
+ */
+function reachable(content: Placement[], tray: readonly TileId[], depth: number): Map<string, { first: Ghost; moves: number }> {
+  const found = new Map<string, { first: Ghost; moves: number }>();
+  const seen = new Set([keyOf(content)]);
+  let frontier: { content: Placement[]; first: Ghost | null }[] = [{ content, first: null }];
+  for (let d = 1; d <= depth; d++) {
+    const next: typeof frontier = [];
+    for (const f of frontier)
+      for (const g of movesFrom(f.content, tray)) {
+        const after = applyGhost(f.content, g);
+        const k = keyOf(after);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        const first = f.first ?? g;
+        const ch = recognize(after);
+        if (ch && !found.has(ch)) found.set(ch, { first, moves: d });
+        next.push({ content: after, first });
+      }
+    frontier = next;
+  }
+  return found;
+}
+
+/** The first move of a shortest way from `content` to the letter `goal` (within a step's strokes), or null. */
+export function planTo(content: Placement[], goal: string, tray: readonly TileId[]): Ghost | null {
+  if (recognize(content) === goal) return null;
+  return reachable(content, tray, STEP_LIMIT).get(goal)?.first ?? null;
+}
+
+/** Letters a move or two from `content` (not the one it is), for the next practice letter. */
+export function practiceGoals(content: Placement[], tray: readonly TileId[]): string[] {
+  const here = recognize(content);
+  return [...reachable(content, tray, 2)].filter(([ch]) => ch !== here).map(([ch]) => ch);
+}
+
+/** "an R", "a B": the letter's name, as said aloud. */
+export const withArticle = (letter: string) => `${'AEFHILMNORSX'.includes(letter) ? 'an' : 'a'} ${letter}`;
+
+/** What to say for a move towards `goal` (every stroke is just a stroke: the ghost shows which). */
+export function sayMove(g: Ghost, goal: string): Say {
+  const make = `Make ${withArticle(goal)}:`;
+  if (g.kind === 'carry') return same(g.from === 'tray' ? `${make} drag the stroke shown in from the tray.` : `${make} drag the stroke shown to its new spot.`);
+  if (g.kind === 'turn') return { touch: `${make} double-tap the stroke shown to turn it.`, mouse: `${make} double-click the stroke shown to turn it.` };
+  return { touch: `${make} tap the stroke shown to remove it.`, mouse: `${make} click the stroke shown to remove it.` };
+}
+
+/** A practice step: from `start` (the letter just made) to `goal`, guided move by move. */
+export function practiceStep(start: string, goal: string, tray: readonly TileId[]): Step {
+  return {
+    start,
+    goal,
+    done: `That's ${withArticle(goal)}.`,
+    next: (c) => {
+      const g = planTo(c, goal, tray);
+      return g ? { say: sayMove(g, goal), ghost: g } : null;
+    },
+  };
 }

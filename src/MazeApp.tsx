@@ -24,6 +24,7 @@ import { celebrationFor, dayFor, dayNumber, daysFor, loadDaily, localDate } from
 import { CELL_W, WordEditor } from './components/maze/WordEditor';
 import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
+import { dailyRecord, formatTime } from './stats';
 
 /** A puzzle's ink pots: where they are, the best score with them, and a route that gets it. */
 type PotPlan = Omit<InkPots, 'bound'>;
@@ -92,6 +93,8 @@ interface Result {
   hardcore: boolean;
   /** Each step's words and strokes, for the share grid. */
   steps: ShareResult['steps'];
+  /** How long it took, from the first stroke (results kept before the stats have none). */
+  seconds?: number;
 }
 /** Where a daily's result is kept: the 4- and 5-letter games keep theirs apart. */
 const resultKey = (date: string, letters: WordLength) => `strokes:result${letters === 5 ? '5' : ''}:${date}`;
@@ -146,8 +149,9 @@ function useWindowSize() {
 }
 
 export function MazeApp() {
-  /** This visit's game: 5-letter words on a desktop, 4 elsewhere (see src/letters.ts). Chosen once. */
-  const [letters] = useState<WordLength>(loadLetters);
+  const [flags, setFlags] = useState(loadFlags);
+  /** This visit's game: 5-letter words on a desktop, 4 elsewhere unless the fiveLetters flag is on (see src/letters.ts). Chosen once. */
+  const [letters] = useState<WordLength>(() => loadLetters(flags.fiveLetters));
   const [data, setData] = useState<MazeData | null>(null);
   const [room, setRoom] = useState('');
   const [cells, setCells] = useState<Placement[][]>([]);
@@ -155,6 +159,11 @@ export function MazeApp() {
   /** Every word visited, once each, in the order first reached (with what reaching it cost). */
   const [trail, setTrail] = useState<Visit[]>([]);
   const [spent, setSpent] = useState(0);
+  /** Free trips back to a word already visited, for the score card's stats. */
+  const [backs, setBacks] = useState(0);
+  /** When the first stroke went in (the clock starts there), and how long the solve took. */
+  const startedAt = useRef<number | null>(null);
+  const [seconds, setSeconds] = useState<number | null>(null);
   /** The door just walked through (cost 0 when it led back to a word already visited). */
   const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
@@ -166,7 +175,6 @@ export function MazeApp() {
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
-  const [flags, setFlags] = useState(loadFlags);
   const [hardcore, setHardcore] = useState(loadHardcore);
   // Settings (the gear): light or dark, the player's choice or the device's.
   const [settings, setSettings] = useState(false);
@@ -279,6 +287,14 @@ export function MazeApp() {
   const toggleFlag = (flag: Flag) => {
     const next = { ...flags, [flag]: !flags[flag] };
     saveFlags(next);
+    if (flag === 'fiveLetters') {
+      // The game is chosen once per load, so load again (without a link's ?flags= undoing the change).
+      const url = new URL(location.href);
+      url.searchParams.delete('flags');
+      window.history.replaceState(window.history.state, '', url);
+      location.reload();
+      return;
+    }
     setFlags(next); // the puzzle restarts, so ink and the best score never mix across settings
     if (flag === 'freshPuzzle' && data) setCurrent(next.freshPuzzle ? pickPuzzle(data, puzzle) : daily);
   };
@@ -290,6 +306,9 @@ export function MazeApp() {
     setHistory([]);
     setTrail([{ word: puzzle.start, cost: 0 }]);
     setSpent(0);
+    setBacks(0);
+    startedAt.current = null;
+    setSeconds(null);
     setLastDoor(null);
     setInk(0);
     setInFlight(0);
@@ -353,10 +372,12 @@ export function MazeApp() {
   useEffect(() => {
     if (!won) return;
     if (scene || perfect) setCelebrating({ perfect });
+    const took = startedAt.current ? (Date.now() - startedAt.current) / 1000 : 0;
+    setSeconds(took);
     // A daily's result is kept, so coming back today shows it (the best one, if played again).
     const date = current?.date;
     if (!date) return;
-    const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail) };
+    const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail), seconds: Math.round(took) };
     const before = loadResult(date, letters);
     if (!before || result.strokes < before.strokes || (result.strokes === before.strokes && result.hints < before.hints)) {
       try {
@@ -370,6 +391,11 @@ export function MazeApp() {
   /** Today's result from an earlier visit (or this one), if any. */
   const [saved, setSaved] = useState<Result | null>(null);
   useEffect(() => setSaved(current?.date ? loadResult(current.date, letters) : null), [current?.date, letters]);
+  /** The player's record over the dailies, for the end of a daily (worked out again once its result is kept). */
+  const record = useMemo(
+    () => (current?.date ? dailyRecord(daysFor(letters), (d) => loadResult(d, letters), current.date) : null),
+    [current?.date, letters, saved],
+  );
   /** The result being shared (the share sheet is open). */
   const [sharing, setSharing] = useState<ShareResult | null>(null);
   const shareBtn = useRef<HTMLButtonElement>(null);
@@ -393,6 +419,7 @@ export function MazeApp() {
   const onEdit = useCallback(
     (next: Placement[][]): boolean => {
       if (won || locked) return false;
+      startedAt.current ??= Date.now();
       const letters = next.map(recognize);
       const word = letters.every(Boolean) ? letters.join('') : null;
       if (word === room) {
@@ -419,6 +446,7 @@ export function MazeApp() {
         setHistory([]);
         // Going back to a word already visited is free, and it isn't listed again.
         if (trail.some((v) => v.word === word)) {
+          setBacks((n) => n + 1);
           setLastDoor({ word, cost: 0, back: true, pot: false });
           return true;
         }
@@ -515,6 +543,10 @@ export function MazeApp() {
   const potsNear = won ? [] : potsLeft.filter((p) => wordDistance(room, p) <= STEP_LIMIT);
   const banked = Math.max(0, ink - inFlight);
   const used = spent + stepEdits;
+  /** The game so far, for the score card: words made, free trips back, the costliest step, ink spent. */
+  const made = trail.length - 1;
+  const biggest = Math.max(0, ...trail.slice(1).map((v) => v.cost + (v.used ?? 0)));
+  const inkSpent = trail.reduce((t, v) => t + (v.used ?? 0), 0);
 
   // The step after a door opens, until the next stroke: confirm it (completion feedback).
   const justOpened = !won && !stepEdits && !!lastDoor;
@@ -530,21 +562,36 @@ export function MazeApp() {
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
           compact={compact || height < 500}
           actions={
-            <button ref={gearBtn} className="gear-btn" aria-label="Settings" aria-haspopup="dialog" aria-expanded={settings} onClick={() => setSettings(true)}>
-              <GearIcon />
-            </button>
+            // The game's buttons in one bar: How to play, hardcore and settings.
+            <div className="toolbar">
+              <button ref={helpBtn} className="tool-btn help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
+                ?
+              </button>
+              <button
+                className={`tool-btn hardcore-btn${hardcore ? ' on' : ''}${armed ? ' armed' : ''}`}
+                aria-pressed={hardcore}
+                aria-label="Hardcore mode"
+                title={hardcore ? 'Hardcore is on: only words on a lowest-stroke route open' : 'Hardcore: only words on a lowest-stroke route open (starts the puzzle over)'}
+                onClick={toggleHardcore}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path className="flame" d="M12 2.8c.9 3.4 5.6 5.6 5.6 10.6a5.6 5.6 0 0 1-11.2 0c0-2.6 1.6-4.3 2.6-5.6.3 1.8 1.2 3 2.3 3.6-.5-3 .1-6 .7-8.6Z" />
+                  <path className="core" d="M12 13.2c1.3 1.3 2.3 2.4 2.1 3.9a2.1 2.1 0 0 1-4.2 0c0-1.4 1-2.5 2.1-3.9Z" />
+                </svg>
+              </button>
+              <button ref={gearBtn} className="tool-btn gear-btn" aria-label="Settings" aria-haspopup="dialog" aria-expanded={settings} onClick={() => setSettings(true)}>
+                <GearIcon />
+              </button>
+            </div>
           }
           dateline={
             current?.date &&
-            `No. ${dayNumber(current.date)}${letters === 5 ? ' · 5 letters' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
+            `No. ${dayNumber(current.date)} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
           }
         />
 
         <main className="column">
           <section className="scorecard">
-            <button ref={helpBtn} className="help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
-              ?
-            </button>
             <div className={`goal-panel${won ? ' reached' : ''}`}>
               <span className="label">{won ? 'Reached' : 'Goal'}</span>
               <GlyphWord word={puzzle.goal} size={compact ? 24 : unit * 1.3} />
@@ -585,6 +632,34 @@ export function MazeApp() {
                 </div>
               )}
             </div>
+            {/* What's been played so far, once there's something to say. */}
+            {(made > 0 || hintsUsed > 0) && (
+              <ul className="score-stats" aria-label="This game so far">
+                <li>
+                  <strong>{made}</strong> {made === 1 ? 'word' : 'words'} made
+                </li>
+                {backs > 0 && (
+                  <li>
+                    <strong>{backs}</strong> free {backs === 1 ? 'return' : 'returns'}
+                  </li>
+                )}
+                {made > 0 && (
+                  <li>
+                    biggest step <strong>+{biggest}</strong>
+                  </li>
+                )}
+                {inkSpent > 0 && (
+                  <li>
+                    <strong>{inkSpent}</strong> paid in ink
+                  </li>
+                )}
+                {hintsUsed > 0 && (
+                  <li>
+                    <strong>{hintsUsed}</strong> {hintsUsed === 1 ? 'hint' : 'hints'}
+                  </li>
+                )}
+              </ul>
+            )}
           </section>
 
           <AnimatePresence>
@@ -638,18 +713,6 @@ export function MazeApp() {
           </AnimatePresence>
 
           <section className="board" ref={boardRef}>
-            <button
-              className={`hardcore-btn${hardcore ? ' on' : ''}${armed ? ' armed' : ''}`}
-              aria-pressed={hardcore}
-              aria-label="Hardcore mode"
-              title={hardcore ? 'Hardcore is on: only words on a lowest-stroke route open' : 'Hardcore: only words on a lowest-stroke route open (starts the puzzle over)'}
-              onClick={toggleHardcore}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path className="flame" d="M12 2.8c.9 3.4 5.6 5.6 5.6 10.6a5.6 5.6 0 0 1-11.2 0c0-2.6 1.6-4.3 2.6-5.6.3 1.8 1.2 3 2.3 3.6-.5-3 .1-6 .7-8.6Z" />
-                <path className="core" d="M12 13.2c1.3 1.3 2.3 2.4 2.1 3.9a2.1 2.1 0 0 1-4.2 0c0-1.4 1-2.5 2.1-3.9Z" />
-              </svg>
-            </button>
             <div className="board-head">
               <span className="label">You are in</span>
               {/* The word's meaning sits right above it, and changes as each new word is made. */}
@@ -706,11 +769,63 @@ export function MazeApp() {
                 <strong>
                   {puzzle.goal} in {spent} {spent === 1 ? 'stroke' : 'strokes'}
                 </strong>
-                <span className="nowrap"> · lowest possible {best}</span>
                 {spent <= best && <span className="nowrap"> · perfect ⭐</span>}
                 {hardcore && <span className="nowrap"> · hardcore</span>}
-                {hintsUsed > 0 && <span className="nowrap"> · {hintsUsed} {hintsUsed === 1 ? 'hint' : 'hints'}</span>}
               </p>
+              {/* This game's stats, then (for a daily) the player's record over them. */}
+              <dl className="result-stats" aria-label="This game">
+                <div>
+                  <dt>{spent <= best ? 'lowest possible' : 'over the lowest'}</dt>
+                  <dd>{spent <= best ? best : `+${spent - best}`}</dd>
+                </div>
+                <div>
+                  <dt>words made</dt>
+                  <dd>{made}</dd>
+                </div>
+                <div>
+                  <dt>biggest step</dt>
+                  <dd>+{biggest}</dd>
+                </div>
+                {seconds !== null && (
+                  <div>
+                    <dt>time</dt>
+                    <dd>{formatTime(seconds)}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>{backs === 1 ? 'free return' : 'free returns'}</dt>
+                  <dd>{backs}</dd>
+                </div>
+                <div>
+                  <dt>{hintsUsed === 1 ? 'hint' : 'hints'}</dt>
+                  <dd>{hintsUsed}</dd>
+                </div>
+              </dl>
+              {record && record.solved > 0 && (
+                <>
+                  <span className="label" id="record-label">
+                    Your dailies
+                  </span>
+                  <dl className="result-stats record" aria-labelledby="record-label">
+                    <div>
+                      <dt>dailies solved</dt>
+                      <dd>{record.solved}</dd>
+                    </div>
+                    <div>
+                      <dt>perfect</dt>
+                      <dd>{record.perfect}</dd>
+                    </div>
+                    <div>
+                      <dt>streak</dt>
+                      <dd>{record.streak}</dd>
+                    </div>
+                    <div>
+                      <dt>best streak</dt>
+                      <dd>{record.bestStreak}</dd>
+                    </div>
+                  </dl>
+                </>
+              )}
               <div className="pill-row">
                 <button
                   ref={shareBtn}

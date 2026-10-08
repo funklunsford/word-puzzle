@@ -18,4 +18,11 @@ describe('which game a visit plays', () => {
     expect(chooseLetters({ fine: true, width: 1280, asked: '4' })).toBe(4);
     expect(chooseLetters({ fine: true, width: 1280, asked: '6' })).toBe(5);
   });
+
+  it('gives phones and tablets 5 letters too when the fiveLetters flag is on, though ?letters= still wins', () => {
+    expect(chooseLetters({ fine: false, width: 390, asked: null, everywhere: true })).toBe(5); // a phone
+    expect(chooseLetters({ fine: false, width: 1366, asked: null, everywhere: true })).toBe(5); // a tablet
+    expect(chooseLetters({ fine: true, width: 1280, asked: null, everywhere: true })).toBe(5);
+    expect(chooseLetters({ fine: false, width: 390, asked: '4', everywhere: true })).toBe(4);
+  });
 });

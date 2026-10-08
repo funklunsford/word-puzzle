@@ -19,6 +19,13 @@ const CELL_W_COMPACT = 2.6;
  * (only W, 2.5 units at its usual squeeze, is wider: it's drawn a little narrower on phones).
  */
 const MAX_DRAWN_COMPACT = 2.2;
+/**
+ * Five letters on a phone (the fiveLetters flag) share the row in narrower cells still, so each is
+ * drawn bigger than a 2.6-unit cell would make it. The pen keeps the same clearance: no letter is
+ * drawn wider than 2 units (A, O, V and Y are 2 wide; W is drawn narrower than in four-letter cells).
+ */
+const CELL_W_COMPACT_5 = 2.4;
+const MAX_DRAWN_COMPACT_5 = 2;
 export const CELL_TOP = -0.7;
 const CELL_H = 3.6;
 /** A press that moves less than this many pixels is a tap (remove), not a drag. Fingers wobble more. */
@@ -154,10 +161,10 @@ interface Props {
 /** How far above a fingertip a held stroke rides (px), so the finger doesn't hide it. */
 export const fingerLift = (unit: number) => Math.round(Math.min(72, Math.max(44, 1.7 * unit)));
 
-/** How much a formed letter is narrowed (W); on phones no letter is drawn wider than MAX_DRAWN_COMPACT. */
-function drawnSqueeze(letter: string | null, compact: boolean): number {
+/** How much a formed letter is narrowed (W); on phones no letter is drawn wider than `maxDrawn` (null elsewhere). */
+function drawnSqueeze(letter: string | null, maxDrawn: number | null): number {
   if (!letter) return 1;
-  return drawnScale(letter).shape * (compact ? Math.min(1, MAX_DRAWN_COMPACT / drawnWidth(letter)) : 1);
+  return drawnScale(letter).shape * (maxDrawn ? Math.min(1, maxDrawn / drawnWidth(letter)) : 1);
 }
 
 /** How far apart a formed letter's strokes are drawn, beyond its squeeze (M's spread; see drawnScale). */
@@ -170,8 +177,8 @@ const spreadOf = (letter: string | null) => (letter ? (LETTERS[letter].spread ??
  * `shape` is the cell as it's about to be (with a held stroke on its spot); the spread is about
  * its middle, so nothing jumps when the stroke lands.
  */
-function across(content: Placement[], shape: Placement[], compact: boolean) {
-  const squeeze = drawnSqueeze(recognize(content), compact);
+function across(content: Placement[], shape: Placement[], maxDrawn: number | null) {
+  const squeeze = drawnSqueeze(recognize(content), maxDrawn);
   const spread = spreadOf(onlyFit(shape)?.ch ?? null);
   const basis = spread !== 1 ? shape : content;
   const [lo, hi] = basis.length ? xExtent(basis) : [0, 0];
@@ -198,9 +205,9 @@ function nearness(pts: Pt[], x: number, y: number) {
 /** Strokes this close (cell units) count as equally near: then the shorter one is picked (T's bar over its stem). */
 const PICK_TIE = 0.06;
 /** The centrelines a cell's strokes are drawn along: their formed letter's looks, or null where a stroke is drawn as itself. */
-function lookPoints(content: Placement[], compact: boolean): (Pt[] | null)[] {
+function lookPoints(content: Placement[], maxDrawn: number | null): (Pt[] | null)[] {
   const looks = formedLooks(content);
-  const squeeze = drawnSqueeze(recognize(content), compact);
+  const squeeze = drawnSqueeze(recognize(content), maxDrawn);
   return content.map((p, i) => (looks?.[i] ? lookCenterline(p, looks[i]!, squeeze) : null));
 }
 
@@ -246,19 +253,22 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   const reduce = useReduceMotion();
   const coarse = useMedia(COARSE);
 
-  // On phones the four cells share the row's width, and the unit is whatever that makes it.
-  const cellW = compact ? CELL_W_COMPACT : CELL_W;
+  // On phones the cells share the row's width, and the unit is whatever that makes it (five letters
+  // get narrower cells, so they're drawn bigger).
+  const five = compact && cells.length === 5;
+  const cellW = compact ? (five ? CELL_W_COMPACT_5 : CELL_W_COMPACT) : CELL_W;
+  const maxDrawn = compact ? (five ? MAX_DRAWN_COMPACT_5 : MAX_DRAWN_COMPACT) : null;
   const [measured, setMeasured] = useState<number | null>(null);
   const u = compact && measured ? measured : unit;
   useLayoutEffect(() => {
     const el = svgs.current[0];
     if (!compact || !el) return;
-    const measure = () => setMeasured(el.getBoundingClientRect().width / CELL_W_COMPACT);
+    const measure = () => setMeasured(el.getBoundingClientRect().width / cellW);
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [compact]);
+  }, [compact, cellW]);
 
   // How each stroke sits in the tray (TRAY_TURN at first), and it goes in the way it's turned. On a
   // touch screen double-tapping a chevron, arc or bowl turns it there; with a mouse, a swipe turns it
@@ -458,7 +468,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     const g = grip.current;
     const spot = d.target ? { cell: d.target.cell, ...d.target.slot.placement } : d.aim;
     // On a spot it sits where that spot is drawn (M's bars part as its last stroke comes in).
-    const sx = d.target ? across(cellsRef.current[d.target.cell], [...without(d.target.cell, d.source), d.target.slot.placement], !!compact).x(d.target.slot.placement.x) : spot?.x;
+    const sx = d.target ? across(cellsRef.current[d.target.cell], [...without(d.target.cell, d.source), d.target.slot.placement], maxDrawn).x(d.target.slot.placement.x) : spot?.x;
     const at = spot ? screenOf(spot.cell, sx!, spot.y) : null;
     const scaleTo = at ? 1 : LIFT;
     if (scaleTo !== g.scaleTo) {
@@ -483,7 +493,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
 
   /** Let a placed stroke spring into its slot (in `after`, the cell as it will be) from wherever the floating stroke is now. */
   const land = (cell: number, p: Placement, turn: number, after: Placement[]) => {
-    const at = screenOf(cell, across(after, after, !!compact).x(p.x), p.y);
+    const at = screenOf(cell, across(after, after, maxDrawn).x(p.x), p.y);
     if (!at || reduce) return;
     const v = velocity();
     landings.current.set(`${cell}|${slotKey(p)}`, {
@@ -790,8 +800,8 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     const q = new DOMPoint(clientX, clientY).matrixTransform(m.inverse());
     const lx = q.x - offsets[cell];
     const content = cellsRef.current[cell];
-    const { squeeze, x: drawn } = across(content, content, !!compact);
-    const looks = lookPoints(content, !!compact);
+    const { squeeze, x: drawn } = across(content, content, maxDrawn);
+    const looks = lookPoints(content, maxDrawn);
     let best: { p: Placement; x: number; d: number; length: number } | null = null;
     content.forEach((p, i) => {
       const x = drawn(p.x);
@@ -818,7 +828,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   const pressPlaced = (e: React.PointerEvent, cell: number, p: Placement, x: number) => {
     const index = cells[cell].findIndex((q) => slotKey(q) === slotKey(p));
     const at = screenOf(cell, x, p.y);
-    if (index >= 0) start(e, p.tile, p.rot ?? 0, { kind: 'cell', cell, index, key: slotKey(p) }, at && { ...at, scale: 1 }, lookPoints(cells[cell], !!compact)[index]);
+    if (index >= 0) start(e, p.tile, p.rot ?? 0, { kind: 'cell', cell, index, key: slotKey(p) }, at && { ...at, scale: 1 }, lookPoints(cells[cell], maxDrawn)[index]);
   };
 
   const held = drag?.moved ? drag : null;
@@ -834,7 +844,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   const preview = (c: number) => {
     const kept = cells[c].filter((_, i) => !(carried?.cell === c && carried.index === i));
     const onSpot = held?.target?.cell === c ? held.target.slot.placement : null;
-    const looks = lookPoints(onSpot ? [...kept, onSpot] : kept, !!compact);
+    const looks = lookPoints(onSpot ? [...kept, onSpot] : kept, maxDrawn);
     // The cell as it'll be with the held stroke on its spot, if anything (see across).
     const shape = onSpot ? [...kept, onSpot] : kept;
     return { kept, looks: looks.slice(0, kept.length), heldLook: onSpot ? looks[kept.length] : null, shape };
@@ -861,7 +871,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
           // Strokes are narrowed by the letter's squeeze (W), and drawn apart by its spread (M): the
           // spread follows the letter the cell is becoming, so M's bars part as its last stroke
           // comes in, and a half-built M's chevron sits on its bar (see across).
-          const { squeeze, x: squeezed } = across(content, shape, !!compact);
+          const { squeeze, x: squeezed } = across(content, shape, maxDrawn);
           const shown = kept.map((p, i) => ({ p, look: looks[i] }));
           const target = held?.target?.cell === c ? held.target : null;
           const aim = held?.aim?.cell === c ? held.aim : null;
