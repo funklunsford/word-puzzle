@@ -7,7 +7,8 @@ import react from '@vitejs/plugin-react';
 // minutes, so the game asks for them with this build's version (a hash of their contents) and new
 // code never meets old cached data.
 const dataVersion = createHash('sha256');
-for (const file of ['mazes.json', 'definitions.json', 'boards.json']) dataVersion.update(readFileSync(new URL(`./public/${file}`, import.meta.url)));
+for (const file of ['mazes.json', 'definitions.json', 'mazes-5.json', 'definitions-5.json', 'boards.json'])
+  dataVersion.update(readFileSync(new URL(`./public/${file}`, import.meta.url)));
 
 export default defineConfig({
   plugins: [react()],

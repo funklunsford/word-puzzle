@@ -3,6 +3,7 @@
 //   npm run daily                            # candidates for the day after the latest daily
 //   npm run daily -- 2026-10-09              # candidates for that date
 //   npm run daily -- 2026-10-09 COLD WARM    # check that pair in as that date's puzzle
+//   npm run daily -- --letters 5 2026-10-09  # the desktop game's 5-letter puzzle (src/daily/days-5)
 //
 // Candidates come from the puzzle pool (public/mazes.json, see scripts/mazes.ts), so every one is
 // tricky, passes a pocket, starts and ends on everyday words, and fits the pool's rules. The script
@@ -15,14 +16,20 @@
 // Checking in writes src/daily/days/{DATE}.json and prints what the celebration prompt needs (see
 // docs/daily-celebration-prompt.md). The history is the day files themselves.
 
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { findPockets, isTricky, keep, measure, parChance, type KeptDifficulty } from '../src/difficulty';
 import { placePots, potRoute } from '../src/inkpots';
-import { POOL_MIX, buildGraph, classifyNeed, routeWords, seededRandom, solve, type Need, type Puzzle } from '../src/maze';
+import { POOL_MIXES, buildGraph, classifyNeed, routeWords, seededRandom, solve, type Need, type Puzzle } from '../src/maze';
 import type { DailyPuzzle } from '../src/daily/daily';
 import { dayNumber } from '../src/daily/daily';
 
-const DAYS = new URL('../src/daily/days/', import.meta.url);
+const args = process.argv.slice(2);
+const at = args.indexOf('--letters');
+const LETTERS = at >= 0 ? Number(args.splice(at, 2)[1]) : 4;
+if (![4, 5].includes(LETTERS)) throw new Error('--letters takes 4 or 5');
+const suffix = LETTERS === 4 ? '' : `-${LETTERS}`;
+const FOLDER = `src/daily/days${suffix}/`;
+const DAYS = new URL(`../${FOLDER}`, import.meta.url);
 const LOG = new URL('../src/daily/LOG.md', import.meta.url);
 const CANDIDATES = 10;
 /** Start and goal words rest this long before they come back. */
@@ -40,11 +47,15 @@ const NEED_TEXT: Record<Need, string> = {
 
 type PoolEntry = Omit<DailyPuzzle, 'date'>;
 const data: { words: string[]; puzzle: Puzzle; inkPots: DailyPuzzle['inkPots']; onRoute: DailyPuzzle['onRoute']; puzzles: PoolEntry[] } = JSON.parse(
-  readFileSync(new URL('../public/mazes.json', import.meta.url), 'utf8'),
+  readFileSync(new URL(`../public/mazes${suffix}.json`, import.meta.url), 'utf8'),
 );
-const definitions: Record<string, [string, string]> = JSON.parse(readFileSync(new URL('../public/definitions.json', import.meta.url), 'utf8'));
+const definitions: Record<string, [string, string]> = JSON.parse(readFileSync(new URL(`../public/definitions${suffix}.json`, import.meta.url), 'utf8'));
+/** The kinds of route to rotate through: the pool's set mix, or (5 letters, unset) its own. */
+const MIX: Record<Need, number> =
+  POOL_MIXES[LETTERS]?.need ??
+  (Object.fromEntries((['none', 'letter', 'stone'] as Need[]).map((n) => [n, data.puzzles.filter((p) => p.need === n).length / data.puzzles.length])) as Record<Need, number>);
 
-const days: DailyPuzzle[] = readdirSync(DAYS)
+const days: DailyPuzzle[] = (existsSync(DAYS) ? readdirSync(DAYS) : [])
   .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
   .sort()
   .map((f) => JSON.parse(readFileSync(new URL(f, DAYS), 'utf8')));
@@ -72,7 +83,7 @@ function describe(d: KeptDifficulty | undefined) {
   return `makes par ${percent(d.parChance)} of the time; ${plan}; ${traps}; ${d.pocketsBeside} pocket${d.pocketsBeside === 1 ? '' : 's'} beside the route`;
 }
 
-const [date = days.length ? addDays(days[days.length - 1].date, 1) : '2026-10-06', start, goal, ...flags] = process.argv.slice(2);
+const [date = days.length ? addDays(days[days.length - 1].date, 1) : '2026-10-06', start, goal, ...flags] = args;
 if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) throw new Error(`"${date}" isn't a date (YYYY-MM-DD)`);
 const before = days.filter((d) => d.date < date);
 const used = new Set(days.filter((d) => d.date !== date).map((d) => pairKey(d.puzzle)));
@@ -84,8 +95,8 @@ if (!start) {
   const inBand = (p: PoolEntry) => bandOf.get(pairKey(p.puzzle)) === band;
   // The kind of route the last week has had least of, against the pool's mix.
   const week = before.filter((d) => d.date >= addDays(date, -7));
-  const needs = Object.keys(POOL_MIX.need) as Need[];
-  const owed = (n: Need) => POOL_MIX.need[n] * (week.length + 1) - week.filter((d) => d.need === n).length;
+  const needs = Object.keys(MIX) as Need[];
+  const owed = (n: Need) => MIX[n] * (week.length + 1) - week.filter((d) => d.need === n).length;
   const need = needs.reduce((a, b) => (owed(b) > owed(a) ? b : a));
   const fresh = data.puzzles.filter((p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal));
   const random = seededRandom(hash(date));
@@ -99,7 +110,7 @@ if (!start) {
 
   const range = ranked.filter((p) => bandOf.get(pairKey(p.puzzle)) === band).map((p) => p.difficulty!.parChance);
   console.log(
-    `Daily #${dayNumber(date)}, ${WEEKDAYS[weekday(date)]} ${date}: a puzzle from the ${THIRD[band]} of the pool (made at par ${percent(Math.min(...range))}–${percent(Math.max(...range))} of the time), preferably one that ${NEED_TEXT[need]}.`,
+    `Daily #${dayNumber(date)}${LETTERS === 4 ? '' : ` (${LETTERS} letters)`}, ${WEEKDAYS[weekday(date)]} ${date}: a puzzle from the ${THIRD[band]} of the pool (made at par ${percent(Math.min(...range))}–${percent(Math.max(...range))} of the time), preferably one that ${NEED_TEXT[need]}.`,
   );
   console.log(`${fresh.filter(inBand).length} unused puzzles in the pool in that third.\n`);
   picks.forEach((p, i) => {
@@ -111,8 +122,8 @@ if (!start) {
     console.log(`    ${g}: ${define(g)}\n`);
   });
   if (fresh.filter(inBand).length < 30)
-    console.log(`The pool is running low: regenerate it with a new seed (scripts/mazes.ts), then rerun this.\n`);
-  console.log(`Check one in with: npm run daily -- ${date} START GOAL`);
+    console.log(`The pool is running low: regenerate it with a new seed (scripts/mazes.ts${LETTERS === 4 ? '' : ` --letters ${LETTERS}`}), then rerun this.\n`);
+  console.log(`Check one in with: npm run daily -- ${LETTERS === 4 ? '' : `--letters ${LETTERS} `}${date} START GOAL`);
 } else {
   // ---------- Check in ----------
   const S = start.toUpperCase();
@@ -142,8 +153,14 @@ if (!start) {
   }
 
   const day: DailyPuzzle = { date, ...entry };
+  if (!existsSync(DAYS)) mkdirSync(DAYS, { recursive: true });
   writeFileSync(file, `${JSON.stringify(day, null, 2)}\n`);
   const { puzzle } = day;
+  if (LETTERS !== 4) {
+    // The desktop game's days have no scene of their own: a Perfect gets the confetti, then the goal word.
+    console.log(`Wrote ${FOLDER}${date}.json: ${puzzle.start} → ${puzzle.goal}, lowest strokes ${puzzle.best}. No celebration to build.`);
+    process.exit(0);
+  }
   const recent = existsSync(LOG)
     ? readFileSync(LOG, 'utf8')
         .split('\n')

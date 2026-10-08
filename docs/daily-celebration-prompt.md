@@ -43,6 +43,12 @@ four seconds, then it holds until they tap.
   - `{DATE}`, `{NUMBER}`, `{START}`, `{GOAL}`, `{ROUTE}`, `{BEST}`;
   - the start and goal definitions;
   - the recent concepts from `src/daily/LOG.md`.
+- **Then the desktop game's 5-letter puzzle for the same date** (skip this if
+  `src/daily/days-5/{DATE}.json` already exists). Run `npm run daily -- --letters 5 {DATE}`, choose
+  from its list the same way (avoid pairs whose start or goal reads as an inflection, like TUBED),
+  and check it in with `npm run daily -- --letters 5 {DATE} {START} {GOAL}`, which writes
+  `src/daily/days-5/{DATE}.json`. It has no celebration to build: a Perfect gets the confetti, then
+  the goal word. The rest of this prompt is about the 4-letter puzzle.
 
 ## 2. Concept
 
@@ -135,7 +141,8 @@ exports two things:
 
 - **Log it.** Add a line to `src/daily/LOG.md`:
   `- {DATE} #{NUMBER} {START} → {GOAL}, "{title}": {the idea in one sentence}.`
-- **Commit and open a pull request** titled "Daily {DATE}: {START} → {GOAL}". Include:
+- **Commit and open a pull request** titled "Daily {DATE}: {START} → {GOAL}" (with the 5-letter
+  pair after it, e.g. "· SNARE → SHOUT"). Include:
   - the concept, in two sentences;
   - the stills;
   - the checks that passed.

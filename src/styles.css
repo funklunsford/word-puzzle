@@ -476,6 +476,12 @@ select,
   align-items: start;
 }
 
+/* The 5-letter game (desktops): a wider column, so five letters keep the size four have. */
+.maze.five {
+  max-width: 1080px;
+  grid-template-columns: minmax(0, 760px);
+}
+
 /* Wide screens: the path card sits beside the main column. */
 .maze.side {
   grid-template-areas:

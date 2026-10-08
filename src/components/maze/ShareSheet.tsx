@@ -17,7 +17,7 @@ export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: 
   const [copied, setCopied] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const name = `strokes-${result.number ?? 'result'}.png`;
-  const title = `Strokes${result.number ? ` No. ${result.number}` : ''}`;
+  const title = `Strokes${result.number ? ` No. ${result.number}` : ''}${result.start.length === 5 ? ' · 5 letters' : ''}`;
   const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write;
 
   useEffect(() => {

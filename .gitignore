@@ -6,3 +6,5 @@ dist/
 *.tsbuildinfo
 # Playtest reports stay local.
 reports/
+# Downloaded word sources (SCOWL, WordNet): see README.md.
+sources/

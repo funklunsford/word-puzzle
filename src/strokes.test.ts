@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LETTERS, TILE_IDS, recipe, xExtent, type Placement } from './glyphs';
 import { strokeCenterline } from './ink';
 import familiarText from '../data/familiar-4.txt?raw';
+import familiar5Text from '../data/familiar-5.txt?raw';
 import { EMPTY_CELL_X, STEP_LIMIT, formedLooks, letterDiff, oneWayCost, onlyFit, recognize, slotKey, slotsFor, strokeDiff, wordDistance } from './strokes';
 import { parseWordList } from './wordlist';
 
@@ -283,8 +284,11 @@ describe('wordDistance counts the strokes the editor can actually make', () => {
 
   // So no step can strand a player: anywhere they can step, they can step back from (going back is
   // free), and the maze's doors, which only keep steps that work both ways, miss none they can take.
-  it('can undo every step the editor allows between maze words, in the same number of strokes', () => {
-    const words = parseWordList(familiarText);
+  it.each([
+    { letters: 4, text: familiarText },
+    { letters: 5, text: familiar5Text },
+  ])('can undo every step the editor allows between $letters-letter maze words, in the same number of strokes', ({ text }) => {
+    const words = parseWordList(text);
     const oneWay: string[] = [];
     for (let i = 0; i < words.length; i++)
       for (let j = i + 1; j < words.length; j++) {
