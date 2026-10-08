@@ -11,8 +11,8 @@
 // ones are names and abbreviations), also valid in ENABLE, minus a blocklist. Writes
 // data/familiar-4.txt with SCOWL's notice on top, and data/everyday-4.txt: the ones also in size
 // 35 ("small": the most everyday words), which puzzles start and end on. With --letters 5 it writes
-// data/familiar-5.txt and data/everyday-5.txt instead (the reviewed extras are 4-letter words, so
-// the 5-letter list is size 40 alone for now).
+// data/familiar-5.txt and data/everyday-5.txt instead, with their own reviewed extras
+// (data/familiar-extra-5.txt).
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { BLOCKLIST, parseWordList } from '../src/wordlist';
@@ -35,9 +35,10 @@ function scowl(path: string) {
 const size40 = scowl(base);
 const size50 = scowl(wider);
 const size35 = scowl(core);
-const extra = parseWordList(readFileSync(new URL('../data/familiar-extra.txt', import.meta.url), 'utf8'));
+// (The 5-letter extras reach beyond size 50 too, e.g. SUSHI and SPILT, so only the 4-letter ones must be in it.)
+const extra = parseWordList(readFileSync(new URL(LETTERS === 4 ? '../data/familiar-extra.txt' : `../data/familiar-extra-${LETTERS}.txt`, import.meta.url), 'utf8'));
 const links = parseWordList(readFileSync(new URL('../data/familiar-links.txt', import.meta.url), 'utf8'));
-const missing = extra.filter((w) => w.length === LETTERS && !size50.words.has(w));
+const missing = LETTERS === 4 ? extra.filter((w) => !size50.words.has(w)) : [];
 if (missing.length) throw new Error(`not in the size-50 list: ${missing.join(' ')}`);
 const notice = size40.notice;
 
@@ -59,8 +60,8 @@ const header = [
       ]
     : [
         `Familiar ${LETTERS}-letter words for the desktop stroke maze, built by scripts/familiar.ts --letters ${LETTERS}:`,
-        `lowercase ${LETTERS}-letter words up to SCOWL size 40, also in ENABLE, minus a small blocklist. The`,
-        'size-40 list notice follows.',
+        `lowercase ${LETTERS}-letter words up to SCOWL size 40, plus the reviewed ones in data/familiar-extra-${LETTERS}.txt,`,
+        'also in ENABLE, minus a small blocklist. The size-40 list notice follows.',
       ]),
   '',
   ...notice,
