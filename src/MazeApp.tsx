@@ -156,6 +156,8 @@ export function MazeApp() {
   /** Every word visited, once each, in the order first reached (with what reaching it cost). */
   const [trail, setTrail] = useState<Visit[]>([]);
   const [spent, setSpent] = useState(0);
+  /** Free trips back to a word already visited, for the score card's stats. */
+  const [backs, setBacks] = useState(0);
   /** The door just walked through (cost 0 when it led back to a word already visited). */
   const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
@@ -298,6 +300,7 @@ export function MazeApp() {
     setHistory([]);
     setTrail([{ word: puzzle.start, cost: 0 }]);
     setSpent(0);
+    setBacks(0);
     setLastDoor(null);
     setInk(0);
     setInFlight(0);
@@ -427,6 +430,7 @@ export function MazeApp() {
         setHistory([]);
         // Going back to a word already visited is free, and it isn't listed again.
         if (trail.some((v) => v.word === word)) {
+          setBacks((n) => n + 1);
           setLastDoor({ word, cost: 0, back: true, pot: false });
           return true;
         }
@@ -523,6 +527,10 @@ export function MazeApp() {
   const potsNear = won ? [] : potsLeft.filter((p) => wordDistance(room, p) <= STEP_LIMIT);
   const banked = Math.max(0, ink - inFlight);
   const used = spent + stepEdits;
+  /** The game so far, for the score card: words made, free trips back, the costliest step, ink spent. */
+  const made = trail.length - 1;
+  const biggest = Math.max(0, ...trail.slice(1).map((v) => v.cost + (v.used ?? 0)));
+  const inkSpent = trail.reduce((t, v) => t + (v.used ?? 0), 0);
 
   // The step after a door opens, until the next stroke: confirm it (completion feedback).
   const justOpened = !won && !stepEdits && !!lastDoor;
@@ -608,6 +616,34 @@ export function MazeApp() {
                 </div>
               )}
             </div>
+            {/* What's been played so far, once there's something to say. */}
+            {(made > 0 || hintsUsed > 0) && (
+              <ul className="score-stats" aria-label="This game so far">
+                <li>
+                  <strong>{made}</strong> {made === 1 ? 'word' : 'words'} made
+                </li>
+                {backs > 0 && (
+                  <li>
+                    <strong>{backs}</strong> free {backs === 1 ? 'return' : 'returns'}
+                  </li>
+                )}
+                {made > 0 && (
+                  <li>
+                    biggest step <strong>+{biggest}</strong>
+                  </li>
+                )}
+                {inkSpent > 0 && (
+                  <li>
+                    <strong>{inkSpent}</strong> paid in ink
+                  </li>
+                )}
+                {hintsUsed > 0 && (
+                  <li>
+                    <strong>{hintsUsed}</strong> {hintsUsed === 1 ? 'hint' : 'hints'}
+                  </li>
+                )}
+              </ul>
+            )}
           </section>
 
           <AnimatePresence>

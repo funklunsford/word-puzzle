@@ -834,6 +834,34 @@ select,
   color: var(--muted);
 }
 
+/* The game so far, under the score: small chips across the card's width. */
+.score-stats {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.score-stats li {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.score-stats strong {
+  color: var(--ink);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Kept on one line: wraps as a whole rather than leaving "visited)" alone. */
 .nowrap {
   white-space: nowrap;
@@ -1885,6 +1913,17 @@ select,
   gap: 0 12px;
   font-size: 12px;
   line-height: 1.4;
+}
+
+.maze.compact .score-stats {
+  order: 5;
+  justify-content: flex-start;
+  gap: 4px;
+}
+
+.maze.compact .score-stats li {
+  padding: 2px 8px;
+  font-size: 11px;
 }
 
 .maze.compact .ink-bank {
