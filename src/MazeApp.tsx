@@ -25,6 +25,8 @@ import { CELL_W, WordEditor } from './components/maze/WordEditor';
 import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
 import { dailyRecord, formatTime } from './stats';
+import { AD_SLOTS, BANNER, RAIL_H, loadAdSense, railWidth } from './ads';
+import { AdSlot } from './components/AdSlot';
 
 /** A puzzle's ink pots: where they are, the best score with them, and a route that gets it. */
 type PotPlan = Omit<InkPots, 'bound'>;
@@ -246,6 +248,10 @@ export function MazeApp() {
   const { w: width, h: height } = useWindowSize();
   const compact = width < COMPACT_MAX;
   const coarse = useMedia(COARSE);
+  // With the ads flag on, the AdSense script (only once real IDs are filled in, in src/ads.ts).
+  useEffect(() => {
+    if (flags.ads) loadAdSense();
+  }, [flags.ads]);
 
   useEffect(() => {
     // The puzzle is picked before the first render: the day's puzzle for the player's own date, or
@@ -506,6 +512,10 @@ export function MazeApp() {
   const columnW = letters === 5 ? COLUMN_W_5 : COLUMN_W;
   const side = width >= (letters === 5 ? SIDE_MIN_5 : SIDE_MIN);
   const column = Math.min(width - 32, columnW);
+  // Ads (the ads flag): a banner over the header on phones, and a rail either side of the game
+  // where both fit beside it at its full width (see railWidth). Tablets and middle widths get none.
+  const banner = flags.ads && compact;
+  const rail = flags.ads && side ? railWidth(width, columnW, SIDE_W) : 0;
   // Board padding, the gaps between letter tiles (10 px) and their own padding (12 px) come off
   // before sizing the word, whose letters are CELL_W units wide each.
   const n = puzzle.start.length;
@@ -555,8 +565,10 @@ export function MazeApp() {
     <PrefsContext.Provider value={prefs}>
     <MotionConfig reducedMotion={motionConfig(prefs.motion)}>
       <div
-        className={`maze${side ? ' side' : ''}${compact ? ' compact' : ''}${letters === 5 ? ' five' : ''}`}
-        style={side ? { gridTemplateColumns: `minmax(0, ${columnW}px) ${SIDE_W}px` } : undefined}
+        className={`maze${side ? ' side' : ''}${compact ? ' compact' : ''}${letters === 5 ? ' five' : ''}${banner ? ' ad-top' : ''}${rail ? ' rails' : ''}`}
+        style={
+          side ? { gridTemplateColumns: rail ? `${rail}px minmax(0, ${columnW}px) ${SIDE_W}px ${rail}px` : `minmax(0, ${columnW}px) ${SIDE_W}px` } : undefined
+        }
       >
         <Masthead
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
@@ -1018,6 +1030,11 @@ export function MazeApp() {
             </p>
           )}
         </aside>
+        {/* The ads come last, so the keyboard and screen readers reach the game first (the grid
+            draws them in their places). A rail's key has its width: a filled ad can't be resized. */}
+        {banner && <AdSlot className="ad-banner" slot={AD_SLOTS.banner} width={BANNER.w} height={BANNER.h} />}
+        {rail > 0 && <AdSlot key={`left-${rail}`} className="ad-rail left" label="Advertisement, left" slot={AD_SLOTS.railLeft} width={rail} height={RAIL_H} />}
+        {rail > 0 && <AdSlot key={`right-${rail}`} className="ad-rail right" label="Advertisement, right" slot={AD_SLOTS.railRight} width={rail} height={RAIL_H} />}
       </div>
       <AnimatePresence>{settings && <Settings theme={theme} onTheme={chooseTheme} prefs={prefs} onPrefs={changePrefs} onClose={closeSettings} />}</AnimatePresence>
       <AnimatePresence>{sharing && <ShareSheet result={sharing} onClose={closeShare} />}</AnimatePresence>

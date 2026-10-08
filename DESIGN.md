@@ -590,3 +590,32 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The `fiveLetters` flag is on by default:** every device gets the 5-letter game, with its dailies (`src/daily/days-5/`), definitions and results. `?flags=-fiveLetters` or `?letters=4` still plays the 4-letter game, whose days, scenes and results are kept.
 - **Players who were on the 4-letter game** keep those results under their old keys; their 5-letter record starts fresh.
 - **Next:** the daily runbook still checks in a 4-letter day and builds its celebration scene, which only `?letters=4` shows now.
+
+## Room for ads, behind a flag (2026-10-08, branch `ads-slots`)
+- **The owner's ask:** a Google AdSense banner at the top on phones, and vertical banners left and right of the game on desktop, with the flag off until AdSense is set up.
+- **The flag** (`ads` in `src/flags.ts`, off by default): off, the page is exactly as before. There are no extra elements, the same classes and grid, and no script requests. `?flags=ads` turns it on for a visit, and Dev's **Ad slots** box toggles and remembers it.
+- **Where the ads go** (`src/ads.ts`; `src/MazeApp.tsx` picks the slots from the window's width):
+  - **Phones** (the compact layout, under 600 px): one banner over the header, in a reserved 320×100 box that also takes 320×50 ads. The game moves down 110 px (the box and the grid's gap). At 375×812 the whole step panel (Undo, Reset step, Hint and the step meter) still ends on screen, at 807 px. On a 320 px phone the box runs edge to edge into the page's 4 px padding, so nothing scrolls sideways. A 320×50-only unit would give the game back 50 px.
+  - **Wide desktops:** a 160×600 rail either side of the game and its path card, or 300×600 rails where there's room. Each rail sits in its own grid column beside the game, level with the header, and scrolls with the page. Both fit, or neither shows: the main column (760 px) and the path card (260 px) keep their full widths (`railWidth`). The 5-letter game gets 160 px rails from **1,464 px** and 300 px rails from **1,744 px**. That's the game, the rails, their 24 px gaps, the page's 16 px padding and 20 px for a scrollbar (17 px on Windows). The 4-letter game (`?letters=4`) gets them from 1,344 and 1,624 px. Resizing across a threshold adds, drops or swaps the rails; a rail of a new width is a new box, since a filled ad can't be resized.
+  - **Tablets and middle widths** (600 px up to the rails): no ad.
+    - A 320 banner looks lost over the desktop layout, and a 728×90 leaderboard would be a new unit pushing the board below the fold on a laptop.
+    - The 600–820 px header was also just tuned so the toolbar fits.
+    - Phones on their side are 600 px or wider, so they get none too, which leaves the short screen to the game.
+    - A leaderboard here is the obvious next slot if the owner wants one.
+- **`AdSlot`** (`src/components/AdSlot.tsx`) holds an `<ins class="adsbygoogle">` of a fixed size, with the client and slot IDs from `src/ads.ts`. It uses fixed sizes rather than responsive units, so an ad never resizes its box after it fills. It asks AdSense to fill it once (StrictMode runs effects twice), and only with real IDs. In development an empty slot shows a dashed outline and its size ("Ad · 160×600").
+- **Never over the game:** the slots are boxes in the page's own grid, so they can't overlap the game, the tray or the path card. Each is its own stacking layer that clips its contents, with no z-index, so How to play, settings, the share sheet, the held stroke, the celebration and the ink all draw over it. Checked with How to play open and with `?perfect` at 1,600 px: both cover the rails.
+- **Keyboard and screen readers:** each slot is an `<aside>` labelled "Advertisement" ("Advertisement, left" and "right" for the rails). The slots come last in the page, so Tab and a screen reader reach the whole game first. The grid draws the banner at the top anyway.
+- **Checked** (`?flags=ads`, the dev server):
+  - **Flag off**, at 375×812 and 1,280 px: no ad elements, no requests to Google, and the same layout as before.
+  - **375×812:** the banner is 320×100 at the top and the header starts at 120 px. Nothing scrolls sideways, at 320 px either.
+  - **768 and 1,280 px:** no ads. At 1,280 the page measures the same as with the flag off (column at 118 px, path card at 902 px).
+  - **1,500 and 1,600 px:** 160×600 rails, with the column and path card where they are without them.
+  - **1,920 px:** 300×600 rails.
+  - **Resizing** 1,920 → 1,500 → 1,280 swaps the rails, then drops them.
+- **Left for when AdSense is set up:**
+  - Fill in the publisher ID and the three unit IDs at the top of `src/ads.ts` (one display unit each: banner 320×100, left rail, right rail). That's all it takes for `loadAdSense()` to load the script, once, for visits with the flag on.
+  - Turn the flag's default on.
+  - **ads.txt:** AdSense reads it from the domain's root, `funklunsford.github.io/ads.txt`. A project site's `public/` serves `/strokes/ads.txt`, so it has to go in a `funklunsford.github.io` user-site repository, or the game needs a custom domain.
+  - **Site review:** Google may ask for its snippet in `index.html`'s `<head>`, which loads the script for everyone.
+  - **Consent:** visitors in the EEA, the UK and Switzerland need a Google-certified consent banner (AdSense's own Privacy & messaging can provide one), and the privacy policy needs updating.
+  - **Auto ads:** keep them off, or at least their anchor and vignette formats. They place ads over the page, which these slots are built to avoid.
