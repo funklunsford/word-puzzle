@@ -12,9 +12,10 @@
 // data/familiar-4.txt with SCOWL's notice on top, and data/everyday-4.txt: the ones also in size
 // 35 ("small": the most everyday words), which puzzles start and end on. With --letters 5 it writes
 // data/familiar-5.txt and data/everyday-5.txt instead, with their own reviewed extras
-// (data/familiar-extra-5.txt).
+// (data/familiar-extra-5.txt), leaving out the obscure words in data/obscure-5.txt (SCOWL's size
+// doesn't track how well known a word is: HALER, a Czech coin, is in size 35).
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { BLOCKLIST, parseWordList } from '../src/wordlist';
 
 const args = process.argv.slice(2);
@@ -47,7 +48,9 @@ const enable = new Set(
     .split('\n')
     .map((w) => w.trim().toUpperCase()),
 );
-const blocked = new Set(BLOCKLIST);
+// Offensive words never go in; obscure ones (a reviewed list per length, if there is one) are left out too.
+const obscureFile = new URL(`../data/obscure-${LETTERS}.txt`, import.meta.url);
+const blocked = new Set([...BLOCKLIST, ...(existsSync(obscureFile) ? parseWordList(readFileSync(obscureFile, 'utf8')) : [])]);
 const words = [...new Set([...size40.words, ...extra, ...links])].filter((w) => w.length === LETTERS && enable.has(w) && !blocked.has(w)).sort();
 
 const header = [
@@ -61,7 +64,8 @@ const header = [
     : [
         `Familiar ${LETTERS}-letter words for the desktop stroke maze, built by scripts/familiar.ts --letters ${LETTERS}:`,
         `lowercase ${LETTERS}-letter words up to SCOWL size 40, plus the reviewed ones in data/familiar-extra-${LETTERS}.txt,`,
-        'also in ENABLE, minus a small blocklist. The size-40 list notice follows.',
+        `also in ENABLE, minus a small blocklist and the obscure words in data/obscure-${LETTERS}.txt. The size-40`,
+        'list notice follows.',
       ]),
   '',
   ...notice,

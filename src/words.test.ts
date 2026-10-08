@@ -13,6 +13,8 @@ const familiar = parseWordList(familiarText);
 const familiar5 = parseWordList(familiar5Text);
 const enable = new Set(enableText.split('\n').map((w: string) => w.trim().toUpperCase()));
 const maze = mazeJson as { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] } };
+/** Any word the maze keeps out, as one pattern (a pattern per blocked word and definition was too slow). */
+const blocked = new RegExp(`\\b(${BLOCKLIST.join('|')})\\b`);
 
 describe('familiar word list', () => {
   it('has only valid, unblocked 4-letter words', () => {
@@ -78,7 +80,7 @@ describe.each([
       expect(text.length, w).toBeGreaterThan(3);
       expect(text, w).not.toMatch(/offensive term|obscene|vulgar|slur|derogatory|disparaging/i);
       // Nor any word the maze itself keeps out.
-      for (const bad of BLOCKLIST) expect(text.toUpperCase(), w).not.toMatch(new RegExp(`\\b${bad}\\b`));
+      expect(text.toUpperCase(), w).not.toMatch(blocked);
     }
   });
 

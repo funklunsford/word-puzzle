@@ -12,6 +12,8 @@ export const BLOCKLIST = [
   ...['FUCKS', 'SHITS', 'DICKS', 'COCKS', 'TURDS', 'PRICK', 'BITCH', 'WHORE', 'SLUTS', 'PUSSY', 'BOOBS', 'BOOBY', 'DAMNS', 'CRAPS', 'ASSES'],
   ...['PENIS', 'SEMEN', 'SPERM', 'HORNY', 'KINKY', 'SEXED', 'NUDES', 'NUDER', 'HUMPS', 'SMUTS', 'RAPED', 'RAPES', 'PIMPS', 'BIMBO'],
   ...['CHINK', 'DYKES', 'FAGOT', 'QUEER', 'BAWDY', 'PINUP', 'DIKED'],
+  // Found in a second look at the 5-letter list (2026-10-08): a slur or crude in one sense.
+  ...['DIKES', 'FANNY', 'GYPSY', 'WELSH'],
   // 5-letter words from a review of SCOWL size 50 and ENABLE (2026-10-07).
   ...['PUBIC'],
   ...['BONER', 'BUTCH', 'COONS', 'DARKY', 'DILDO', 'DONGS', 'GIMPS', 'GIMPY', 'GONAD', 'GOOKS', 'HOMOS', 'HONKY', 'HUSSY', 'HYMEN', 'KIKES'],
