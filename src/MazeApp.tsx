@@ -146,8 +146,9 @@ function useWindowSize() {
 }
 
 export function MazeApp() {
-  /** This visit's game: 5-letter words on a desktop, 4 elsewhere (see src/letters.ts). Chosen once. */
-  const [letters] = useState<WordLength>(loadLetters);
+  const [flags, setFlags] = useState(loadFlags);
+  /** This visit's game: 5-letter words on a desktop, 4 elsewhere unless the fiveLetters flag is on (see src/letters.ts). Chosen once. */
+  const [letters] = useState<WordLength>(() => loadLetters(flags.fiveLetters));
   const [data, setData] = useState<MazeData | null>(null);
   const [room, setRoom] = useState('');
   const [cells, setCells] = useState<Placement[][]>([]);
@@ -166,7 +167,6 @@ export function MazeApp() {
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
-  const [flags, setFlags] = useState(loadFlags);
   const [hardcore, setHardcore] = useState(loadHardcore);
   // Settings (the gear): light or dark, the player's choice or the device's.
   const [settings, setSettings] = useState(false);
@@ -279,6 +279,14 @@ export function MazeApp() {
   const toggleFlag = (flag: Flag) => {
     const next = { ...flags, [flag]: !flags[flag] };
     saveFlags(next);
+    if (flag === 'fiveLetters') {
+      // The game is chosen once per load, so load again (without a link's ?flags= undoing the change).
+      const url = new URL(location.href);
+      url.searchParams.delete('flags');
+      window.history.replaceState(window.history.state, '', url);
+      location.reload();
+      return;
+    }
     setFlags(next); // the puzzle restarts, so ink and the best score never mix across settings
     if (flag === 'freshPuzzle' && data) setCurrent(next.freshPuzzle ? pickPuzzle(data, puzzle) : daily);
   };

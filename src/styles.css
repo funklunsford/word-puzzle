@@ -1995,6 +1995,27 @@ select,
   border-radius: 18px;
 }
 
+/* Five letters on a phone (the fiveLetters flag): the word takes a little more of the width (and
+   the editor draws its letters in narrower cells, so they come out bigger). */
+.maze.compact.five {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.maze.compact.five .board {
+  padding-left: 3px;
+  padding-right: 3px;
+}
+
+.maze.compact.five .board .word-cells {
+  gap: 3px;
+}
+
+.maze.compact.five .board .cell {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 /* Touch screens: targets sized for a fingertip, and no callouts or double-tap zoom mid-game. */
 @media (pointer: coarse) {
   /* No double-tap zoom anywhere (a quick second tap is the game's own gesture); pinch still zooms. */
