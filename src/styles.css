@@ -714,8 +714,9 @@ select,
   outline-offset: 2px;
 }
 
+/* (Narrower windows shrink it to leave the toolbar room on either side: it's about 130 px wide.) */
 .masthead-art {
-  width: min(520px, 100%);
+  width: min(520px, calc(100% - 280px));
   height: auto;
   overflow: visible;
 }
