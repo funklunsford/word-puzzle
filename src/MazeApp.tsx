@@ -24,6 +24,7 @@ import { celebrationFor, dayFor, dayNumber, daysFor, loadDaily, localDate } from
 import { CELL_W, WordEditor } from './components/maze/WordEditor';
 import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
+import { dailyRecord, formatTime } from './stats';
 
 /** A puzzle's ink pots: where they are, the best score with them, and a route that gets it. */
 type PotPlan = Omit<InkPots, 'bound'>;
@@ -92,6 +93,8 @@ interface Result {
   hardcore: boolean;
   /** Each step's words and strokes, for the share grid. */
   steps: ShareResult['steps'];
+  /** How long it took, from the first stroke (results kept before the stats have none). */
+  seconds?: number;
 }
 /** Where a daily's result is kept: the 4- and 5-letter games keep theirs apart. */
 const resultKey = (date: string, letters: WordLength) => `strokes:result${letters === 5 ? '5' : ''}:${date}`;
@@ -158,6 +161,9 @@ export function MazeApp() {
   const [spent, setSpent] = useState(0);
   /** Free trips back to a word already visited, for the score card's stats. */
   const [backs, setBacks] = useState(0);
+  /** When the first stroke went in (the clock starts there), and how long the solve took. */
+  const startedAt = useRef<number | null>(null);
+  const [seconds, setSeconds] = useState<number | null>(null);
   /** The door just walked through (cost 0 when it led back to a word already visited). */
   const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
@@ -301,6 +307,8 @@ export function MazeApp() {
     setTrail([{ word: puzzle.start, cost: 0 }]);
     setSpent(0);
     setBacks(0);
+    startedAt.current = null;
+    setSeconds(null);
     setLastDoor(null);
     setInk(0);
     setInFlight(0);
@@ -364,10 +372,12 @@ export function MazeApp() {
   useEffect(() => {
     if (!won) return;
     if (scene || perfect) setCelebrating({ perfect });
+    const took = startedAt.current ? (Date.now() - startedAt.current) / 1000 : 0;
+    setSeconds(took);
     // A daily's result is kept, so coming back today shows it (the best one, if played again).
     const date = current?.date;
     if (!date) return;
-    const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail) };
+    const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail), seconds: Math.round(took) };
     const before = loadResult(date, letters);
     if (!before || result.strokes < before.strokes || (result.strokes === before.strokes && result.hints < before.hints)) {
       try {
@@ -381,6 +391,11 @@ export function MazeApp() {
   /** Today's result from an earlier visit (or this one), if any. */
   const [saved, setSaved] = useState<Result | null>(null);
   useEffect(() => setSaved(current?.date ? loadResult(current.date, letters) : null), [current?.date, letters]);
+  /** The player's record over the dailies, for the end of a daily (worked out again once its result is kept). */
+  const record = useMemo(
+    () => (current?.date ? dailyRecord(daysFor(letters), (d) => loadResult(d, letters), current.date) : null),
+    [current?.date, letters, saved],
+  );
   /** The result being shared (the share sheet is open). */
   const [sharing, setSharing] = useState<ShareResult | null>(null);
   const shareBtn = useRef<HTMLButtonElement>(null);
@@ -404,6 +419,7 @@ export function MazeApp() {
   const onEdit = useCallback(
     (next: Placement[][]): boolean => {
       if (won || locked) return false;
+      startedAt.current ??= Date.now();
       const letters = next.map(recognize);
       const word = letters.every(Boolean) ? letters.join('') : null;
       if (word === room) {
@@ -753,11 +769,63 @@ export function MazeApp() {
                 <strong>
                   {puzzle.goal} in {spent} {spent === 1 ? 'stroke' : 'strokes'}
                 </strong>
-                <span className="nowrap"> · lowest possible {best}</span>
                 {spent <= best && <span className="nowrap"> · perfect ⭐</span>}
                 {hardcore && <span className="nowrap"> · hardcore</span>}
-                {hintsUsed > 0 && <span className="nowrap"> · {hintsUsed} {hintsUsed === 1 ? 'hint' : 'hints'}</span>}
               </p>
+              {/* This game's stats, then (for a daily) the player's record over them. */}
+              <dl className="result-stats" aria-label="This game">
+                <div>
+                  <dt>{spent <= best ? 'lowest possible' : 'over the lowest'}</dt>
+                  <dd>{spent <= best ? best : `+${spent - best}`}</dd>
+                </div>
+                <div>
+                  <dt>words made</dt>
+                  <dd>{made}</dd>
+                </div>
+                <div>
+                  <dt>biggest step</dt>
+                  <dd>+{biggest}</dd>
+                </div>
+                {seconds !== null && (
+                  <div>
+                    <dt>time</dt>
+                    <dd>{formatTime(seconds)}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>{backs === 1 ? 'free return' : 'free returns'}</dt>
+                  <dd>{backs}</dd>
+                </div>
+                <div>
+                  <dt>{hintsUsed === 1 ? 'hint' : 'hints'}</dt>
+                  <dd>{hintsUsed}</dd>
+                </div>
+              </dl>
+              {record && record.solved > 0 && (
+                <>
+                  <span className="label" id="record-label">
+                    Your dailies
+                  </span>
+                  <dl className="result-stats record" aria-labelledby="record-label">
+                    <div>
+                      <dt>dailies solved</dt>
+                      <dd>{record.solved}</dd>
+                    </div>
+                    <div>
+                      <dt>perfect</dt>
+                      <dd>{record.perfect}</dd>
+                    </div>
+                    <div>
+                      <dt>streak</dt>
+                      <dd>{record.streak}</dd>
+                    </div>
+                    <div>
+                      <dt>best streak</dt>
+                      <dd>{record.bestStreak}</dd>
+                    </div>
+                  </dl>
+                </>
+              )}
               <div className="pill-row">
                 <button
                   ref={shareBtn}
