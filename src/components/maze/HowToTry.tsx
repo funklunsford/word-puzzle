@@ -1,21 +1,37 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { usePrefs, useReduceMotion } from '../../prefs';
-import { LETTERS, type Placement, type TileId } from '../../glyphs';
+import { LETTERS, TILE_IDS, TRAY_TURN, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, strokeCenterline } from '../../ink';
 import { recognize, slotKey } from '../../strokes';
-import { TUTORIAL as STEPS, type Ghost } from '../../tutorial';
+import { TUTORIAL, practiceGoals, practiceStep, withArticle, type Ghost, type Step } from '../../tutorial';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
 import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift, trayCentring } from './WordEditor';
 
-/** The practice tray: a long bar, a bar, a chevron and an arc (every stroke the steps use). */
+/** The practice tray: a long bar, a bar, a chevron and an arc (every stroke the steps use). More practice gets the whole tray. */
 const TRAY: TileId[] = ['LV', 'H', 'BV', 'C'];
+/** More practice steers clear of the last few letters made, so it wanders the alphabet. */
+const RECENT = 4;
 /** Pixels per letter unit in the practice cell. */
 const UNIT = 26;
 /** The ghost shows the move again once the player has left the cell alone this long (ms). */
 const IDLE = 2500;
 
 const fresh = (letter: string) => LETTERS[letter].parts.map((p) => ({ ...p }));
+const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
+
+/**
+ * The next practice letter: one a move or two from the letter just made (`content`), avoiding the
+ * last few made. From a dead end (X and Z lead nowhere close) it starts again from another letter.
+ */
+function nextPractice(content: Placement[], recent: string[]): { step: Step; cells: Placement[][] } {
+  const here = recognize(content);
+  const goals = here ? practiceGoals(content, TILE_IDS) : [];
+  const fresher = goals.filter((g) => !recent.includes(g));
+  if (here && goals.length) return { step: practiceStep(here, pick(fresher.length ? fresher : goals), TILE_IDS), cells: [content] };
+  const start = pick(Object.keys(LETTERS).filter((ch) => ch !== here && !recent.includes(ch) && practiceGoals(fresh(ch), TILE_IDS).length));
+  return nextPractice(fresh(start), recent);
+}
 
 /** Where the practice cell and tray are, in px from the practice box's corner. */
 interface Geo {
@@ -32,21 +48,28 @@ interface Geo {
 /**
  * How to play's practice: a letter cell and a small tray, the game's own editor, with four moves to
  * make (add, move, turn, remove). A ghost hand (a cursor with a mouse) shows each move until the
- * player has a go, and again whenever they leave it alone for a moment.
+ * player has a go, and again whenever they leave it alone for a moment. Once they're done it offers
+ * more: letter after letter, with the whole tray, for as long as they like.
  */
 export function HowToTry({ touch }: { touch: boolean }) {
   const reduce = useReduceMotion();
   const { swipe } = usePrefs();
+  const [steps, setSteps] = useState<Step[]>(TUTORIAL);
   const [stepIndex, setStepIndex] = useState(0);
-  const [startCells, setStartCells] = useState(() => [fresh(STEPS[0].start)]);
+  const [startCells, setStartCells] = useState(() => [fresh(TUTORIAL[0].start)]);
   const [cells, setCells] = useState(startCells);
   const [done, setDone] = useState(false);
   const [idle, setIdle] = useState(true);
   const idleTimer = useRef(0);
   const box = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState<Geo | null>(null);
-  const step = STEPS[stepIndex];
-  const finished = done && stepIndex === STEPS.length - 1;
+  const step = steps[stepIndex];
+  /** Past the five moves: more letters, with the whole tray. */
+  const practising = stepIndex >= TUTORIAL.length;
+  const tray = practising ? TILE_IDS : TRAY;
+  /** The letters made in more practice, latest last. */
+  const made = useRef<string[]>([]);
+  const finished = done && stepIndex === steps.length - 1 && !practising;
 
   // Measure where things are (the card can still be scaling in, so undo its scale).
   useLayoutEffect(() => {
@@ -59,38 +82,52 @@ export function HowToTry({ touch }: { touch: boolean }) {
       const scale = r.width / el.offsetWidth;
       const s = svg.getBoundingClientRect();
       const k = s.width / scale / CELL_W;
-      const tray: Geo['tray'] = {};
-      for (const t of TRAY) {
+      const homes: Geo['tray'] = {};
+      for (const t of tray) {
         const b = el.querySelector(`[data-tile="${t}"] svg`)?.getBoundingClientRect();
         // Where the tile's stroke is drawn (centred by eye, see trayCentring).
-        const [ox, oy] = trayCentring(t, 0);
-        if (b) tray[t] = { x: (b.left - r.left + b.width / 2 + (ox * b.width) / 2.4) / scale, y: (b.top - r.top + b.height / 2 + (oy * b.width) / 2.4) / scale };
+        const [ox, oy] = trayCentring(t, TRAY_TURN[t]);
+        if (b) homes[t] = { x: (b.left - r.left + b.width / 2 + (ox * b.width) / 2.4) / scale, y: (b.top - r.top + b.height / 2 + (oy * b.width) / 2.4) / scale };
       }
-      setGeo({ ox: (s.left - r.left) / scale + (CELL_W / 2) * k, oy: (s.top - r.top) / scale - CELL_TOP * k, k, tray, w: el.offsetWidth, h: el.offsetHeight });
+      setGeo({ ox: (s.left - r.left) / scale + (CELL_W / 2) * k, oy: (s.top - r.top) / scale - CELL_TOP * k, k, tray: homes, w: el.offsetWidth, h: el.offsetHeight });
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [stepIndex]);
+  }, [stepIndex, tray]);
+
+  /** On to `following`, from `start` (the letter just made, when it starts from it). */
+  const goTo = (following: Step, start: Placement[][]) => {
+    setSteps((s) => [...s.slice(0, stepIndex + 1), following]);
+    setStepIndex(stepIndex + 1);
+    setStartCells(start);
+    setCells(start);
+    setDone(false);
+    window.clearTimeout(idleTimer.current);
+    setIdle(true);
+  };
+  const morePractice = (from: Placement[]) => {
+    // (The five moves' last letter counts as recent too: E, just made into F.)
+    const recent = [TUTORIAL[TUTORIAL.length - 1].start, ...made.current].slice(-RECENT);
+    const { step: following, cells: start } = nextPractice(from, recent);
+    goTo(following, start);
+  };
 
   const onEdit = (next: Placement[][]) => {
     if (done) return false;
     setCells(next);
     if (recognize(next[0]) === step.goal) {
       setDone(true);
-      if (stepIndex < STEPS.length - 1)
+      if (practising) made.current.push(step.goal);
+      if (stepIndex < TUTORIAL.length - 1)
         window.setTimeout(() => {
-          const following = STEPS[stepIndex + 1];
+          const following = TUTORIAL[stepIndex + 1];
           // The next step carries on with the letter just made, if it starts from it.
-          const start = following.start === step.goal ? next : [fresh(following.start)];
-          setStepIndex(stepIndex + 1);
-          setStartCells(start);
-          setCells(start);
-          setDone(false);
-          window.clearTimeout(idleTimer.current);
-          setIdle(true);
+          goTo(following, following.start === step.goal ? next : [fresh(following.start)]);
         }, 1300);
+      // More practice carries on to another letter from this one.
+      else if (practising) window.setTimeout(() => morePractice(next[0]), 1300);
     }
     return true;
   };
@@ -109,16 +146,24 @@ export function HowToTry({ touch }: { touch: boolean }) {
   };
 
   const plan = done ? null : step.next(cells[0]);
-  const say = finished ? step.done : done ? step.done : plan ? plan.say[touch ? 'touch' : 'mouse'] : 'Not quite.';
+  const say = done ? step.done : plan ? plan.say[touch ? 'touch' : 'mouse'] : practising ? `Not quite: make ${withArticle(step.goal)}.` : 'Not quite.';
   return (
     <section className="how-try" aria-label="Try it">
       <div className="how-try-head">
-        <span className="how-try-label">Try it</span>
-        <span className="how-try-dots" aria-label={`Move ${stepIndex + 1} of ${STEPS.length}`}>
-          {STEPS.map((_, i) => (
-            <span key={i} className={i < stepIndex || (i === stepIndex && done) ? 'done' : i === stepIndex ? 'now' : ''} />
-          ))}
-        </span>
+        <span className="how-try-label">{practising ? 'Practice' : 'Try it'}</span>
+        {practising ? (
+          made.current.length > 0 && (
+            <span className="how-try-count">
+              {made.current.length} {made.current.length === 1 ? 'letter' : 'letters'} made
+            </span>
+          )
+        ) : (
+          <span className="how-try-dots" aria-label={`Move ${stepIndex + 1} of ${TUTORIAL.length}`}>
+            {TUTORIAL.map((_, i) => (
+              <span key={i} className={i < stepIndex || (i === stepIndex && done) ? 'done' : i === stepIndex ? 'now' : ''} />
+            ))}
+          </span>
+        )}
       </div>
       <p className={`how-try-say${done ? ' done' : ''}`} aria-live="polite">
         {done && '✓ '}
@@ -129,8 +174,17 @@ export function HowToTry({ touch }: { touch: boolean }) {
           </button>
         )}
       </p>
+      {/* The five moves done: ask whether they'd like to carry on with other letters. */}
+      {finished && (
+        <div className="how-try-more">
+          <span>Want to practise other letters?</span>
+          <button className="pill quiet" onClick={() => morePractice(cells[0])}>
+            Practise more letters
+          </button>
+        </div>
+      )}
       <div className="how-try-box" ref={box} onPointerDownCapture={busy} onPointerUpCapture={rest} onPointerCancelCapture={rest}>
-        <WordEditor key={stepIndex} cells={cells} unit={UNIT} disabled={done} room={done ? step.goal : step.start} onEdit={onEdit} onHoverTile={() => {}} tray={TRAY} swipe={swipe} />
+        <WordEditor key={stepIndex} cells={cells} unit={UNIT} disabled={done} room={done ? step.goal : step.start} onEdit={onEdit} onHoverTile={() => {}} tray={tray} swipe={swipe} />
         {geo && plan && idle && (
           <GhostMove key={`${stepIndex}:${cells[0].map(slotKey).join(',')}`} plan={plan.ghost} content={cells[0]} geo={geo} touch={touch} still={!!reduce} />
         )}
@@ -191,7 +245,8 @@ function GhostMove({ plan, content, geo, touch, still }: { plan: Ghost; content:
     };
     ring = [0, 0, 0.7, 0, 0, 0, 0, 0];
     const tile = plan.tile;
-    const rot = fromTray ? 0 : ((plan.from as Placement).rot ?? 0);
+    // (From the tray, the way it sits there, which is the way it goes in.)
+    const rot = fromTray ? (plan.to.rot ?? 0) : ((plan.from as Placement).rot ?? 0);
     copy = {
       tile,
       rot,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { LETTERS, type Placement } from './glyphs';
+import { LETTERS, TILE_IDS, type Placement } from './glyphs';
 import { recognize } from './strokes';
-import { TUTORIAL, applyGhost } from './tutorial';
+import { TUTORIAL, applyGhost, practiceGoals, practiceStep, sayMove } from './tutorial';
 
 const fresh = (letter: string) => LETTERS[letter].parts.map((p) => ({ ...p }));
 
@@ -33,5 +33,32 @@ describe("How to play's practice", () => {
     const first = TUTORIAL[0];
     expect(first.next(fresh('L'))).toBeNull();
     expect(first.next([])).toBeNull();
+  });
+});
+
+describe('more practice, after the five moves', () => {
+  it('reaches every letter it offers by doing the moves it shows, two at most', () => {
+    for (const start of Object.keys(LETTERS)) {
+      for (const goal of practiceGoals(fresh(start), TILE_IDS)) {
+        const step = practiceStep(start, goal, TILE_IDS);
+        let content = fresh(start);
+        for (let moves = 0; recognize(content) !== goal; moves++) {
+          expect(moves, `${start} → ${goal}`).toBeLessThan(2);
+          const plan = step.next(content);
+          expect(plan, `${start} → ${goal}`).not.toBeNull();
+          content = applyGhost(content, plan!.ghost);
+        }
+      }
+    }
+  });
+
+  it('offers most letters somewhere to go (X and Z lead nowhere close, and start again elsewhere)', () => {
+    const stuck = Object.keys(LETTERS).filter((ch) => !practiceGoals(fresh(ch), TILE_IDS).length);
+    expect(stuck).toEqual(['X', 'Z']);
+  });
+
+  it('says each move plainly, naming the letter to make', () => {
+    expect(sayMove({ kind: 'carry', tile: 'SB', from: 'tray', to: { tile: 'SB', x: 0, y: 0 } }, 'R').mouse).toBe('Make an R: drag the tail in from the tray.');
+    expect(sayMove({ kind: 'remove', at: { tile: 'H', x: 0, y: 0 } }, 'B').touch).toBe('Make a B: tap the bar to remove it.');
   });
 });

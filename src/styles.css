@@ -1045,6 +1045,29 @@ select,
   border-color: var(--ok);
 }
 
+/* More practice: the letters made so far, in place of the five moves' dots. */
+.how-try-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ok);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The five moves done: the offer of more letters, over the practice cell. */
+.how-try-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  margin: -4px 0 10px;
+  padding: 8px 8px 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface));
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .how-try-say {
   margin: 6px 0 10px;
   min-height: 2.9em;
