@@ -308,6 +308,23 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   const [wiggle, setWiggle] = useState<{ id: string; n: number }>({ id: '', n: 0 });
   // A word changed some other way (undo, reset, a new puzzle) drops a waiting removal.
   useEffect(() => () => settleTap(false), [cells]);
+
+  // A finger scrolls the page from anywhere on the editor except a stroke (placed, or in the tray):
+  // a touch that lands on one is claimed for the stroke at once, before the page can start to
+  // scroll, since a drag up from the tray looks just like a swipe to scroll down. So is any touch
+  // while a stroke is held (a second finger can't scroll or zoom mid-drag). Claiming it must
+  // happen on touchstart (cancelling pointerdown doesn't stop a scroll) with a listener that isn't
+  // passive, which React's onTouchStart is.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const claim = (ev: TouchEvent) => {
+      const on = ev.target instanceof Element && ev.target.closest('.placed, .tray-tile');
+      if (dragRef.current || (on && !disabled)) ev.preventDefault();
+    };
+    el.addEventListener('touchstart', claim, { passive: false });
+    return () => el.removeEventListener('touchstart', claim);
+  }, [disabled]);
   const [nudges, setNudges] = useState<Partial<Record<TileId, number>>>({});
 
   // The floating stroke: centre (screen px), scale (1 = word size) and extra rotation (flights).

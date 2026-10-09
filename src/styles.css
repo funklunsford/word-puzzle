@@ -1217,11 +1217,13 @@ select,
   font-size: 13px;
 }
 
+/* A finger scrolls the page from anywhere here but a stroke: the editor claims a touch that lands
+   on one (see WordEditor), and the tray's tiles take none of the page's gestures. */
 .editor {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  touch-action: none;
+  touch-action: manipulation;
   user-select: none;
 }
 
@@ -1324,6 +1326,11 @@ select,
   cursor: grab;
   touch-action: none;
   transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, border-color 0.15s, background 0.15s;
+}
+
+/* A locked step or a won game: nothing to drag, so a swipe on a tile scrolls the page. */
+.editor.disabled .tray-tile {
+  touch-action: manipulation;
 }
 
 /* A tray stroke under the mouse invites a grab: its tile rises on its ledge and brightens, and the
