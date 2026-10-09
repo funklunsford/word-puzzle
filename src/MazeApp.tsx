@@ -703,11 +703,11 @@ export function MazeApp() {
                   </div>
                   <p className="help-lead">Turn one word into another, in as few strokes as you can.</p>
                   <HowToTry touch={coarse} />
-                  {/* Touch screens and mouse play differently (tap vs click, double-tap vs swipe to turn), so each gets its own. */}
+                  {/* Touch screens and mouse play differently (tap vs click; a mouse can also swipe to turn), so each gets its own. */}
                   <ul className="how">
                     <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
-                      <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it{prefs.swipe ? ', or swipe as you place it' : ''}.</li>
+                      <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it.</li>
                     ) : (
                       <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, double-click it{prefs.swipe ? ', or swipe as you place it' : ''}.</li>
                     )}
@@ -756,7 +756,7 @@ export function MazeApp() {
               onMiss={(why) =>
                 setNotice(
                   why === 'turn'
-                    ? `That fits there turned the other way: ${prefs.swipe ? 'swipe as you drop it' : 'turn it in the tray first'}.`
+                    ? `That fits there turned the other way: ${prefs.swipe && !coarse ? 'swipe as you drop it' : 'turn it in the tray first'}.`
                     : "That stroke doesn't fit in that letter.",
                 )
               }

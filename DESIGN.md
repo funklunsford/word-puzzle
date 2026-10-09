@@ -619,3 +619,9 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - **Site review:** Google may ask for its snippet in `index.html`'s `<head>`, which loads the script for everyone.
   - **Consent:** visitors in the EEA, the UK and Switzerland need a Google-certified consent banner (AdSense's own Privacy & messaging can provide one), and the privacy policy needs updating.
   - **Auto ads:** keep them off, or at least their anchor and vignette formats. They place ads over the page, which these slots are built to avoid.
+
+## Phones turn strokes with a double-tap only (2026-10-08, branch `phone-turns`)
+- **No swipe under a finger:** on a touch screen a stroke is turned by a double-tap, in the tray (free) or where it sits. A mouse still swipes to turn as before, and Settings keeps "Swipe to turn" only where the pointer is a mouse or trackpad. How to play's touch text and the "turned the other way" notice say so.
+- **The small fix from the rotation plan** (`docs/rotation-on-phones-plan.md`, branch `rotation-plan`): when nothing turns a stroke as it lands (a finger, or a mouse with Swipe to turn off), a stroke carried out of one letter into an empty one lands the way the tray starts it (`restingTurn` in `src/turns.ts`). D's arc carried into an empty letter makes a C. Without it, 22 five-letter steps and 18 four-letter ones would cost a stroke more without a swipe, and 10 + 8 pool puzzles would have a higher lowest score; with it, none do, so every par stays true on phones.
+- **Not built yet:** the plan's turning by where a finger holds the stroke (`placeTurn`), and How to play practice for it.
+- **Tests:** vitest now leaves out `.claude/**`, so agents' worktrees inside the checkout don't add their copies of the tests to a local run.
