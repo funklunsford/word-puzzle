@@ -194,20 +194,23 @@ describe('a puzzle the straightforward way solves', () => {
   });
 });
 
+// Each pool's rule (scripts/mazes.ts): at 4 letters a pocket beside the route; at 5, holding out
+// against working back from the goal (meet depth 2 or more).
 describe.each([
-  { letters: 4, maze, words, adj, pockets },
-  { letters: 5, maze: maze5Json as unknown as MazeJson, words: (maze5Json as unknown as MazeJson).words, adj: doorsOf(maze5Json as unknown as MazeJson), pockets: findPockets(doorsOf(maze5Json as unknown as MazeJson)) },
-])('the $letters-letter puzzle pool', ({ maze, words, adj, pockets }) => {
-  it('is all tricky, and every puzzle passes a pocket', () => {
+  { letters: 4, maze, words, adj, pockets, rule: 'pocket' },
+  { letters: 5, maze: maze5Json as unknown as MazeJson, words: (maze5Json as unknown as MazeJson).words, adj: doorsOf(maze5Json as unknown as MazeJson), pockets: findPockets(doorsOf(maze5Json as unknown as MazeJson)), rule: 'meet' },
+])('the $letters-letter puzzle pool', ({ maze, words, adj, pockets, rule }) => {
+  it(`is all tricky, and every puzzle keeps the pool's rule (${rule})`, () => {
     for (const { puzzle } of maze.puzzles) {
       const d = measure(words, adj, puzzle, pockets);
       const label = `${puzzle.start} → ${puzzle.goal}`;
       expect(d.obvious, label).toEqual([]);
       expect(isObvious(words, adj, puzzle.start, puzzle.goal, puzzle.best), label).toBe(false);
       expect(d.depth, label).toBeGreaterThan(1);
-      expect(d.pocketsBeside, label).toBeGreaterThan(0);
+      if (rule === 'pocket') expect(d.pocketsBeside, label).toBeGreaterThan(0);
+      else expect(meetDepth(words, adj, puzzle), label).toBeGreaterThanOrEqual(2);
     }
-  }, 30_000);
+  }, 60_000);
 
   it('keeps each puzzle’s difficulty as measured, par chance included', () => {
     for (const { puzzle, difficulty } of maze.puzzles) expect(keep(measure(words, adj, puzzle, pockets), parChance(words, adj, puzzle)), `${puzzle.start} → ${puzzle.goal}`).toEqual(difficulty);

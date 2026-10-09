@@ -11,7 +11,8 @@
 // For comparing pools (docs/difficulty-5-letters.md), without touching the shipped one:
 //   --out FILE     write the maze there instead of public/
 //   --rule meet    pick puzzles that are tricky and defeat working back from the goal (meetDepth
-//                  of 2 or more), with no pocket needed, instead of tricky with a pocket beside
+//                  of 2 or more), with no pocket needed: the 5-letter default
+//   --rule pocket  pick puzzles that are tricky with a pocket beside the route: the 4-letter default
 //   --best 13-16   another range of lowest strokes
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -28,8 +29,8 @@ const LETTERS = Number(option('--letters') ?? 4);
 if (![4, 5].includes(LETTERS)) throw new Error('usage: vite-node scripts/mazes.ts [--letters 5] [--out FILE] [--rule meet] [--best 13-16]');
 const suffix = LETTERS === 4 ? '' : `-${LETTERS}`;
 const OUT = option('--out');
-const RULE = option('--rule') ?? 'pocket';
-if (!['pocket', 'meet'].includes(RULE)) throw new Error('--rule takes pocket (the default) or meet');
+const RULE = option('--rule') ?? (LETTERS === 5 ? 'meet' : 'pocket');
+if (!['pocket', 'meet'].includes(RULE)) throw new Error('--rule takes pocket or meet');
 const BEST = option('--best')?.split('-').map(Number) as [number, number] | undefined;
 
 // Opposites make a nice maze: WILD → TAME, 13 strokes over 5 rooms, all everyday words. Most
@@ -63,10 +64,13 @@ const inkPots = { pots, best: ink.best, walk: ink.walk };
 // The pool the dailies are chosen from. Starts and goals are everyday base words (in
 // data/everyday-4.txt, defined as a noun, verb or adjective rather than a plural, past tense,
 // pronoun or archaic form), so a puzzle never opens on HAST, SOPS or SENT; the words between are any.
-// Every puzzle is tricky (no rule of thumb makes par) and passes a pocket: a word on a lowest-stroke
-// route opens onto part of the maze that only leads back (see src/difficulty.ts). Its mix is set by
-// quota (POOL_MIXES in src/maze.ts), evenly across the best totals (9, 10 and 11; 12 to 15 for
-// 5-letter words, whose pool is balanced by best total alone).
+// Every puzzle is tricky (no rule of thumb makes par). At 4 letters it also passes a pocket: a word on
+// a lowest-stroke route opens onto part of the maze that only leads back. At 5 letters it instead
+// holds out against working back from the goal: with the goal's side mapped 3 doors back, the way
+// there still takes planning 2 steps ahead (meetDepth; see src/difficulty.ts and
+// docs/difficulty-5-letters.md). Its mix is set by quota (POOL_MIXES in src/maze.ts), evenly across
+// the best totals (9, 10 and 11; 15 to 18 for 5-letter words, whose pool is balanced by best total
+// alone).
 const POOL = 420;
 const SHAPE = BEST ? { ...PUZZLE_SHAPES[LETTERS], best: BEST } : PUZZLE_SHAPES[LETTERS];
 const MIX = POOL_MIXES[LETTERS];
@@ -98,8 +102,8 @@ while (puzzles.length < target) {
   const p = randomPuzzle(words, adj, random, endpoint, SHAPE);
   if (seen.has(p.start + p.goal) || seen.has(p.goal + p.start)) continue;
   if (![...quota].some(([k, n]) => n > 0 && k.startsWith(`${p.best}|`))) continue;
-  // The cheap measures first: only a tricky puzzle that passes a pocket goes on (or, by --rule meet,
-  // one that working back from the goal and then taking the door that looks best doesn't solve).
+  // The cheap measures first: only a tricky puzzle goes on that passes a pocket (the pocket rule) or
+  // that working back from the goal and then taking the door that looks best doesn't solve (meet).
   const difficulty: Difficulty = measure(words, adj, p, pockets);
   if (!isTricky(difficulty)) continue;
   if (RULE === 'pocket' ? !difficulty.pocketsBeside : meetDepth(words, adj, p) < 2) continue;

@@ -6,20 +6,22 @@
 //   npm run daily -- --letters 5 2026-10-09  # the desktop game's 5-letter puzzle (src/daily/days-5)
 //
 // Candidates come from the puzzle pool (public/mazes.json, see scripts/mazes.ts), so every one is
-// tricky, passes a pocket, starts and ends on everyday words, and fits the pool's rules. The script
-// cycles through it: never a pair already used (either way round), no start or goal word from the
-// last 30 days, the day's difficulty from a weekly rhythm (the easiest third of the pool early in the
-// week, the hardest by the weekend, by how often a simulated player makes par: see
-// src/difficulty.ts), and the kind of route (see classifyNeed in src/maze.ts) the last week has had
-// least of. The same date and history always give the same candidates.
+// tricky, starts and ends on everyday words, and fits the pool's rules (at 5 letters, holding out
+// against working back from the goal; at 4, a pocket beside the route). The script cycles through
+// it: never a pair already used (either way round), no start or goal word from the last 30 days, the
+// day's difficulty from a weekly rhythm (the easiest third of the pool early in the week, the
+// hardest by the weekend, by how often a simulated player makes par and how many words a search
+// from both ends must look at: see src/difficulty.ts), and the kind of route (see classifyNeed in
+// src/maze.ts) the last week has had least of. The same date and history always give the same
+// candidates.
 //
 // Checking in writes src/daily/days/{DATE}.json and prints what the celebration prompt needs (see
 // docs/daily-celebration-prompt.md). The history is the day files themselves.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { findPockets, isTricky, keep, measure, parChance, type KeptDifficulty } from '../src/difficulty';
+import { findPockets, isTricky, keep, measure, parChance, searchEffort, type KeptDifficulty } from '../src/difficulty';
 import { placePots, potRoute } from '../src/inkpots';
-import { POOL_MIXES, buildGraph, classifyNeed, routeWords, seededRandom, solve, type Need, type Puzzle } from '../src/maze';
+import { POOL_MIXES, buildGraph, classifyNeed, routeWords, seededRandom, solve, type Graph, type Need, type Puzzle } from '../src/maze';
 import type { DailyPuzzle } from '../src/daily/daily';
 import { dayNumber } from '../src/daily/daily';
 
@@ -46,7 +48,7 @@ const NEED_TEXT: Record<Need, string> = {
 };
 
 type PoolEntry = Omit<DailyPuzzle, 'date'>;
-const data: { words: string[]; puzzle: Puzzle; inkPots: DailyPuzzle['inkPots']; onRoute: DailyPuzzle['onRoute']; puzzles: PoolEntry[] } = JSON.parse(
+const data: { words: string[]; doors: number[][]; puzzle: Puzzle; inkPots: DailyPuzzle['inkPots']; onRoute: DailyPuzzle['onRoute']; puzzles: PoolEntry[] } = JSON.parse(
   readFileSync(new URL(`../public/mazes${suffix}.json`, import.meta.url), 'utf8'),
 );
 const definitions: Record<string, [string, string]> = JSON.parse(readFileSync(new URL(`../public/definitions${suffix}.json`, import.meta.url), 'utf8'));
@@ -67,20 +69,37 @@ const define = (w: string) => (definitions[w] ? `${definitions[w][0]} ${definiti
 const pairKey = (p: { start: string; goal: string }) => [p.start, p.goal].sort().join('|');
 const percent = (x: number) => `${Math.round(100 * x)}%`;
 
-/** The pool in thirds by difficulty: hardest first (least often at par, then the deepest plan, then the most traps). */
+/** The maze's doors, as shipped with it. */
+const adj: Graph = data.doors.map((flat) => Array.from({ length: flat.length / 2 }, (_, k) => ({ to: flat[2 * k], cost: flat[2 * k + 1] })));
+const pool = data.puzzles.filter((p) => p.difficulty).sort((a, b) => pairKey(a.puzzle).localeCompare(pairKey(b.puzzle)));
+/** How many words a search from both ends must look at before it's sure of par (searchEffort). */
+const effort = new Map(pool.map((p) => [p, searchEffort(data.words, adj, p.puzzle)]));
+/** Each puzzle's place in the pool by one measure, hardest first. */
+const placeBy = (key: (p: PoolEntry) => number) => new Map([...pool].sort((a, b) => key(a) - key(b)).map((p, i) => [p, i]));
+const byChance = placeBy((p) => p.difficulty!.parChance);
+const byEffort = placeBy((p) => -effort.get(p)!);
+/**
+ * The pool in thirds by difficulty, hardest first: by its place by par chance (least often at par
+ * first) and its place by search effort (the most words first) added together, which makes the hard
+ * third harder for every simulated player (docs/difficulty-5-letters.md); then the deepest plan,
+ * then the most traps.
+ */
 const harder = (a: PoolEntry, b: PoolEntry) => {
   const [x, y] = [a.difficulty!, b.difficulty!];
-  return x.parChance - y.parChance || y.depth - x.depth || y.traps.length - x.traps.length || pairKey(a.puzzle).localeCompare(pairKey(b.puzzle));
+  const place = (p: PoolEntry) => byChance.get(p)! + byEffort.get(p)!;
+  return place(a) - place(b) || y.depth - x.depth || y.traps.length - x.traps.length || pairKey(a.puzzle).localeCompare(pairKey(b.puzzle));
 };
-const ranked = data.puzzles.filter((p) => p.difficulty).sort(harder);
+const ranked = [...pool].sort(harder);
 const bandOf = new Map<string, Band>(ranked.map((p, i) => [pairKey(p.puzzle), i < ranked.length / 3 ? 'hard' : i < (2 * ranked.length) / 3 ? 'middle' : 'easy']));
 
 /** What makes a puzzle tricky, in a line. */
-function describe(d: KeptDifficulty | undefined) {
+function describe(p: PoolEntry) {
+  const d: KeptDifficulty | undefined = p.difficulty;
   if (!d) return 'tricky';
   const plan = d.depth > 3 ? 'plan more than 3 steps ahead' : `plan ${d.depth} steps ahead`;
   const traps = d.traps.length ? `traps ${d.traps.map((t) => `${t.door} from ${t.at} (loses ${t.loses}${t.pocket ? ', into a pocket' : ''})`).join(', ')}` : 'no traps';
-  return `makes par ${percent(d.parChance)} of the time; ${plan}; ${traps}; ${d.pocketsBeside} pocket${d.pocketsBeside === 1 ? '' : 's'} beside the route`;
+  const search = effort.has(p) ? `; a search from both ends looks at ${effort.get(p)} words` : '';
+  return `makes par ${percent(d.parChance)} of the time; ${plan}; ${traps}; ${d.pocketsBeside} pocket${d.pocketsBeside === 1 ? '' : 's'} beside the route${search}`;
 }
 
 const [date = days.length ? addDays(days[days.length - 1].date, 1) : '2026-10-06', start, goal, ...flags] = args;
@@ -117,7 +136,7 @@ if (!start) {
     const { start: s, goal: g, best: b, path } = p.puzzle;
     console.log(`${String(i + 1).padStart(2)}. ${s} → ${g}   lowest strokes ${b} in ${path.length - 1} steps, ${NEED_TEXT[p.need]}${inBand(p) ? '' : ` (from the ${THIRD[bandOf.get(pairKey(p.puzzle)) ?? 'middle']})`}`);
     console.log(`    route: ${path.join(' → ')}`);
-    console.log(`    ${describe(p.difficulty)}`);
+    console.log(`    ${describe(p)}`);
     console.log(`    ${s}: ${define(s)}`);
     console.log(`    ${g}: ${define(g)}\n`);
   });
