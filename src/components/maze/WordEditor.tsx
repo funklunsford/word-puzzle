@@ -834,7 +834,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     const s = strokeAt(cell, e.clientX, e.clientY);
     if (s) pressPlaced(e, cell, s.p, s.x);
   };
-  /** A mouse over the word: the stroke a click would remove is tinted (see .placed.hovered). */
+  /** A mouse over the word: the stroke a click would remove is tinted (see .placed.hovered; a finger pressing one tints it too). */
   const hoverAt = (e: React.PointerEvent, cell: number) => {
     if (e.pointerType !== 'mouse' || dragRef.current) return;
     const s = strokeAt(cell, e.clientX, e.clientY);
@@ -851,6 +851,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   };
 
   const held = drag?.moved ? drag : null;
+  // A finger pressing (or holding) a placed stroke tints it the way a mouse over it does: it's the
+  // one a tap removes. Not a second tap, which turns it, and not once it lifts.
+  const pressed = drag?.touch && !drag.moved && !drag.again && drag.source.kind === 'cell' ? `${drag.source.cell}|${drag.source.key}` : null;
   // The pressed stroke leaves its cell (or tile) for the floating layer once the pointer moves: until
   // then the press may be a tap or click (to remove it, or the first of two to turn it), and it stays put.
   const lifting = !!drag && drag.moved;
@@ -924,7 +927,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
                   {shown.map(({ p, look }) => {
                     const key = slotKey(p);
                     const x = squeezed(p.x);
-                    const hovered = !drag && !disabled && hover?.cell === c && hover.key === key;
+                    const hovered = !disabled && ((!drag && hover?.cell === c && hover.key === key) || pressed === `${c}|${key}`);
                     const landing = landings.current.get(`${c}|${key}`);
                     // Tapped on a touch screen and about to go: dimmed (still there to tap again).
                     const leaving = pendingStroke === `${c}|${key}`;

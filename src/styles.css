@@ -1276,8 +1276,8 @@ select,
   cursor: default;
 }
 
-/* A placed stroke under the mouse turns red and lifts a little: a click removes it. (The orange-red
-   --spicy is kept for "doesn't fit".) */
+/* A placed stroke under the mouse, or under a finger pressing it, turns red and lifts a little: a
+   click or tap removes it. (The orange-red --spicy is kept for "doesn't fit".) */
 .placed.hovered {
   filter: drop-shadow(0 0.06px 0.08px color-mix(in srgb, var(--ink) 45%, transparent));
 }
