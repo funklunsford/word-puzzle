@@ -10,6 +10,13 @@
 // - depth: how many steps ahead a player must look to make par;
 // - strategies: no simple rule of thumb makes par;
 // - par chance: how often a simulated player, who leans towards doors that look closer, makes par.
+//
+// Those all look forward from the start. A player can also work back from the goal first, then join
+// up from the start (docs/difficulty-5-letters.md), so there are measures for that too:
+// - meet depth: how far ahead a player must look after mapping the goal's side (goalSide);
+// - walkChance and planChance: simulated players who walk or plan, heading for the goal or working
+//   back from it first;
+// - search effort: how much a search from both ends must look at before it can be sure of par.
 
 import { isObvious, seededRandom, type Graph, type Puzzle } from './maze';
 import { strokeDiff } from './strokes';
@@ -194,14 +201,41 @@ export function measure(words: string[], adj: Graph, puzzle: Puzzle, pockets: Po
  * 1 to 3 that makes par, or 4 when even 3 doesn't.
  */
 export function planningDepth(words: string[], adj: Graph, puzzle: Puzzle, toGoal = distancesFrom(adj, words.indexOf(puzzle.goal))): number {
+  return depthTowards(words, adj, puzzle, toGoal, null);
+}
+
+/**
+ * planningDepth for a player who first works back from the goal, mapping its side `steps` doors deep
+ * (see goalSide), then plays forward towards it: a run ends at a word on that side, judged by its known
+ * strokes to the goal; a word off it looks as close as the cheapest-looking way to finish through a
+ * word there; and a door onto it that makes par is always taken. 1 means working back and then taking
+ * the door that looks best makes par: the strategy is a rule of thumb for that puzzle.
+ */
+export function meetDepth(words: string[], adj: Graph, puzzle: Puzzle, steps = 3, toGoal = distancesFrom(adj, words.indexOf(puzzle.goal))): number {
+  return depthTowards(words, adj, puzzle, toGoal, goalSide(adj, words.indexOf(puzzle.goal), steps));
+}
+
+/** planningDepth towards the goal (`side` null) or towards a mapped goal's side (meetDepth). */
+function depthTowards(words: string[], adj: Graph, puzzle: Puzzle, toGoal: Float64Array, side: Map<number, number> | null): number {
   const s = words.indexOf(puzzle.start);
   const g = words.indexOf(puzzle.goal);
-  const looks = words.map((w) => strokeDiff(w, puzzle.goal));
+  const ends = side ?? new Map([[g, 0]]);
+  const end = (u: number) => (u === s ? undefined : ends.get(u));
+  const cache = new Float64Array(words.length).fill(-1);
+  const looks = (v: number) => {
+    if (cache[v] < 0) {
+      let m = Infinity;
+      for (const [b, c] of ends) m = Math.min(m, (b === v ? 0 : strokeDiff(words[v], words[b])) + c);
+      cache[v] = m;
+    }
+    return cache[v];
+  };
   const seen = new Uint8Array(words.length);
-  // The best a run of up to `k` more doors from u looks (stopping early at the goal).
+  // The best a run of up to `k` more doors from u looks (stopping early at the goal, or the goal's side).
   const ahead = (u: number, k: number): number => {
-    if (u === g) return 0;
-    if (k === 0) return looks[u];
+    const known = end(u);
+    if (known !== undefined) return known;
+    if (k === 0) return looks(u);
     let m = Infinity;
     for (const { to, cost } of adj[u]) {
       if (seen[to]) continue;
@@ -209,13 +243,16 @@ export function planningDepth(words: string[], adj: Graph, puzzle: Puzzle, toGoa
       m = Math.min(m, cost + ahead(to, k - 1));
       seen[to] = 0;
     }
-    return Number.isFinite(m) ? m : looks[u] + 99; // a dead end looks worst
+    return Number.isFinite(m) ? m : looks(u) + 99; // a dead end looks worst
   };
   for (let k = 1; k <= 3; k++) {
     const walk = (u: number, spent: number): boolean => {
-      if (u === g) return spent === puzzle.best;
+      const known = end(u);
+      if (known !== undefined) return spent + known === puzzle.best;
       // (The cheapest a goal can still be reached from here, so hopeless walks stop early.)
       if (spent + toGoal[u] > puzzle.best) return false;
+      // Working back from the goal, a door onto its side that makes par is a sure thing.
+      if (side) for (const { to, cost } of adj[u]) if (!seen[to] && end(to) !== undefined && spent + cost + end(to)! === puzzle.best) return true;
       const moves: { to: number; cost: number; v: number }[] = [];
       for (const { to, cost } of adj[u]) {
         if (seen[to]) continue;
@@ -248,43 +285,302 @@ export function planningDepth(words: string[], adj: Graph, puzzle: Puzzle, toGoa
  * puzzle always scores the same, whatever else is measured.
  */
 export function parChance(words: string[], adj: Graph, puzzle: Puzzle, { games = 400, temperature = 1 } = {}): number {
+  return walkChance(words, adj, puzzle, { games, temperature }).par;
+}
+
+/** A puzzle no rule of thumb solves at par. */
+export const isTricky = (d: Difficulty) => d.obvious.length === 0;
+
+// ---------- Working back from the goal ----------
+
+/**
+ * The goal's side, as a player working back from the goal maps it: every word at most `steps` doors
+ * from the goal, with the fewest strokes from it to the goal in at most that many doors (so a word's
+ * strokes are what that player knows, never less than its true distance).
+ */
+export function goalSide(adj: Graph, g: number, steps = 3): Map<number, number> {
+  let known = new Map([[g, 0]]);
+  for (let k = 0; k < steps; k++) {
+    const next = new Map(known);
+    for (const [u, c] of known) for (const { to, cost } of adj[u]) if (c + cost < (next.get(to) ?? Infinity)) next.set(to, c + cost);
+    known = next;
+  }
+  return known;
+}
+
+/**
+ * How much searching from both ends a puzzle takes: the words a search that works from both ends and
+ * meets in the middle (MM: Holte, Felner, Sharon and Sturtevant, 2016) must look at before it can be
+ * sure of par, judging by eye how far each word is from the other end (its strokes difference). A word
+ * reached from the start is one when twice its strokes from the start, and those strokes plus how far
+ * the goal looks, are both under par; the same from the goal. The same either way round. More means a
+ * puzzle that's harder to join up from both ends (and from one).
+ */
+export function searchEffort(words: string[], adj: Graph, puzzle: Puzzle): number {
+  const fromStart = distancesFrom(adj, words.indexOf(puzzle.start));
+  const toGoal = distancesFrom(adj, words.indexOf(puzzle.goal));
+  let count = 0;
+  for (let v = 0; v < words.length; v++) {
+    if (2 * fromStart[v] < puzzle.best && fromStart[v] + strokeDiff(words[v], puzzle.goal) < puzzle.best) count++;
+    if (2 * toGoal[v] < puzzle.best && toGoal[v] + strokeDiff(words[v], puzzle.start) < puzzle.best) count++;
+  }
+  return count;
+}
+
+export interface WalkOptions {
+  games?: number;
+  /** As in parChance: each point a door looks worse makes it `e^(1/temperature)` times less likely. */
+  temperature?: number;
+  /**
+   * What the walker heads for:
+   * - 'goal': the goal, judged by eye (parChance's walker);
+   * - 'meet': the goal's side, mapped before the first move (see goalSide): a door looks like its cost
+   *   plus the cheapest-looking way to finish through a word there (its strokes difference to that
+   *   word plus that word's strokes to the goal). Once on that side, the walker finishes along it.
+   */
+  target?: 'goal' | 'meet';
+  /** For 'meet': how many doors back from the goal the map goes. */
+  steps?: number;
+  /** Keep walking until this many strokes over par, to count near misses (0: stop once par is lost, as parChance does). */
+  slack?: number;
+  /** Take a door that is sure to make par (onto the mapped side, or the goal, within par) whenever there is one. */
+  sure?: boolean;
+}
+
+export interface WalkOdds {
+  /** The share of games that made par, to two places. */
+  par: number;
+  /** ...that finished at most 1 stroke over par (counted up to `slack`). */
+  near1: number;
+  /** ...at most 2 strokes over. */
+  near2: number;
+}
+
+/**
+ * How often a simulated walker makes par (and comes close), out of `games`: parChance's walker, heading
+ * for the goal or for the goal's side (see WalkOptions). Moves after par is lost draw from a second
+ * random stream, so a game's par result never depends on `slack`: with the defaults, `par` is parChance.
+ */
+export function walkChance(words: string[], adj: Graph, puzzle: Puzzle, { games = 400, temperature = 1, target = 'goal', steps = 3, slack = 0, sure = false }: WalkOptions = {}): WalkOdds {
   const s = words.indexOf(puzzle.start);
   const g = words.indexOf(puzzle.goal);
-  const looks = words.map((w) => strokeDiff(w, puzzle.goal));
+  const best = puzzle.best;
+  const known = target === 'meet' ? goalSide(adj, g, steps) : new Map([[g, 0]]);
+  const ends = [...known];
+  const lookCache = new Float64Array(words.length).fill(-1);
+  const looks = (v: number) => {
+    if (lookCache[v] < 0) {
+      let m = Infinity;
+      for (const [b, c] of ends) m = Math.min(m, (b === v ? 0 : strokeDiff(words[v], words[b])) + c);
+      lookCache[v] = m;
+    }
+    return lookCache[v];
+  };
   let seed = 7;
   for (const ch of puzzle.start + puzzle.goal) seed = (Math.imul(seed, 31) + ch.charCodeAt(0)) | 0;
   const random = seededRandom(seed);
+  const spare = seededRandom(seed ^ 0x5bd1e995);
   const visited = new Uint8Array(words.length);
-  let par = 0;
+  const tally = { par: 0, near1: 0, near2: 0 };
   for (let game = 0; game < games; game++) {
     visited.fill(0);
     visited[s] = 1;
     const trail = [s];
     let spent = 0;
-    for (let moves = 0; trail.length && trail[trail.length - 1] !== g && moves < 60 && spent <= puzzle.best; moves++) {
+    let end = Infinity;
+    for (let moves = 0; trail.length && moves < 60 && spent <= best + slack; moves++) {
       const u = trail[trail.length - 1];
+      if (u === g) {
+        end = spent;
+        break;
+      }
+      if (u !== s && known.has(u)) {
+        end = spent + known.get(u)!;
+        break;
+      }
       const doors = adj[u].filter((e) => !visited[e.to]);
       if (!doors.length) {
         trail.pop(); // back the way they came, for free
         continue;
       }
-      const score = doors.map((e) => e.cost + looks[e.to]);
-      const least = Math.min(...score);
-      const weight = score.map((x) => Math.exp(-(x - least) / temperature));
-      let r = random() * weight.reduce((a, b) => a + b, 0);
-      let i = 0;
-      while ((r -= weight[i]) > 0 && i < doors.length - 1) i++;
+      // The cheapest door sure to make par, if `sure` and there is one (the first, of equals).
+      let i = -1;
+      if (sure) {
+        let top = best - spent;
+        doors.forEach((e, k) => {
+          const total = e.cost + (known.get(e.to) ?? Infinity);
+          if (total < top || (total === top && i < 0)) [top, i] = [total, k];
+        });
+      }
+      if (i < 0) {
+        const score = doors.map((e) => e.cost + looks(e.to));
+        const least = Math.min(...score);
+        const weight = score.map((x) => Math.exp(-(x - least) / temperature));
+        let r = (spent > best ? spare : random)() * weight.reduce((a, b) => a + b, 0);
+        i = 0;
+        while ((r -= weight[i]) > 0 && i < doors.length - 1) i++;
+      }
       spent += doors[i].cost;
       visited[doors[i].to] = 1;
       trail.push(doors[i].to);
     }
-    if (trail[trail.length - 1] === g && spent === puzzle.best) par++;
+    if (end === Infinity && trail[trail.length - 1] === g) end = spent;
+    if (end <= best) tally.par++;
+    if (end <= best + Math.min(1, slack)) tally.near1++;
+    if (end <= best + Math.min(2, slack)) tally.near2++;
   }
-  return Math.round((100 * par) / games) / 100;
+  const share = (x: number) => Math.round((100 * x) / games) / 100;
+  return { par: share(tally.par), near1: share(tally.near1), near2: share(tally.near2) };
 }
 
-/** A puzzle no rule of thumb solves at par. */
-export const isTricky = (d: Difficulty) => d.obvious.length === 0;
+// ---------- Both ends ----------
+
+/** How many letters differ between two words of the same length. */
+export const lettersApart = (a: string, b: string) => {
+  let n = 0;
+  for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) n++;
+  return n;
+};
+
+/** The puzzle the other way round, goal to start: doors cost the same both ways, so its best is the same. */
+export const reversed = (p: Puzzle): Puzzle => ({ start: p.goal, goal: p.start, best: p.best, path: [...p.path].reverse() });
+
+/**
+ * Tricky from both ends: no rule of thumb makes par walking from the start to the goal, nor walking
+ * back from the goal to the start. A player who works back from the goal is using the second, and
+ * the pool's own checks (`measure`) only ever look forward. `back` is `measure` of the reversed puzzle.
+ */
+export const isTrickyBothWays = (d: Difficulty, back: Difficulty) => isTricky(d) && isTricky(back);
+
+// ---------- Planners: thinking before moving ----------
+
+/**
+ * How a planner searches, in their head (so it costs nothing) before making a move:
+ * - 'forward': out from the start, towards the goal;
+ * - 'backward': back from the goal, towards the start;
+ * - 'meet': first back from the goal, at most `steps` doors, then out from the start towards any word
+ *   found on the goal's side, joining up in the middle (working back about 3 steps from the goal,
+ *   then about 3 from the start, as playtesting found works).
+ */
+export type Plan = 'forward' | 'backward' | 'meet';
+
+export interface PlanOptions {
+  games?: number;
+  /** As in parChance: each point a word looks worse makes it `e^(1/temperature)` times less likely to be looked at next. */
+  temperature?: number;
+  /** Words the planner looks at (lists the doors of) before settling for the best plan so far. For 'meet', half go to the goal's side. */
+  budget?: number;
+  /** For 'meet': how many doors back from the goal the first half goes. */
+  steps?: number;
+  /** The chance of seeing each door of a word looked at that changes one letter (1, every door, as parChance assumes). */
+  notice?: number;
+  /** The chance of seeing a door that changes two or three letters at once (a stroke moved between letters, say), which a player thinking in letter swaps misses more often. Defaults to `notice`. */
+  hidden?: number;
+}
+
+export interface PlanOdds {
+  /** The share of games that found a par plan within the budget, to two places. */
+  par: number;
+  /** ...whose best plan was at most 1 stroke over par. */
+  near1: number;
+  /** ...at most 2 strokes over. */
+  near2: number;
+}
+
+/**
+ * How often a planner finds a par route before moving, out of `games`. A planner keeps the words
+ * they've found on each side with the cheapest strokes they know from that end, and looks next at
+ * one of them at random, leaning towards those that look closer to the other end (strokes so far plus
+ * the strokes difference left, judged by eye as in parChance). Looking at a word finds its doors.
+ * A plan is a word found from both ends; the player knows par (the game shows it), so they stop at
+ * a par plan, or after `budget` words with the best plan they have. Seeded by the puzzle and the plan,
+ * so the same puzzle always scores the same.
+ *
+ * 'meet' heads from the start towards the goal's side as a whole: a word looks as close as the
+ * cheapest-looking way to finish through a word found there (its strokes difference to that word
+ * plus that word's known strokes to the goal).
+ */
+export function planChance(words: string[], adj: Graph, puzzle: Puzzle, plan: Plan, { games = 400, temperature = 1, budget = 20, steps = 3, notice = 1, hidden = notice }: PlanOptions = {}): PlanOdds {
+  const n = words.length;
+  const s = words.indexOf(puzzle.start);
+  const g = words.indexOf(puzzle.goal);
+  const pairs = new Map<number, number>();
+  const diff = (a: number, b: number) => {
+    if (a === b) return 0;
+    const k = a < b ? a * n + b : b * n + a;
+    let v = pairs.get(k);
+    if (v === undefined) pairs.set(k, (v = strokeDiff(words[a], words[b])));
+    return v;
+  };
+  let seed = 7;
+  for (const ch of `${puzzle.start}${puzzle.goal}${plan}`) seed = (Math.imul(seed, 31) + ch.charCodeAt(0)) | 0;
+  const random = seededRandom(seed);
+  const tally = { par: 0, near1: 0, near2: 0 };
+  for (let game = 0; game < games; game++) {
+    // Side 0 is found from the start, side 1 from the goal: each word's cheapest known strokes from that
+    // end, its words from that end, and the words not looked at yet (or found cheaper since).
+    const sides = [s, g].map((root) => ({ cost: new Map([[root, 0]]), hops: new Map([[root, 0]]), open: new Set([root]) }));
+    // Each door is seen or missed once per game, whichever end it's looked at from.
+    const seen = new Map<number, boolean>();
+    const sees = (u: number, v: number) => {
+      if (notice >= 1 && hidden >= 1) return true;
+      const k = u < v ? u * n + v : v * n + u;
+      let x = seen.get(k);
+      if (x === undefined) seen.set(k, (x = random() < (lettersApart(words[u], words[v]) > 1 ? hidden : notice)));
+      return x;
+    };
+    // How close a word looks to the far end, from each side (cached: in 'meet', the goal's side is
+    // fixed by the time the start's side is searched).
+    const looks = [new Map<number, number>(), new Map<number, number>()];
+    const look = (k: number, w: number) => {
+      let v = looks[k].get(w);
+      if (v !== undefined) return v;
+      if (k === 1) v = diff(w, s);
+      else if (plan !== 'meet') v = diff(w, g);
+      else {
+        v = Infinity;
+        for (const [b, c] of sides[1].cost) v = Math.min(v, diff(w, b) + c);
+      }
+      looks[k].set(w, v);
+      return v;
+    };
+    let found = Infinity;
+    const lookAt = (k: number, limit: number): boolean => {
+      const side = sides[k];
+      if (!side.open.size) return false;
+      const open = [...side.open];
+      const f = open.map((w) => side.cost.get(w)! + look(k, w));
+      const least = Math.min(...f);
+      const weight = f.map((x) => Math.exp(-(x - least) / temperature));
+      let r = random() * weight.reduce((a, b) => a + b, 0);
+      let i = 0;
+      while ((r -= weight[i]) > 0 && i < open.length - 1) i++;
+      const u = open[i];
+      side.open.delete(u);
+      const far = k === 0 ? g : s;
+      for (const { to, cost } of adj[u]) {
+        if (!sees(u, to)) continue;
+        const c = side.cost.get(u)! + cost;
+        if (c >= (side.cost.get(to) ?? Infinity)) continue;
+        side.cost.set(to, c);
+        side.hops.set(to, side.hops.get(u)! + 1);
+        if (to !== far && side.hops.get(to)! < limit) side.open.add(to);
+        const other = sides[1 - k].cost.get(to);
+        if (other !== undefined) found = Math.min(found, c + other);
+      }
+      return true;
+    };
+    let used = 0;
+    if (plan === 'meet') while (used < budget >> 1 && found > puzzle.best && lookAt(1, steps)) used++;
+    const k = plan === 'backward' ? 1 : 0;
+    while (used < budget && found > puzzle.best && lookAt(k, Infinity)) used++;
+    if (found <= puzzle.best) tally.par++;
+    if (found <= puzzle.best + 1) tally.near1++;
+    if (found <= puzzle.best + 2) tally.near2++;
+  }
+  const share = (x: number) => Math.round((100 * x) / games) / 100;
+  return { par: share(tally.par), near1: share(tally.near1), near2: share(tally.near2) };
+}
 
 /** What the pool and the day files keep of a puzzle's difficulty: the worst few traps describe it. */
 export interface KeptDifficulty {
