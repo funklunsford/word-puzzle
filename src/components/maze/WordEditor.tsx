@@ -308,8 +308,8 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
 
   // A finger scrolls the page from anywhere on the editor except a stroke (placed, or in the tray):
   // a touch that lands on one is claimed for the stroke at once, before the page can start to
-  // scroll, since a drag up from the tray looks just like a swipe to scroll down. So is any touch
-  // while a stroke is held (a second finger can't scroll or zoom mid-drag). Claiming it must
+  // scroll, since a drag up from the tray looks just like a swipe to scroll down. (While a finger
+  // holds a stroke, a second one is claimed anywhere on the page: see start.) Claiming it must
   // happen on touchstart (cancelling pointerdown doesn't stop a scroll) with a listener that isn't
   // passive, which React's onTouchStart is.
   useEffect(() => {
@@ -317,7 +317,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     if (!el) return;
     const claim = (ev: TouchEvent) => {
       const on = ev.target instanceof Element && ev.target.closest('.placed, .tray-tile');
-      if (dragRef.current || (on && !disabled)) ev.preventDefault();
+      if (on && !disabled) ev.preventDefault();
     };
     el.addEventListener('touchstart', claim, { passive: false });
     return () => el.removeEventListener('touchstart', claim);
@@ -784,6 +784,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     // page as the stroke lifts (where nothing bubbles up to the window). Each event is handled once.
     const pressed = e.currentTarget as Element;
     const targets: EventTarget[] = touch ? [window, pressed] : [window];
+    // While a finger holds the stroke, another finger anywhere can't scroll or zoom the page.
+    const still = (ev: TouchEvent) => ev.preventDefault();
+    if (touch) window.addEventListener('touchstart', still, { passive: false });
     let last: Event | null = null;
     const once = (ev: Event) => ev !== last && ((last = ev), true);
     const onMove = (ev: PointerEvent) => {
@@ -796,6 +799,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
         t.removeEventListener('pointerup', onUp as EventListener);
         t.removeEventListener('pointercancel', onUp as EventListener);
       }
+      window.removeEventListener('touchstart', still);
       const d = update(ev);
       dragRef.current = null;
       setDrag(null);
