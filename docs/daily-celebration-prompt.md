@@ -1,5 +1,11 @@
 # Prompt: the daily puzzle and its celebration
 
+> **No longer what `/daily` follows** (2026-10-09). Strokes is a 5-letter game on every device now,
+> and `/daily` adds only the 5-letter puzzle, which has no scene of its own
+> ([daily-prompt.md](daily-prompt.md)). This runbook is kept as the contract for the 4-letter
+> game's celebration scenes (`src/celebration/scenes.test.ts`), and its commands now need
+> `--letters 4`.
+
 This is the runbook Claude follows to add a daily puzzle. Run it with `/daily` (optionally
 `/daily 2026-10-09`) from a Claude Code session in this repo, on a Mac with the dev server
 available, since step 4 needs a browser to look at the animation.

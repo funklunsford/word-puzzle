@@ -705,3 +705,8 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The first 5-letter daily** (2026-10-07, SNARE → SHOUT, 14 strokes) keeps its puzzle; its test allows the old 12–15 range for it alone.
 - **Tests:** the 5-letter pool is checked for its meet depth instead of a pocket, at its new length.
 
+## /daily is 5 letters only (2026-10-09, branch `daily-five-only`)
+- **The owner's call:** only 5-letter words matter now, so `/daily` adds just the 5-letter puzzle. It follows a new, shorter runbook, `docs/daily-prompt.md`: get ready, choose, check, hand in. Its date is the day after the latest file in `src/daily/days-5/`. There's no concept, scene or log entry, since 5-letter days have no celebration of their own.
+- **`npm run daily` defaults to 5 letters;** `--letters 4` reaches the old game. Checking a day in prints its number.
+- **`docs/daily-celebration-prompt.md`** is kept, marked as no longer followed. It's the contract for the 4-letter celebration scenes that `src/celebration/scenes.test.ts` checks.
+

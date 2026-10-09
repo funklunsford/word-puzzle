@@ -1,9 +1,12 @@
 // Choose a daily puzzle, and check it in.
 //
 //   npm run daily                            # candidates for the day after the latest daily
-//   npm run daily -- 2026-10-09              # candidates for that date
-//   npm run daily -- 2026-10-09 COLD WARM    # check that pair in as that date's puzzle
-//   npm run daily -- --letters 5 2026-10-09  # the desktop game's 5-letter puzzle (src/daily/days-5)
+//   npm run daily -- 2026-10-10              # candidates for that date
+//   npm run daily -- 2026-10-10 MINER CHEER  # check that pair in as that date's puzzle
+//   npm run daily -- --letters 4 2026-10-10  # the 4-letter game's (src/daily/days), which gets no new days
+//
+// The game is 5 letters on every device, so that's the default (src/daily/days-5); /daily follows
+// docs/daily-prompt.md.
 //
 // Candidates come from the puzzle pool (public/mazes.json, see scripts/mazes.ts), so every one is
 // tricky, starts and ends on everyday words, and fits the pool's rules (at 5 letters, holding out
@@ -15,8 +18,9 @@
 // src/maze.ts) the last week has had least of. The same date and history always give the same
 // candidates.
 //
-// Checking in writes src/daily/days/{DATE}.json and prints what the celebration prompt needs (see
-// docs/daily-celebration-prompt.md). The history is the day files themselves.
+// Checking in writes src/daily/days-5/{DATE}.json (with --letters 4, src/daily/days/{DATE}.json and
+// what the celebration prompt needs: docs/daily-celebration-prompt.md). The history is the day files
+// themselves.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { findPockets, isTricky, keep, measure, parChance, searchEffort, type KeptDifficulty } from '../src/difficulty';
@@ -27,7 +31,7 @@ import { dayNumber } from '../src/daily/daily';
 
 const args = process.argv.slice(2);
 const at = args.indexOf('--letters');
-const LETTERS = at >= 0 ? Number(args.splice(at, 2)[1]) : 4;
+const LETTERS = at >= 0 ? Number(args.splice(at, 2)[1]) : 5;
 if (![4, 5].includes(LETTERS)) throw new Error('--letters takes 4 or 5');
 const suffix = LETTERS === 4 ? '' : `-${LETTERS}`;
 const FOLDER = `src/daily/days${suffix}/`;
@@ -176,8 +180,8 @@ if (!start) {
   writeFileSync(file, `${JSON.stringify(day, null, 2)}\n`);
   const { puzzle } = day;
   if (LETTERS !== 4) {
-    // The desktop game's days have no scene of their own: a Perfect gets the confetti, then the goal word.
-    console.log(`Wrote ${FOLDER}${date}.json: ${puzzle.start} → ${puzzle.goal}, lowest strokes ${puzzle.best}. No celebration to build.`);
+    // 5-letter days have no scene of their own: a Perfect gets the confetti, then the goal word.
+    console.log(`Wrote ${FOLDER}${date}.json: No. ${dayNumber(date)}, ${puzzle.start} → ${puzzle.goal}, lowest strokes ${puzzle.best}. No celebration to build.`);
     process.exit(0);
   }
   const recent = existsSync(LOG)
