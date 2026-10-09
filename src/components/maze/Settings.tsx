@@ -47,7 +47,14 @@ function Toggle({ label, note, on, onChange }: { label: string; note: string; on
           {note}
         </span>
       </span>
-      <button role="switch" aria-checked={on} aria-labelledby={`${id}-l`} aria-describedby={`${id}-n`} className="switch" onClick={() => onChange(!on)}>
+      <button
+        role="switch"
+        aria-checked={on}
+        aria-labelledby={`${id}-l`}
+        aria-describedby={`${id}-n`}
+        className="switch"
+        onClick={() => onChange(!on)}
+      >
         <span className="knob" />
       </button>
     </label>
@@ -59,11 +66,14 @@ interface Props {
   onTheme: (choice: ThemeChoice) => void;
   prefs: Prefs;
   onPrefs: (patch: Partial<Prefs>) => void;
+  /** Hardcore; turning it on starts a puzzle in progress over (see src/hardcore.ts). */
+  hardcore: boolean;
+  onHardcore: (on: boolean) => void;
   onClose: () => void;
 }
 
 /** The settings pop-up (the gear). Escape, the ×, Done or a tap outside closes it. */
-export function Settings({ theme, onTheme, prefs, onPrefs, onClose }: Props) {
+export function Settings({ theme, onTheme, prefs, onPrefs, hardcore, onHardcore, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
@@ -101,6 +111,12 @@ export function Settings({ theme, onTheme, prefs, onPrefs, onClose }: Props) {
         />
         <div className="setting">
           <span className="setting-label">Playing</span>
+          <Toggle
+            label="Hardcore"
+            note="Only words on a lowest-stroke route count, and there are no hints. Turning it on starts the puzzle over."
+            on={hardcore}
+            onChange={onHardcore}
+          />
           <Toggle
             label="Letter guide"
             note="The A to Z under the word, lighting up the letters a stroke is in."

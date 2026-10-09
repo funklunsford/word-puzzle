@@ -6,8 +6,9 @@ import { STEP_LIMIT, recognize, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
-import { doorsFrom, nextStep, type Doors, type NextStep } from './hints';
+import { clue, doorsFrom, hintSays, nextHintLevel, nextStep, type Doors, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
+import { hasStarted, loadHardcore, saveHardcore } from './hardcore';
 import { COARSE, useMedia } from './useMedia';
 import { InkDrop } from './components/maze/InkDrop';
 import { InkPot } from './components/maze/InkPot';
@@ -114,15 +115,6 @@ const loadResult = (date: string, letters: WordLength): Result | null => {
 /** A path's steps, for sharing: where each began, the word it made, and its strokes. */
 const stepsOf = (trail: Visit[]): ShareResult['steps'] => trail.slice(1).map((v) => ({ from: v.from ?? v.word, to: v.word, cost: v.cost }));
 
-/** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par. */
-const HARDCORE_KEY = 'strokes:hardcore';
-const loadHardcore = () => {
-  try {
-    return localStorage.getItem(HARDCORE_KEY) === '1';
-  } catch {
-    return false;
-  }
-};
 /** Storage can be missing or blocked (private windows); then help just opens every time. */
 const seenHelp = () => {
   try {
@@ -171,13 +163,17 @@ export function MazeApp() {
   const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   const [reveal, setReveal] = useState(false);
-  // Hints, for the word the player is in: first which letter to change, then the word to make.
-  // They're free, but counted (the win message says how many).
-  const [hint, setHint] = useState<{ room: string; level: 1 | 2; step: NextStep | null } | null>(null);
+  // Hints, for the word the player is in: first the next word's meaning, then the letters to
+  // change, then the word to make (see src/hints.ts). They're free, but each ask counts as a hint
+  // (the win message, the stats and the share card say how many).
+  const [hint, setHint] = useState<{ room: string; level: HintLevel; step: NextStep | null; meaning: string | null } | null>(null);
+  const hintRef = useRef(hint);
+  hintRef.current = hint;
   const [hintsUsed, setHintsUsed] = useState(0);
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
+  /** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par (see src/hardcore.ts). */
   const [hardcore, setHardcore] = useState(loadHardcore);
   // Settings (the gear): light or dark, the player's choice or the device's.
   const [settings, setSettings] = useState(false);
@@ -208,16 +204,6 @@ export function MazeApp() {
   const [refused, setRefused] = useState<string | null>(null);
   /** Said in the step line until the next stroke or hint (switching hardcore on or off). */
   const [notice, setNotice] = useState<string | null>(null);
-  /** Hardcore asked for once with progress on the board: a second tap within a few seconds starts over in it. */
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    if (!armed) return;
-    const t = window.setTimeout(() => {
-      setArmed(false);
-      setNotice(null);
-    }, 5000);
-    return () => window.clearTimeout(t);
-  }, [armed]);
   /** Free strokes banked from ink pots, waiting to pay for the next steps to new words. */
   const [ink, setInk] = useState(0);
   // Ink in flight: drops rise from a pot word into the bank, and pour from the bank into a word.
@@ -328,29 +314,17 @@ export function MazeApp() {
   }, [puzzle, potPlan]);
   useEffect(restart, [restart]);
 
-  /** Hardcore on starts the puzzle over (the way so far may be off the route); off carries on. */
   /**
-   * Hardcore on starts the puzzle over (the way so far may be off the route), so with progress on
-   * the board it asks for a second tap first. Off just carries on.
+   * Hardcore is switched in Settings. Turning it on starts a puzzle in progress over (no stroke,
+   * word or hint carries into a hardcore result); turning it off lets the puzzle go on.
    */
-  const toggleHardcore = () => {
-    const next = !hardcore;
-    const progress = spent > 0 || history.length > 0 || trail.length > 1;
+  const changeHardcore = (on: boolean) => {
+    const over = on && hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed });
+    saveHardcore(on);
+    setHardcore(on);
+    if (over) restart();
     setRefused(null);
-    if (next && progress && !armed) {
-      setArmed(true);
-      setNotice(`Hardcore starts over. ${coarse ? 'Tap' : 'Click'} the flame again to go.`);
-      return;
-    }
-    setArmed(false);
-    try {
-      localStorage.setItem(HARDCORE_KEY, next ? '1' : '0');
-    } catch {
-      // storage blocked: on for this visit only
-    }
-    setHardcore(next);
-    if (next) restart();
-    setNotice(next ? 'Hardcore on: only lowest-stroke words count, and no hints.' : 'Hardcore off.');
+    setNotice(on ? `Hardcore on${over ? ', so the puzzle starts over' : ''}: only lowest-stroke words count, and no hints.` : 'Hardcore off.');
   };
 
   // The maze's doors, shipped with it (worked out from the words only if they're missing).
@@ -447,7 +421,6 @@ export function MazeApp() {
         }
         setRefused(null);
         setNotice(null);
-        setArmed(false);
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
@@ -468,7 +441,6 @@ export function MazeApp() {
       }
       setRefused(null);
       setNotice(null);
-      setArmed(false);
       setHistory((h) => [...h, cells]);
       setCells(next);
       return true;
@@ -524,28 +496,29 @@ export function MazeApp() {
   const visited = new Set(trail.map((v) => v.word));
   const shownHint = hint && hint.room === room && !won ? hint : null;
   const askHint = () => {
-    // No hints in hardcore.
-    if (!data || !puzzle || won || hardcore) return;
+    // No hints in hardcore, and nothing more once the word itself has been shown.
+    if (!data || !puzzle || won || hardcore || shownHint?.level === 3) return;
     // The latest thing asked for wins the step line.
     setRefused(null);
     setNotice(null);
-    setArmed(false);
-    const level = shownHint ? 2 : 1;
-    setHintsUsed((n) => n + 1);
     // The search takes a moment on a phone: show the hint once it's ready, without blocking the tap.
     window.setTimeout(() => {
-      const step = shownHint?.step ?? nextStep(doorsOf!, room, puzzle.goal, visited);
-      setHint({ room, level, step });
+      // From the latest hint, so two quick asks show two levels, as they're counted.
+      const h = hintRef.current;
+      const shown = h && h.room === room ? h : null;
+      if (shown?.level === 3) return;
+      const step = shown ? shown.step : nextStep(doorsOf!, room, puzzle.goal, visited);
+      // The next word's meaning, as a clue (none when it has no definition, or they didn't load).
+      const def = step && defs?.[step.next];
+      const meaning = shown ? shown.meaning : step && def ? clue(step.next, def) : null;
+      const next = { room, step, meaning, level: (step && nextHintLevel(shown?.level ?? null, !!meaning)) || 3 };
+      hintRef.current = next;
+      setHint(next);
+      // Each ask is a hint: the meaning, the letters and the word count one each.
+      setHintsUsed((n) => n + 1);
     }, 0);
   };
-  const ordinal = (i: number) => ['1st', '2nd', '3rd', '4th'][i];
-  const hintText = shownHint?.step
-    ? shownHint.level === 1
-      ? `Hint: change the ${shownHint.step.letters.map(ordinal).join(' and ')} letter${shownHint.step.letters.length > 1 ? 's' : ''}.`
-      : `Hint: make ${shownHint.step.next} next (${shownHint.step.cost ? `${shownHint.step.cost} ${shownHint.step.cost === 1 ? 'stroke' : 'strokes'}` : 'free'}).`
-    : shownHint
-      ? 'No hint from here.'
-      : null;
+  const hintText = shownHint ? (shownHint.step ? hintSays(shownHint.step, shownHint.level, shownHint.meaning) : 'No hint from here.') : null;
   // In hardcore, only the words that would open: visited ones (free) and the route's next on par.
   const reach = hardcore && current?.onRoute ? roomExits.filter((x) => visited.has(x.word) || current.onRoute![x.word] === spent + x.cost) : roomExits;
   const found = reach.filter((x) => visited.has(x.word)).length;
@@ -554,7 +527,7 @@ export function MazeApp() {
   const potsNear = won ? [] : potsLeft.filter((p) => wordDistance(room, p) <= STEP_LIMIT);
   const banked = Math.max(0, ink - inFlight);
   const used = spent + stepEdits;
-  /** The game so far, for the score card: words made, free trips back, the costliest step, ink spent. */
+  /** The game so far: words made (shown at the end), free trips back, the costliest step, ink spent. */
   const made = trail.length - 1;
   const biggest = Math.max(0, ...trail.slice(1).map((v) => v.cost + (v.used ?? 0)));
   const inkSpent = trail.reduce((t, v) => t + (v.used ?? 0), 0);
@@ -575,22 +548,10 @@ export function MazeApp() {
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
           compact={compact || height < 500}
           actions={
-            // The game's buttons in one bar: How to play, hardcore and settings.
+            // The game's buttons in one bar: How to play and settings (hardcore is a setting).
             <div className="toolbar">
               <button ref={helpBtn} className="tool-btn help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
                 ?
-              </button>
-              <button
-                className={`tool-btn hardcore-btn${hardcore ? ' on' : ''}${armed ? ' armed' : ''}`}
-                aria-pressed={hardcore}
-                aria-label="Hardcore mode"
-                title={hardcore ? 'Hardcore is on: only words on a lowest-stroke route open' : 'Hardcore: only words on a lowest-stroke route open (starts the puzzle over)'}
-                onClick={toggleHardcore}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path className="flame" d="M12 2.8c.9 3.4 5.6 5.6 5.6 10.6a5.6 5.6 0 0 1-11.2 0c0-2.6 1.6-4.3 2.6-5.6.3 1.8 1.2 3 2.3 3.6-.5-3 .1-6 .7-8.6Z" />
-                  <path className="core" d="M12 13.2c1.3 1.3 2.3 2.4 2.1 3.9a2.1 2.1 0 0 1-4.2 0c0-1.4 1-2.5 2.1-3.9Z" />
-                </svg>
               </button>
               <button ref={gearBtn} className="tool-btn gear-btn" aria-label="Settings" aria-haspopup="dialog" aria-expanded={settings} onClick={() => setSettings(true)}>
                 <GearIcon />
@@ -645,30 +606,21 @@ export function MazeApp() {
                 </div>
               )}
             </div>
-            {/* What's been played so far, once there's something to say. */}
-            {(made > 0 || hintsUsed > 0) && (
+            {/* How the game's going, once a word is made. The words made and hints taken wait for
+                the end of the game (the owner's call). */}
+            {made > 0 && (
               <ul className="score-stats" aria-label="This game so far">
-                <li>
-                  <strong>{made}</strong> {made === 1 ? 'word' : 'words'} made
-                </li>
                 {backs > 0 && (
                   <li>
                     <strong>{backs}</strong> free {backs === 1 ? 'return' : 'returns'}
                   </li>
                 )}
-                {made > 0 && (
-                  <li>
-                    biggest step <strong>+{biggest}</strong>
-                  </li>
-                )}
+                <li>
+                  biggest step <strong>+{biggest}</strong>
+                </li>
                 {inkSpent > 0 && (
                   <li>
                     <strong>{inkSpent}</strong> paid in ink
-                  </li>
-                )}
-                {hintsUsed > 0 && (
-                  <li>
-                    <strong>{hintsUsed}</strong> {hintsUsed === 1 ? 'hint' : 'hints'}
                   </li>
                 )}
               </ul>
@@ -704,17 +656,17 @@ export function MazeApp() {
                   </div>
                   <p className="help-lead">Turn one word into another, in as few strokes as you can.</p>
                   <HowToTry touch={coarse} />
-                  {/* Touch screens and mouse play differently (tap vs click; a mouse can also swipe to turn), so each gets its own. */}
+                  {/* Touch screens and mouse play differently (tap vs click; a finger double-taps to turn, a mouse swipes), so each gets its own. */}
                   <ul className="how">
                     <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
                       <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it.</li>
                     ) : (
-                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, double-click it, or swipe as you place it.</li>
+                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, swipe it as you place it.</li>
                     )}
                     <li>Going back to a word you've visited is free.</li>
-                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
-                    <li>Want a challenge? {coarse ? 'Tap' : 'Click'} the flame for hardcore: only words on a lowest-stroke route count, and there are no hints.</li>
+                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the next word's meaning, then the letters to change, then the word.</li>
+                    <li>Want a challenge? Turn on Hardcore in Settings (it starts the puzzle over): only words on a lowest-stroke route count, and no hints.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
@@ -749,7 +701,7 @@ export function MazeApp() {
               unit={unit}
               compact={compact}
               disabled={won || locked}
-              hinted={shownHint?.step?.letters}
+              hinted={shownHint && shownHint.level >= 2 ? shownHint.step?.letters : undefined}
               room={room}
               onEdit={onEdit}
               onHoverTile={setHoverTile}
@@ -881,9 +833,9 @@ export function MazeApp() {
               {hardcore ? (
                 <span className="no-hints">No hints</span>
               ) : (
-                <button className="pill step-btn hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
+                <button className="pill step-btn hint-btn" onClick={askHint} disabled={won || shownHint?.level === 3}>
                   <HintIcon />
-                  {!shownHint ? 'Hint' : shownHint.level === 1 ? 'Next word' : 'Hint used'}
+                  Hint
                 </button>
               )}
             </div>
@@ -1040,7 +992,19 @@ export function MazeApp() {
         {rail > 0 && <AdSlot key={`left-${rail}`} className="ad-rail left" label="Advertisement, left" slot={AD_SLOTS.railLeft} width={rail} height={RAIL_H} />}
         {rail > 0 && <AdSlot key={`right-${rail}`} className="ad-rail right" label="Advertisement, right" slot={AD_SLOTS.railRight} width={rail} height={RAIL_H} />}
       </div>
-      <AnimatePresence>{settings && <Settings theme={theme} onTheme={chooseTheme} prefs={prefs} onPrefs={changePrefs} onClose={closeSettings} />}</AnimatePresence>
+      <AnimatePresence>
+        {settings && (
+          <Settings
+            theme={theme}
+            onTheme={chooseTheme}
+            prefs={prefs}
+            onPrefs={changePrefs}
+            hardcore={hardcore}
+            onHardcore={changeHardcore}
+            onClose={closeSettings}
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>{sharing && <ShareSheet result={sharing} onClose={closeShare} />}</AnimatePresence>
       {inkFlights}
       {celebrating && (

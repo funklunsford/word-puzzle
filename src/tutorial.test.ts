@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LETTERS, TILE_IDS, type Placement } from './glyphs';
 import { recognize } from './strokes';
-import { TUTORIAL, applyGhost, practiceGoals, practiceStep, sayMove } from './tutorial';
+import { TUTORIAL, applyGhost, offersMore, practiceGoals, practiceStep, sayMove } from './tutorial';
 
 const fresh = (letter: string) => LETTERS[letter].parts.map((p) => ({ ...p }));
 
@@ -33,6 +33,28 @@ describe("How to play's practice", () => {
     const first = TUTORIAL[0];
     expect(first.next(fresh('L'))).toBeNull();
     expect(first.next([])).toBeNull();
+  });
+
+  it('teaches turning with a swipe on a mouse, and a double-tap on a touch screen', () => {
+    const turns = TUTORIAL.map((s) => s.next(fresh(s.start))).filter((plan) => plan?.ghost.kind === 'turn');
+    expect(turns.length).toBe(2); // V → A and C → D
+    for (const plan of turns) {
+      expect(plan!.say.mouse).toMatch(/^Swipe the [VC] /);
+      expect(plan!.say.touch).toMatch(/^Double-tap /);
+    }
+    expect(sayMove({ kind: 'turn', at: { tile: 'BV', x: 1, y: 1 } }, 'A')).toEqual({
+      touch: 'Make an A: double-tap the stroke shown to turn it.',
+      mouse: 'Make an A: swipe the stroke shown to turn it.',
+    });
+  });
+
+  it('offers more practice only once the last of the five moves is made', () => {
+    TUTORIAL.forEach((_, i) => {
+      expect(offersMore(i, false), `move ${i + 1}, not yet made`).toBe(false);
+      expect(offersMore(i, true), `move ${i + 1}, made`).toBe(i === TUTORIAL.length - 1);
+    });
+    // Nor again during more practice.
+    expect(offersMore(TUTORIAL.length, true)).toBe(false);
   });
 });
 

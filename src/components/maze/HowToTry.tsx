@@ -4,9 +4,9 @@ import { useReduceMotion } from '../../prefs';
 import { LETTERS, TILE_IDS, TRAY_TURN, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, strokeCenterline } from '../../ink';
 import { recognize, slotKey } from '../../strokes';
-import { TUTORIAL, practiceGoals, practiceStep, withArticle, type Ghost, type Step } from '../../tutorial';
+import { TUTORIAL, offersMore, practiceGoals, practiceStep, withArticle, type Ghost, type Step } from '../../tutorial';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
-import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift, trayCentring } from './WordEditor';
+import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift, pointing, trayCentring } from './WordEditor';
 
 /** The practice tray: a long bar, a bar, a chevron and an arc (every stroke the steps use). More practice gets the whole tray. */
 const TRAY: TileId[] = ['LV', 'H', 'BV', 'C'];
@@ -64,11 +64,12 @@ export function HowToTry({ touch }: { touch: boolean }) {
   const [geo, setGeo] = useState<Geo | null>(null);
   const step = steps[stepIndex];
   /** Past the five moves: more letters, with the whole tray. */
-  const practising = stepIndex >= TUTORIAL.length;
-  const tray = practising ? TILE_IDS : TRAY;
+  const practicing = stepIndex >= TUTORIAL.length;
+  const tray = practicing ? TILE_IDS : TRAY;
   /** The letters made in more practice, latest last. */
   const made = useRef<string[]>([]);
-  const finished = done && stepIndex === steps.length - 1 && !practising;
+  /** The five moves are all done: time to offer more. */
+  const finished = offersMore(stepIndex, done);
 
   // Measure where things are (the card can still be scaling in, so undo its scale).
   useLayoutEffect(() => {
@@ -118,7 +119,7 @@ export function HowToTry({ touch }: { touch: boolean }) {
     setCells(next);
     if (recognize(next[0]) === step.goal) {
       setDone(true);
-      if (practising) made.current.push(step.goal);
+      if (practicing) made.current.push(step.goal);
       if (stepIndex < TUTORIAL.length - 1)
         window.setTimeout(() => {
           const following = TUTORIAL[stepIndex + 1];
@@ -126,7 +127,7 @@ export function HowToTry({ touch }: { touch: boolean }) {
           goTo(following, following.start === step.goal ? next : [fresh(following.start)]);
         }, 1300);
       // More practice carries on to another letter from this one.
-      else if (practising) window.setTimeout(() => morePractice(next[0]), 1300);
+      else if (practicing) window.setTimeout(() => morePractice(next[0]), 1300);
     }
     return true;
   };
@@ -145,12 +146,16 @@ export function HowToTry({ touch }: { touch: boolean }) {
   };
 
   const plan = done ? null : step.next(cells[0]);
-  const say = done ? step.done : plan ? plan.say[touch ? 'touch' : 'mouse'] : practising ? `Not quite: make ${withArticle(step.goal)}.` : 'Not quite.';
+  const say = done ? step.done : plan ? plan.say[touch ? 'touch' : 'mouse'] : practicing ? `Not quite: make ${withArticle(step.goal)}.` : 'Not quite.';
+  /** The move the ghost is showing, while the player leaves the practice alone. */
+  const ghost = geo && plan && idle ? plan.ghost : null;
+  // A turn is shown on the stroke itself: the ghost draws it turning, so the editor hides its own.
+  const ghosted = ghost?.kind === 'turn' && !reduce ? `0|${slotKey(ghost.at)}` : undefined;
   return (
     <section className="how-try" aria-label="Try it">
       <div className="how-try-head">
-        <span className="how-try-label">{practising ? 'Practice' : 'Try it'}</span>
-        {practising ? (
+        <span className="how-try-label">{practicing ? 'Practice' : 'Try it'}</span>
+        {practicing ? (
           made.current.length > 0 && (
             <span className="how-try-count">
               {made.current.length} {made.current.length === 1 ? 'letter' : 'letters'} made
@@ -176,17 +181,25 @@ export function HowToTry({ touch }: { touch: boolean }) {
       {/* The five moves done: ask whether they'd like to carry on with other letters. */}
       {finished && (
         <div className="how-try-more">
-          <span>Want to practise other letters?</span>
+          <span>Want to practice other letters?</span>
           <button className="pill quiet" onClick={() => morePractice(cells[0])}>
-            Practise more letters
+            Practice more letters
           </button>
         </div>
       )}
       <div className="how-try-box" ref={box} onPointerDownCapture={busy} onPointerUpCapture={rest} onPointerCancelCapture={rest}>
-        <WordEditor key={stepIndex} cells={cells} unit={UNIT} disabled={done} room={done ? step.goal : step.start} onEdit={onEdit} onHoverTile={() => {}} tray={tray} />
-        {geo && plan && idle && (
-          <GhostMove key={`${stepIndex}:${cells[0].map(slotKey).join(',')}`} plan={plan.ghost} content={cells[0]} geo={geo} touch={touch} still={!!reduce} />
-        )}
+        <WordEditor
+          key={stepIndex}
+          cells={cells}
+          unit={UNIT}
+          disabled={done}
+          room={done ? step.goal : step.start}
+          onEdit={onEdit}
+          onHoverTile={() => {}}
+          tray={tray}
+          ghosted={ghosted}
+        />
+        {geo && ghost && <GhostMove key={`${stepIndex}:${cells[0].map(slotKey).join(',')}`} plan={ghost} content={cells[0]} geo={geo} touch={touch} still={!!reduce} />}
       </div>
     </section>
   );
@@ -203,8 +216,9 @@ const CURSOR = 'M0 0 L0 0.78 L0.2 0.6 L0.36 0.92 L0.48 0.86 L0.32 0.55 L0.58 0.5
 
 /**
  * The ghost: a fingertip or cursor doing the move over the practice cell, with a faint copy of the
- * stroke (red for one being removed), on a loop. With reduced motion, the copy just sits where the
- * move leaves it.
+ * stroke (red for one being removed), on a loop. A turn turns the stroke itself (the practice hides
+ * its ink meanwhile). With reduced motion, the copy just sits where the move leaves it; a turn
+ * shows only the pointer.
  */
 function GhostMove({ plan, content, geo, touch, still }: { plan: Ghost; content: Placement[]; geo: Geo; touch: boolean; still: boolean }) {
   const { k } = geo;
@@ -218,6 +232,9 @@ function GhostMove({ plan, content, geo, touch, still }: { plan: Ghost; content:
   let ring: number[] = [];
   let copy: { tile: TileId; rot: number; seed: number; fill?: string; x: number[]; y: number[]; opacity: number[]; scale: number[]; rotate: number[] };
   let duration: number;
+  /** A turn: where the pointer presses the stroke, and where a mouse's swipe ends. */
+  let press: { x: number; y: number } | null = null;
+  let swipeTo: { x: number; y: number } | null = null;
   const hold = (n: number, v: number) => Array<number>(n).fill(v);
 
   if (plan.kind === 'carry') {
@@ -257,16 +274,56 @@ function GhostMove({ plan, content, geo, touch, still }: { plan: Ghost; content:
       rotate: hold(8, 0),
     };
   } else if (plan.kind === 'turn') {
+    // The stroke itself turns: the practice hides its ink while the ghost draws it here, at full
+    // strength (a faint copy turning over on top of it drew a V and an A over each other). Then it
+    // fades, comes back unturned, and rests there until the next go.
     const spot = at(plan.at.x, plan.at.y);
     const g = grabPoint(plan.at);
     const p = at(g.x, g.y);
     const rot = plan.at.rot ?? 0;
     duration = 2.6;
-    // Two taps or clicks, and it turns over.
-    times = [0, 0.1, 0.2, 0.28, 0.36, 0.44, 0.7, 0.86, 1];
-    pointer = { x: hold(9, p.x), y: hold(9, p.y), opacity: [0, 1, 1, 1, 1, 1, 1, 0, 0], scale: [1, 1, 0.85, 1, 0.85, 1, 1, 1, 1] };
-    ring = [0, 0, 0.7, 0, 0.7, 0, 0, 0, 0];
-    copy = { tile: plan.at.tile, rot, seed: inkSeed(plan.at), x: hold(9, spot.x), y: hold(9, spot.y), opacity: [0, 0, 0, 0, 0, 0.8, 0.8, 0, 0], scale: hold(9, 1), rotate: [0, 0, 0, 0, 0, 0, 180, 180, 180] };
+    press = p;
+    if (touch) {
+      // Two taps, and it turns over.
+      times = [0, 0.1, 0.2, 0.28, 0.36, 0.44, 0.58, 0.8, 0.88, 0.9, 1];
+      pointer = { x: hold(11, p.x), y: hold(11, p.y), opacity: [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0], scale: [1, 1, 0.85, 1, 0.85, 1, 1, 1, 1, 1, 1] };
+      ring = [0, 0, 0.7, 0, 0.7, 0, 0, 0, 0, 0, 0];
+      copy = {
+        tile: plan.at.tile,
+        rot,
+        seed: inkSeed(plan.at),
+        x: hold(11, spot.x),
+        y: hold(11, spot.y),
+        opacity: [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1],
+        scale: hold(11, 1),
+        rotate: [0, 0, 0, 0, 0, 0, 180, 180, 180, 0, 0],
+      };
+    } else {
+      // Press it, swipe a little the way it will point (up for a V, right for a C), and let go:
+      // it lifts, turns over on its spot as the swipe goes, and settles there. The swipe takes about
+      // a second, slow enough to follow the stroke turning.
+      duration = 3.6;
+      times = [0, 0.08, 0.16, 0.46, 0.52, 0.68, 0.82, 0.88, 0.9, 1];
+      const [dx, dy] = pointing(plan.at.tile, rot + 180);
+      const to = { x: p.x + dx * 0.8 * k, y: p.y + dy * 0.8 * k };
+      swipeTo = to;
+      pointer = {
+        x: [p.x, p.x, p.x, to.x, to.x, to.x, to.x, to.x, p.x, p.x],
+        y: [p.y, p.y, p.y, to.y, to.y, to.y, to.y, to.y, p.y, p.y],
+        opacity: [0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+        scale: [1, 1, 0.85, 0.85, 1, 1, 1, 1, 1, 1],
+      };
+      copy = {
+        tile: plan.at.tile,
+        rot,
+        seed: inkSeed(plan.at),
+        x: hold(10, spot.x),
+        y: hold(10, spot.y),
+        opacity: [1, 1, 1, 1, 1, 1, 1, 0, 0, 1],
+        scale: [1, 1, 1.08, 1.08, 1, 1, 1, 1, 1, 1],
+        rotate: [0, 0, 0, 180, 180, 180, 180, 180, 0, 0],
+      };
+    }
   } else {
     // Point at the bar, tap or click (with a mouse it reddens first, as hovering does), and it goes.
     const spot = at(plan.at.x, plan.at.y);
@@ -300,15 +357,35 @@ function GhostMove({ plan, content, geo, touch, still }: { plan: Ghost; content:
     </g>
   );
 
+  if (still && press) {
+    // A turn holding still: no copy (turned over where it sits, it would lie on top of the stroke),
+    // just the finger tapping it, or the cursor at the end of its swipe with the swipe drawn.
+    const end = swipeTo ?? press;
+    return (
+      <svg className="how-try-ghost" width={geo.w} height={geo.h} viewBox={`0 0 ${geo.w} ${geo.h}`} aria-hidden="true">
+        {swipeTo && <line className="how-try-trail" x1={press.x} y1={press.y} x2={swipeTo.x} y2={swipeTo.y} />}
+        <g transform={`translate(${end.x} ${end.y})`}>
+          {touch ? (
+            <>
+              <circle className="how-try-ring" r={0.75 * k} opacity={0.7} />
+              <circle className="how-try-finger" r={0.5 * k} />
+            </>
+          ) : (
+            <path className="how-try-cursor" d={CURSOR} transform={`scale(${0.95 * k})`} />
+          )}
+        </g>
+      </svg>
+    );
+  }
   if (still) {
-    // Where the move leaves the stroke: on its new spot, turned over, or (red) about to go.
+    // Where the move leaves the stroke: on its new spot, or (red) about to go.
     const last = copy.x.length - 2;
     const x = plan.kind === 'carry' ? copy.x[last] : copy.x[0];
     const y = plan.kind === 'carry' ? copy.y[last] : copy.y[0];
     return (
       <svg className="how-try-ghost" width={geo.w} height={geo.h} viewBox={`0 0 ${geo.w} ${geo.h}`} aria-hidden="true">
         <g transform={`translate(${x} ${y})`} opacity={0.5}>
-          {stroke(plan.kind === 'turn' ? 180 : 0, copy.fill)}
+          {stroke(0, copy.fill)}
         </g>
       </svg>
     );
