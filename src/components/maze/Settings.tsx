@@ -2,7 +2,6 @@ import { useEffect, useId, useRef } from 'react';
 import { motion } from 'motion/react';
 import type { ThemeChoice } from '../../theme';
 import type { MotionChoice, Prefs } from '../../prefs';
-import { COARSE, useMedia } from '../../useMedia';
 
 const THEMES: { choice: ThemeChoice; label: string }[] = [
   { choice: 'system', label: 'System' },
@@ -66,8 +65,6 @@ interface Props {
 /** The settings pop-up (the gear). Escape, the ×, Done or a tap outside closes it. */
 export function Settings({ theme, onTheme, prefs, onPrefs, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  // Phones turn strokes with a double-tap only, so they don't offer swipes.
-  const touch = useMedia(COARSE);
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -104,14 +101,6 @@ export function Settings({ theme, onTheme, prefs, onPrefs, onClose }: Props) {
         />
         <div className="setting">
           <span className="setting-label">Playing</span>
-          {!touch && (
-            <Toggle
-              label="Swipe to turn"
-              note="Off: double-click a stroke to turn it, in the tray or in a letter."
-              on={prefs.swipe}
-              onChange={(swipe) => onPrefs({ swipe })}
-            />
-          )}
           <Toggle
             label="Letter guide"
             note="The A to Z under the word, lighting up the letters a stroke is in."

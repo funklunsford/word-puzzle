@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { usePrefs, useReduceMotion } from '../../prefs';
+import { useReduceMotion } from '../../prefs';
 import { LETTERS, TILE_IDS, TRAY_TURN, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, strokeCenterline } from '../../ink';
 import { recognize, slotKey } from '../../strokes';
@@ -53,7 +53,6 @@ interface Geo {
  */
 export function HowToTry({ touch }: { touch: boolean }) {
   const reduce = useReduceMotion();
-  const { swipe } = usePrefs();
   const [steps, setSteps] = useState<Step[]>(TUTORIAL);
   const [stepIndex, setStepIndex] = useState(0);
   const [startCells, setStartCells] = useState(() => [fresh(TUTORIAL[0].start)]);
@@ -184,7 +183,7 @@ export function HowToTry({ touch }: { touch: boolean }) {
         </div>
       )}
       <div className="how-try-box" ref={box} onPointerDownCapture={busy} onPointerUpCapture={rest} onPointerCancelCapture={rest}>
-        <WordEditor key={stepIndex} cells={cells} unit={UNIT} disabled={done} room={done ? step.goal : step.start} onEdit={onEdit} onHoverTile={() => {}} tray={tray} swipe={swipe} />
+        <WordEditor key={stepIndex} cells={cells} unit={UNIT} disabled={done} room={done ? step.goal : step.start} onEdit={onEdit} onHoverTile={() => {}} tray={tray} />
         {geo && plan && idle && (
           <GhostMove key={`${stepIndex}:${cells[0].map(slotKey).join(',')}`} plan={plan.ghost} content={cells[0]} geo={geo} touch={touch} still={!!reduce} />
         )}

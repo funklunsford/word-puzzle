@@ -153,8 +153,6 @@ interface Props {
   hinted?: number[];
   /** The strokes in the tray (all of them by default; How to play's practice offers a few). */
   tray?: readonly TileId[];
-  /** A mouse's swipe turns a stroke as it's placed (Settings can turn this off: then a double-click turns one). A finger never swipes to turn; it double-taps. */
-  swipe?: boolean;
 }
 
 /** How far above a fingertip a held stroke rides (px), so the finger doesn't hide it. */
@@ -238,7 +236,7 @@ const TWISTS = new Set(
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
  * slot from where it was released or flies back to its tray tile.
  */
-export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS, swipe = true }: Props) {
+export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<{ cell: number; key: string } | null>(null);
   /** A stroke flying home to its tray tile after the drag ended (removed, or not placed). */
@@ -420,12 +418,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     // It settles the way it's held, or the nearest way that fits, and a mouse's swipe turns it:
     // whichever way round points most along the swipe (up turns V into Λ; left and right turn an arc
     // or a bowl). Swipes count from where the cursor came onto the spot, or last turned it. A finger
-    // doesn't swipe (phones turn a stroke with a double-tap), and neither does a mouse with Swipe to
-    // turn off: then a stroke carried out of a letter into an empty one lands the way the tray starts
-    // it, so D's arc makes a C (see restingTurn).
+    // doesn't swipe (phones turn a stroke with a double-tap): under one, a stroke carried out of a
+    // letter into an empty one lands the way the tray starts it, so D's arc makes a C (see restingTurn).
     let aim: Aim = held ? d.aim! : { cell: overCell, x: at.x, y: at.y, armed: false, settled: false, ax: lx, ay: ly };
     const rawLocal = toCell(overCell, raw.x, raw.y) ?? local;
-    const swipes = swipe && !d.touch;
+    const swipes = !d.touch;
     const settle = restingTurn({
       ways: ways.map((w) => w.placement.rot ?? 0),
       held: d.turn,
@@ -966,7 +963,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (swipe && !held?.touch ? 'swipe to turn' : 'turn it first') : noFit ? 'no fit' : (letter ?? 'no letter')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (held?.touch ? 'turn it first' : 'swipe to turn') : noFit ? 'no fit' : (letter ?? 'no letter')}
               </span>
             </div>
           );
