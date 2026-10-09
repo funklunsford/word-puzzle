@@ -663,3 +663,45 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - Tests: when turning it on starts over, and the stored choice.
 - **Slower turns** (the owner's call): a held stroke turning round, whether by a swipe or to fit the spot it's over, now swings over 0.7 s (`TURN` in `WordEditor.tsx`; it shared the 0.35 s `SETTLE`). How to play's mouse demo swipes over about a second (the loop is 3.6 s, was 2.6 s), so the turn can be followed. The double-tap demo is unchanged.
 - **"Practice", not "Practise"** (the owner's call, US spelling as elsewhere): "Want to practice other letters?" and "Practice more letters".
+
+## Difficulty at 5 letters, against working back from the goal (2026-10-09, branch `difficulty-5`)
+- **Why:** in playtests the owner made par by working about 3 steps back from the goal, then about 3 from the start, while every difficulty measure looked only forward. The study is in `docs/difficulty-5-letters.md`, with methods, tables and sources.
+- **Findings:**
+  - Going forward, the pool is as hard as designed: the simulated forward walker makes par 4% of the time.
+  - Working back gets round it. For half the 5-letter pool (220 of 420) the strategy is a rule of thumb, and half the pool isn't tricky played goal → start.
+  - Simulated planners make par 51% of the time working back first, against 15% heading forward, when both look at 10 words (91% against 66% at 20).
+  - It works because judging by eye is nearly exact 1–2 doors out and poor 4–6 out, and routes are only 4–6 doors long.
+  - Pockets make no measurable difference to any simulated player.
+- **New measures** (`src/difficulty.ts`, with tests):
+  - `goalSide`: the goal's side, mapped a number of doors back.
+  - `meetDepth`: planning depth after mapping the goal's side; 1 means the strategy is a rule of thumb.
+  - `walkChance`: parChance's walker, heading for the goal or the goal's side, counting near misses; `parChance` now uses it, unchanged on every pool puzzle.
+  - `planChance`: players who plan before moving, forward, back or from both ends.
+  - `searchEffort`: the words a search from both ends must look at (MM's).
+  - `reversed` and `isTrickyBothWays`.
+- **Tools:**
+  - `scripts/mazes.ts --out FILE --rule meet --best 13-16` rebuilds a pool for comparison. With none of these options it rebuilds the shipped pools byte for byte.
+  - `scripts/difficulty-study.ts` prints the doc's tables.
+- **Recommendations** (the first two applied the same day at 15–18 strokes, the owner's call: see the next section):
+  - Pick puzzles by `--rule meet` at lowest strokes 13–16. The meet planner at 10 looks goes from 51% to 27% and the forward planner at 20 looks from 66% to 53%, at 5.45 doors a puzzle against 4.9.
+  - Rank the daily thirds by par chance and search effort together, which makes the hard third harder for every simulated player.
+  - Find out whether players miss doors that change two letters at once.
+
+## Longer, harder 5-letter puzzles (2026-10-09, branch `harder-five`)
+- **The owner's call**, after the difficulty study: puzzles a few strokes longer are fine ("maybe even by 3"). Trial pools at +2 and +3 strokes, with and without the study's rule, scored by its simulated players (share of games at par):
+
+  | | 12–15, pocket rule (before) | 14–17, pocket | 15–18, pocket | 14–17, meet | **15–18, meet (now)** |
+  |---|---|---|---|---|---|
+  | lowest strokes / steps, average | 13.5 / 4.9 | 15.5 / 5.7 | 16.5 / 6.1 | 15.5 / 5.7 | **16.5 / 6.1** |
+  | working 3 back from the goal, then forward (the owner's strategy) | 46% | 21% | 17% | 9% | **7%** |
+  | working 4 back | 93% | 59% | 42% | 53% | **35%** |
+  | planner from both ends, 20 looks | 91% | 70% | 58% | 66% | **55%** |
+  | forward planner, 20 looks | 66% | 38% | 26% | 40% | **32%** |
+  | forward walker within 2 strokes | 12% | 7% | 6% | 6% | **5%** |
+  | different start and goal words | 408 | 407 | 432 | 471 | **466** |
+
+- **The pool** (`public/mazes-5.json`): lowest strokes 15–18 (`PUZZLE_SHAPES[5]`), over 5–8 steps (6.1 on average), and the meet rule is the 5-letter default in `scripts/mazes.ts`: tricky, and working back from the goal 3 doors and then taking the door that looks best doesn't solve it (`meetDepth` of 2 or more). No pocket is needed any more; 40 puzzles still have a trap into one. 420 puzzles from 1,232 candidates. The 4-letter pool keeps the pocket rule.
+- **The daily thirds** (`scripts/daily.ts`): ranked by each puzzle's place by par chance plus its place by search effort (`searchEffort`, the words a search from both ends must look at), then the deeper plan and more traps as before. Each candidate's line says its search effort, and the runbook prefers more of it between equally good pictures, in place of a trap into a pocket.
+- **The first 5-letter daily** (2026-10-07, SNARE → SHOUT, 14 strokes) keeps its puzzle; its test allows the old 12–15 range for it alone.
+- **Tests:** the 5-letter pool is checked for its meet depth instead of a pocket, at its new length.
+

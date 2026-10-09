@@ -7,17 +7,31 @@
 // Rooms are the words in data/familiar-4.txt (see scripts/familiar.ts); a door joins two words
 // that are at most STEP_LIMIT stroke edits apart (see src/maze.ts). The puzzle's `best` is the
 // cheapest route from START to GOAL in total strokes (Dijkstra).
+//
+// For comparing pools (docs/difficulty-5-letters.md), without touching the shipped one:
+//   --out FILE     write the maze there instead of public/
+//   --rule meet    pick puzzles that are tricky and defeat working back from the goal (meetDepth
+//                  of 2 or more), with no pocket needed: the 5-letter default
+//   --rule pocket  pick puzzles that are tricky with a pocket beside the route: the 4-letter default
+//   --best 13-16   another range of lowest strokes
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { findPockets, isTricky, keep, measure, parChance, type Difficulty } from '../src/difficulty';
+import { findPockets, isTricky, keep, measure, meetDepth, parChance, walkChance, type Difficulty } from '../src/difficulty';
 import { placePots, potRoute, potValues } from '../src/inkpots';
 import { POOL_MIXES, PUZZLE_SHAPES, buildGraph, classifyNeed, randomPuzzle, routeWords, seededRandom, solve, type Need } from '../src/maze';
 import { parseWordList } from '../src/wordlist';
 
-const at = process.argv.indexOf('--letters');
-const LETTERS = at >= 0 ? Number(process.argv[at + 1]) : 4;
-if (![4, 5].includes(LETTERS)) throw new Error('usage: vite-node scripts/mazes.ts [--letters 5]');
+const option = (name: string) => {
+  const i = process.argv.indexOf(name);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+};
+const LETTERS = Number(option('--letters') ?? 4);
+if (![4, 5].includes(LETTERS)) throw new Error('usage: vite-node scripts/mazes.ts [--letters 5] [--out FILE] [--rule meet] [--best 13-16]');
 const suffix = LETTERS === 4 ? '' : `-${LETTERS}`;
+const OUT = option('--out');
+const RULE = option('--rule') ?? (LETTERS === 5 ? 'meet' : 'pocket');
+if (!['pocket', 'meet'].includes(RULE)) throw new Error('--rule takes pocket or meet');
+const BEST = option('--best')?.split('-').map(Number) as [number, number] | undefined;
 
 // Opposites make a nice maze: WILD → TAME, 13 strokes over 5 rooms, all everyday words. Most
 // 5-letter opposites can't reach each other (BLACK, WHITE); SHARP → BLUNT can, in 20.
@@ -50,12 +64,15 @@ const inkPots = { pots, best: ink.best, walk: ink.walk };
 // The pool the dailies are chosen from. Starts and goals are everyday base words (in
 // data/everyday-4.txt, defined as a noun, verb or adjective rather than a plural, past tense,
 // pronoun or archaic form), so a puzzle never opens on HAST, SOPS or SENT; the words between are any.
-// Every puzzle is tricky (no rule of thumb makes par) and passes a pocket: a word on a lowest-stroke
-// route opens onto part of the maze that only leads back (see src/difficulty.ts). Its mix is set by
-// quota (POOL_MIXES in src/maze.ts), evenly across the best totals (9, 10 and 11; 12 to 15 for
-// 5-letter words, whose pool is balanced by best total alone).
+// Every puzzle is tricky (no rule of thumb makes par). At 4 letters it also passes a pocket: a word on
+// a lowest-stroke route opens onto part of the maze that only leads back. At 5 letters it instead
+// holds out against working back from the goal: with the goal's side mapped 3 doors back, the way
+// there still takes planning 2 steps ahead (meetDepth; see src/difficulty.ts and
+// docs/difficulty-5-letters.md). Its mix is set by quota (POOL_MIXES in src/maze.ts), evenly across
+// the best totals (9, 10 and 11; 15 to 18 for 5-letter words, whose pool is balanced by best total
+// alone).
 const POOL = 420;
-const SHAPE = PUZZLE_SHAPES[LETTERS];
+const SHAPE = BEST ? { ...PUZZLE_SHAPES[LETTERS], best: BEST } : PUZZLE_SHAPES[LETTERS];
 const MIX = POOL_MIXES[LETTERS];
 const everyday = new Set(parseWordList(readFileSync(new URL(`../data/everyday-${LETTERS}.txt`, import.meta.url), 'utf8')));
 const definitions = JSON.parse(readFileSync(new URL(`../public/definitions${suffix}.json`, import.meta.url), 'utf8'));
@@ -82,12 +99,14 @@ while (puzzles.length < target) {
     const starved = [...quota].filter(([, n]) => n > 0).map(([k, n]) => `${k} (${n} short)`);
     throw new Error(`gave up filling the pool after ${attempts - 1} candidates; still short: ${starved.join(', ')}`);
   }
-  const p = randomPuzzle(words, adj, random, endpoint);
+  const p = randomPuzzle(words, adj, random, endpoint, SHAPE);
   if (seen.has(p.start + p.goal) || seen.has(p.goal + p.start)) continue;
   if (![...quota].some(([k, n]) => n > 0 && k.startsWith(`${p.best}|`))) continue;
-  // The cheap measures first: only a tricky puzzle that passes a pocket goes on.
+  // The cheap measures first: only a tricky puzzle goes on that passes a pocket (the pocket rule) or
+  // that working back from the goal and then taking the door that looks best doesn't solve (meet).
   const difficulty: Difficulty = measure(words, adj, p, pockets);
-  if (!isTricky(difficulty) || !difficulty.pocketsBeside) continue;
+  if (!isTricky(difficulty)) continue;
+  if (RULE === 'pocket' ? !difficulty.pocketsBeside : meetDepth(words, adj, p) < 2) continue;
   const { need, path } = classifyNeed(words, adj, p.start, p.goal, p.best);
   const cell = `${p.best}|${MIX ? need : 'any'}`;
   tries.set(cell, (tries.get(cell) ?? 0) + 1);
@@ -108,10 +127,14 @@ const depths = [1, 2, 3, 4].map((k) => puzzles.filter((x) => x.difficulty.depth 
 console.log(`difficulty: par chance median ${chances[chances.length >> 1]} (from ${chances[0]} to ${chances[chances.length - 1]}); depth 2/3/4+: ${depths.slice(1).join('/')}; with a trap ${puzzles.filter((x) => x.difficulty.traps.length).length}, a trap into a pocket ${puzzles.filter((x) => x.difficulty.pocketTrap).length}`);
 const endpoints = new Set(puzzles.flatMap((x) => [x.puzzle.start, x.puzzle.goal]));
 console.log(`${endpoints.size} different start and goal words`);
+// Against a player who works back from the goal first (see meetDepth and walkChance).
+const meet = puzzles.map((x) => ({ depth: meetDepth(words, adj, x.puzzle), chance: walkChance(words, adj, x.puzzle, { target: 'meet', sure: true }).par }));
+const meetChances = meet.map((x) => x.chance).sort((a, b) => a - b);
+console.log(`working back from the goal: meet depth 1/2/3/4+: ${[1, 2, 3, 4].map((k) => meet.filter((x) => x.depth === k).length).join('/')}; par chance median ${meetChances[meetChances.length >> 1]}, mean ${(meetChances.reduce((a, b) => a + b, 0) / meetChances.length).toFixed(2)}`);
 console.log(`candidates seen per cell: ${[...tries].sort().map(([k, n]) => `${k} ${n}`).join(', ')}`);
 console.log(`e.g. ${puzzles.slice(0, 8).map((x) => `${x.puzzle.start} → ${x.puzzle.goal} (${x.puzzle.best}, ${x.need})`).join(', ')}`);
 
 // The graph itself goes along too: each word's doors as [to, cost, to, cost, ...] (word indexes),
 // so the game never has to search a step's cost (hints, words within reach, hardcore).
 const doors = adj.map((a) => a.flatMap((e) => [e.to, e.cost]));
-writeFileSync(new URL(`../public/mazes${suffix}.json`, import.meta.url), JSON.stringify({ words, doors, puzzle, inkPots, onRoute: routeWords(words, adj, START, GOAL), puzzles }));
+writeFileSync(OUT ?? new URL(`../public/mazes${suffix}.json`, import.meta.url), JSON.stringify({ words, doors, puzzle, inkPots, onRoute: routeWords(words, adj, START, GOAL), puzzles }));

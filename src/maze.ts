@@ -92,12 +92,14 @@ export function routeWords(words: string[], adj: Graph, start: string, goal: str
 export const PUZZLE_SHAPE = { best: [9, 11], steps: [3, 8] } as const;
 
 /**
- * The shape by word length. Five-letter words (the desktop game) sit much farther apart (33 strokes
- * between two words typically, against 19), so their puzzles run longer: 12–15 strokes, over 4–8 words.
+ * The shape by word length. Five-letter words sit much farther apart (33 strokes between two words
+ * typically, against 19), so their puzzles run longer: 15–18 strokes, over 4–8 words (12–15 until
+ * 2026-10-09, when the difficulty study showed working back from the goal beat the shorter ones; see
+ * docs/difficulty-5-letters.md).
  */
 export const PUZZLE_SHAPES: Record<number, { best: readonly [number, number]; steps: readonly [number, number] }> = {
   4: PUZZLE_SHAPE,
-  5: { best: [12, 15], steps: [4, 8] },
+  5: { best: [15, 18], steps: [4, 8] },
 };
 
 /**
