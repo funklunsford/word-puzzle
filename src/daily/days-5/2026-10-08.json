@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-08",
+  "puzzle": {
+    "start": "MINER",
+    "goal": "CHEER",
+    "best": 17,
+    "path": [
+      "MINER",
+      "MITER",
+      "METER",
+      "DETER",
+      "DEFER",
+      "OFFER",
+      "CHEER"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "MINER",
+        "door": "DINER",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "MINER",
+        "door": "LINER",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "MITER",
+        "door": "INTER",
+        "loses": 6,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.02
+  },
+  "inkPots": {
+    "pots": [
+      "PETER"
+    ],
+    "best": 17,
+    "walk": [
+      "MINER",
+      "MITER",
+      "METER",
+      "DETER",
+      "DEFER",
+      "OFFER",
+      "CHEER"
+    ]
+  },
+  "onRoute": {
+    "CHEER": 17,
+    "DEFER": 11,
+    "DETER": 9,
+    "METER": 6,
+    "MINER": 0,
+    "MITER": 3,
+    "OFFER": 14
+  }
+}
