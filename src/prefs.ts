@@ -18,7 +18,9 @@ export interface Prefs {
   colorBlind: boolean;
 }
 
-export const DEFAULT_PREFS: Prefs = { motion: 'system', letters: true, definitions: true, colorBlind: false };
+// The letter guide ships off (since 2026-10-09). Saving any setting stores them all, so a player
+// who changed one before then keeps the guide as it was (on), whether or not they chose it.
+export const DEFAULT_PREFS: Prefs = { motion: 'system', letters: false, definitions: true, colorBlind: false };
 
 const KEY = 'strokes:prefs';
 const REDUCE = '(prefers-reduced-motion: reduce)';
