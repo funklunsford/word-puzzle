@@ -13,19 +13,21 @@ export const CELL_W = 4;
  * On phones the cells are narrow, so the four of them draw the word big (a half-built W spills
  * over its neighbours for a moment).
  */
-const CELL_W_COMPACT = 2.6;
+export const CELL_W_COMPACT = 2.6;
 /**
  * The widest a formed letter is drawn in those cells, so the pen keeps clear of the cell's border
  * (only W, 2.5 units at its usual squeeze, is wider: it's drawn a little narrower on phones).
  */
-const MAX_DRAWN_COMPACT = 2.2;
+export const MAX_DRAWN_COMPACT = 2.2;
 /**
- * Five letters on a phone (the fiveLetters flag) share the row in narrower cells still, so each is
- * drawn bigger than a 2.6-unit cell would make it. The pen keeps the same clearance: no letter is
- * drawn wider than 2 units (A, O, V and Y are 2 wide; W is drawn narrower than in four-letter cells).
+ * Five letters on a phone share the row in narrower cells still, so each is drawn bigger than a
+ * 2.6-unit cell would make it. The widest letters (A, M, O, Q, V and Y, 2 units; W) are drawn at
+ * most 1.7 units wide there, a little narrower, so an O's ink (thickest at the back of its curves)
+ * keeps as clear of the cell's sides as it does in four-letter cells. Narrowing those few letters
+ * keeps every letter as tall as before; widening the cell for the same room would shrink them all.
  */
-const CELL_W_COMPACT_5 = 2.4;
-const MAX_DRAWN_COMPACT_5 = 2;
+export const CELL_W_COMPACT_5 = 2.4;
+export const MAX_DRAWN_COMPACT_5 = 1.7;
 export const CELL_TOP = -0.7;
 const CELL_H = 3.6;
 /** A press that moves less than this many pixels is a tap (remove), not a drag. Fingers wobble more. */
@@ -162,7 +164,7 @@ interface Props {
 export const fingerLift = (unit: number) => Math.round(Math.min(72, Math.max(44, 1.7 * unit)));
 
 /** How much a formed letter is narrowed (W); on phones no letter is drawn wider than `maxDrawn` (null elsewhere). */
-function drawnSqueeze(letter: string | null, maxDrawn: number | null): number {
+export function drawnSqueeze(letter: string | null, maxDrawn: number | null): number {
   if (!letter) return 1;
   return drawnScale(letter).shape * (maxDrawn ? Math.min(1, maxDrawn / drawnWidth(letter)) : 1);
 }
