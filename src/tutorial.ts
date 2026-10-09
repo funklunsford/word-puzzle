@@ -84,6 +84,12 @@ export const TUTORIAL: Step[] = [
   },
 ];
 
+/**
+ * Whether to offer more practice: only once the last of the five moves is made. (Not "the last
+ * step so far": the steps are listed only up to the one after the current, so that was every step.)
+ */
+export const offersMore = (stepIndex: number, done: boolean) => done && stepIndex === TUTORIAL.length - 1;
+
 /** The cell after a move is done as shown. */
 export function applyGhost(content: Placement[], g: Ghost): Placement[] {
   if (g.kind === 'carry') return [...content.filter((p) => p !== g.from), g.to];

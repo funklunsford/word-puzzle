@@ -4,7 +4,7 @@ import { useReduceMotion } from '../../prefs';
 import { LETTERS, TILE_IDS, TRAY_TURN, type Placement, type TileId } from '../../glyphs';
 import { inkSeed, strokeCenterline } from '../../ink';
 import { recognize, slotKey } from '../../strokes';
-import { TUTORIAL, practiceGoals, practiceStep, withArticle, type Ghost, type Step } from '../../tutorial';
+import { TUTORIAL, offersMore, practiceGoals, practiceStep, withArticle, type Ghost, type Step } from '../../tutorial';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
 import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift, trayCentring } from './WordEditor';
 
@@ -68,7 +68,8 @@ export function HowToTry({ touch }: { touch: boolean }) {
   const tray = practising ? TILE_IDS : TRAY;
   /** The letters made in more practice, latest last. */
   const made = useRef<string[]>([]);
-  const finished = done && stepIndex === steps.length - 1 && !practising;
+  /** The five moves are all done: time to offer more. */
+  const finished = offersMore(stepIndex, done);
 
   // Measure where things are (the card can still be scaling in, so undo its scale).
   useLayoutEffect(() => {

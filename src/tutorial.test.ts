@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LETTERS, TILE_IDS, type Placement } from './glyphs';
 import { recognize } from './strokes';
-import { TUTORIAL, applyGhost, practiceGoals, practiceStep, sayMove } from './tutorial';
+import { TUTORIAL, applyGhost, offersMore, practiceGoals, practiceStep, sayMove } from './tutorial';
 
 const fresh = (letter: string) => LETTERS[letter].parts.map((p) => ({ ...p }));
 
@@ -33,6 +33,15 @@ describe("How to play's practice", () => {
     const first = TUTORIAL[0];
     expect(first.next(fresh('L'))).toBeNull();
     expect(first.next([])).toBeNull();
+  });
+
+  it('offers more practice only once the last of the five moves is made', () => {
+    TUTORIAL.forEach((_, i) => {
+      expect(offersMore(i, false), `move ${i + 1}, not yet made`).toBe(false);
+      expect(offersMore(i, true), `move ${i + 1}, made`).toBe(i === TUTORIAL.length - 1);
+    });
+    // Nor again during more practice.
+    expect(offersMore(TUTORIAL.length, true)).toBe(false);
   });
 });
 
