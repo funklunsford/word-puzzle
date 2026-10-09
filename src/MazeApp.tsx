@@ -6,7 +6,7 @@ import { STEP_LIMIT, recognize, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
-import { doorsFrom, nextStep, type Doors, type NextStep } from './hints';
+import { clue, doorsFrom, hintSays, nextHintLevel, nextStep, type Doors, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { COARSE, useMedia } from './useMedia';
 import { InkDrop } from './components/maze/InkDrop';
@@ -171,9 +171,12 @@ export function MazeApp() {
   const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   const [reveal, setReveal] = useState(false);
-  // Hints, for the word the player is in: first which letter to change, then the word to make.
-  // They're free, but counted (the win message says how many).
-  const [hint, setHint] = useState<{ room: string; level: 1 | 2; step: NextStep | null } | null>(null);
+  // Hints, for the word the player is in: first the next word's meaning, then the letters to
+  // change, then the word to make (see src/hints.ts). They're free, but each ask counts as a hint
+  // (the win message, the stats and the share card say how many).
+  const [hint, setHint] = useState<{ room: string; level: HintLevel; step: NextStep | null; meaning: string | null } | null>(null);
+  const hintRef = useRef(hint);
+  hintRef.current = hint;
   const [hintsUsed, setHintsUsed] = useState(0);
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
@@ -524,28 +527,30 @@ export function MazeApp() {
   const visited = new Set(trail.map((v) => v.word));
   const shownHint = hint && hint.room === room && !won ? hint : null;
   const askHint = () => {
-    // No hints in hardcore.
-    if (!data || !puzzle || won || hardcore) return;
+    // No hints in hardcore, and nothing more once the word itself has been shown.
+    if (!data || !puzzle || won || hardcore || shownHint?.level === 3) return;
     // The latest thing asked for wins the step line.
     setRefused(null);
     setNotice(null);
     setArmed(false);
-    const level = shownHint ? 2 : 1;
-    setHintsUsed((n) => n + 1);
     // The search takes a moment on a phone: show the hint once it's ready, without blocking the tap.
     window.setTimeout(() => {
-      const step = shownHint?.step ?? nextStep(doorsOf!, room, puzzle.goal, visited);
-      setHint({ room, level, step });
+      // From the latest hint, so two quick asks show two levels, as they're counted.
+      const h = hintRef.current;
+      const shown = h && h.room === room ? h : null;
+      if (shown?.level === 3) return;
+      const step = shown ? shown.step : nextStep(doorsOf!, room, puzzle.goal, visited);
+      // The next word's meaning, as a clue (none when it has no definition, or they didn't load).
+      const def = step && defs?.[step.next];
+      const meaning = shown ? shown.meaning : step && def ? clue(step.next, def) : null;
+      const next = { room, step, meaning, level: (step && nextHintLevel(shown?.level ?? null, !!meaning)) || 3 };
+      hintRef.current = next;
+      setHint(next);
+      // Each ask is a hint: the meaning, the letters and the word count one each.
+      setHintsUsed((n) => n + 1);
     }, 0);
   };
-  const ordinal = (i: number) => ['1st', '2nd', '3rd', '4th'][i];
-  const hintText = shownHint?.step
-    ? shownHint.level === 1
-      ? `Hint: change the ${shownHint.step.letters.map(ordinal).join(' and ')} letter${shownHint.step.letters.length > 1 ? 's' : ''}.`
-      : `Hint: make ${shownHint.step.next} next (${shownHint.step.cost ? `${shownHint.step.cost} ${shownHint.step.cost === 1 ? 'stroke' : 'strokes'}` : 'free'}).`
-    : shownHint
-      ? 'No hint from here.'
-      : null;
+  const hintText = shownHint ? (shownHint.step ? hintSays(shownHint.step, shownHint.level, shownHint.meaning) : 'No hint from here.') : null;
   // In hardcore, only the words that would open: visited ones (free) and the route's next on par.
   const reach = hardcore && current?.onRoute ? roomExits.filter((x) => visited.has(x.word) || current.onRoute![x.word] === spent + x.cost) : roomExits;
   const found = reach.filter((x) => visited.has(x.word)).length;
@@ -713,7 +718,7 @@ export function MazeApp() {
                       <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, swipe it as you place it.</li>
                     )}
                     <li>Going back to a word you've visited is free.</li>
-                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
+                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the next word's meaning, then the letters to change, then the word.</li>
                     <li>Want a challenge? {coarse ? 'Tap' : 'Click'} the flame for hardcore: only words on a lowest-stroke route count, and there are no hints.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
@@ -749,7 +754,7 @@ export function MazeApp() {
               unit={unit}
               compact={compact}
               disabled={won || locked}
-              hinted={shownHint?.step?.letters}
+              hinted={shownHint && shownHint.level >= 2 ? shownHint.step?.letters : undefined}
               room={room}
               onEdit={onEdit}
               onHoverTile={setHoverTile}
@@ -881,9 +886,10 @@ export function MazeApp() {
               {hardcore ? (
                 <span className="no-hints">No hints</span>
               ) : (
-                <button className="pill step-btn hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
+                <button className="pill step-btn hint-btn" onClick={askHint} disabled={won || shownHint?.level === 3}>
                   <HintIcon />
-                  {!shownHint ? 'Hint' : shownHint.level === 1 ? 'Next word' : 'Hint used'}
+                  {/* What the next ask shows. */}
+                  {!shownHint ? 'Hint' : shownHint.level === 1 ? 'Letters' : shownHint.level === 2 ? 'Next word' : 'Hint used'}
                 </button>
               )}
             </div>

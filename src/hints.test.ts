@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
-import { nextStep, type Doors } from './hints';
+import maze5Json from '../public/mazes-5.json';
+import defs4 from '../public/definitions.json';
+import defs5 from '../public/definitions-5.json';
+import type { Def } from './components/maze/Definition';
+import { clue, hintSays, nextHintLevel, nextStep, type Doors, type NextStep } from './hints';
 import { buildGraph, solve } from './maze';
 import { wordDistance } from './strokes';
 
@@ -51,5 +55,55 @@ describe('hints', () => {
   it('has nothing to suggest at the goal', () => {
     const p = puzzles[0].puzzle;
     expect(nextStep(doorsOf, p.goal, p.goal, new Set())).toBeNull();
+  });
+});
+
+describe('what a hint shows, ask by ask', () => {
+  const step: NextStep = { next: 'CALM', cost: 2, remaining: 6, letters: [1, 3] };
+
+  it("gives the next word's meaning, then the letters to change, then the word", () => {
+    expect(nextHintLevel(null, true)).toBe(1);
+    expect(nextHintLevel(1, true)).toBe(2);
+    expect(nextHintLevel(2, true)).toBe(3);
+    expect(nextHintLevel(3, true)).toBeNull();
+    const meaning = clue('CALM', ['v.', 'make calm or still']);
+    expect(hintSays(step, 1, meaning)).toBe('Hint: the next word means “make ___ or still” (verb).');
+    expect(hintSays(step, 2, meaning)).toBe('Hint: change the 2nd and 4th letters, to a word meaning “make ___ or still” (verb).');
+    expect(hintSays(step, 3, meaning)).toBe('Hint: make CALM next (2 strokes).');
+  });
+
+  it('starts at the letters for a word with no definition', () => {
+    expect(nextHintLevel(null, false)).toBe(2);
+    expect(hintSays(step, 2, null)).toBe('Hint: change the 2nd and 4th letters.');
+    expect(nextHintLevel(2, false)).toBe(3);
+  });
+
+  it('names any of five letters, and lists three', () => {
+    expect(hintSays({ ...step, letters: [4] }, 2, null)).toBe('Hint: change the 5th letter.');
+    expect(hintSays({ ...step, letters: [0, 2, 4] }, 2, null)).toBe('Hint: change the 1st, 3rd and 5th letters.');
+    expect(hintSays({ ...step, cost: 0 }, 3, null)).toBe('Hint: make CALM next (free).');
+  });
+
+  it('blanks the word out of its own definition, with its base form and endings', () => {
+    expect(clue('COOL', ['v.', 'make cool or cooler'])).toBe('“make ___ or ___er” (verb)');
+    expect(clue('CALMS', ['v.', 'make calm or still', 'calm'])).toBe('“make ___ or still” (verb)');
+    expect(clue('CONE', ['n.', 'any cone-shaped artifact'])).toBe('“any ___-shaped artifact” (noun)');
+    // Other words that only start the same way are left alone.
+    expect(clue('CATS', ['n.', 'animals that catch mice', 'cat'])).toBe('“animals that catch mice” (noun)');
+    // Nor does the part of speech give it away.
+    expect(clue('NOUN', ['n.', 'a content word'])).toBe('“a content word”');
+  });
+
+  it("never names a maze word in its clue, in either game's definitions", () => {
+    for (const [maze, defs] of [
+      [mazeJson, defs4],
+      [maze5Json, defs5],
+    ] as const) {
+      for (const w of (maze as unknown as { words: string[] }).words) {
+        const def = (defs as unknown as Record<string, Def>)[w];
+        if (!def) continue;
+        expect(clue(w, def).toUpperCase().split(/[^A-Z]+/), w).not.toContain(w);
+      }
+    }
   });
 });
