@@ -8,6 +8,7 @@ import type { Need, Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
 import { clue, doorsFrom, hintSays, nextHintLevel, nextStep, type Doors, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
+import { hardcoreLocked, loadHardcore, saveHardcore } from './hardcore';
 import { COARSE, useMedia } from './useMedia';
 import { InkDrop } from './components/maze/InkDrop';
 import { InkPot } from './components/maze/InkPot';
@@ -114,15 +115,6 @@ const loadResult = (date: string, letters: WordLength): Result | null => {
 /** A path's steps, for sharing: where each began, the word it made, and its strokes. */
 const stepsOf = (trail: Visit[]): ShareResult['steps'] => trail.slice(1).map((v) => ({ from: v.from ?? v.word, to: v.word, cost: v.cost }));
 
-/** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par. */
-const HARDCORE_KEY = 'strokes:hardcore';
-const loadHardcore = () => {
-  try {
-    return localStorage.getItem(HARDCORE_KEY) === '1';
-  } catch {
-    return false;
-  }
-};
 /** Storage can be missing or blocked (private windows); then help just opens every time. */
 const seenHelp = () => {
   try {
@@ -181,6 +173,7 @@ export function MazeApp() {
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
+  /** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par (see src/hardcore.ts). */
   const [hardcore, setHardcore] = useState(loadHardcore);
   // Settings (the gear): light or dark, the player's choice or the device's.
   const [settings, setSettings] = useState(false);
@@ -211,16 +204,6 @@ export function MazeApp() {
   const [refused, setRefused] = useState<string | null>(null);
   /** Said in the step line until the next stroke or hint (switching hardcore on or off). */
   const [notice, setNotice] = useState<string | null>(null);
-  /** Hardcore asked for once with progress on the board: a second tap within a few seconds starts over in it. */
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    if (!armed) return;
-    const t = window.setTimeout(() => {
-      setArmed(false);
-      setNotice(null);
-    }, 5000);
-    return () => window.clearTimeout(t);
-  }, [armed]);
   /** Free strokes banked from ink pots, waiting to pay for the next steps to new words. */
   const [ink, setInk] = useState(0);
   // Ink in flight: drops rise from a pot word into the bank, and pour from the bank into a word.
@@ -331,29 +314,17 @@ export function MazeApp() {
   }, [puzzle, potPlan]);
   useEffect(restart, [restart]);
 
-  /** Hardcore on starts the puzzle over (the way so far may be off the route); off carries on. */
   /**
-   * Hardcore on starts the puzzle over (the way so far may be off the route), so with progress on
-   * the board it asks for a second tap first. Off just carries on.
+   * Hardcore is switched in Settings, and only before the puzzle starts (no stroke, word or hint
+   * yet, or after Restart), so it never has to start a puzzle over.
    */
-  const toggleHardcore = () => {
-    const next = !hardcore;
-    const progress = spent > 0 || history.length > 0 || trail.length > 1;
+  const lockHardcore = hardcoreLocked({ words: trail.length - 1, strokes: history.length, hints: hintsUsed });
+  const changeHardcore = (on: boolean) => {
+    if (lockHardcore) return;
+    saveHardcore(on);
+    setHardcore(on);
     setRefused(null);
-    if (next && progress && !armed) {
-      setArmed(true);
-      setNotice(`Hardcore starts over. ${coarse ? 'Tap' : 'Click'} the flame again to go.`);
-      return;
-    }
-    setArmed(false);
-    try {
-      localStorage.setItem(HARDCORE_KEY, next ? '1' : '0');
-    } catch {
-      // storage blocked: on for this visit only
-    }
-    setHardcore(next);
-    if (next) restart();
-    setNotice(next ? 'Hardcore on: only lowest-stroke words count, and no hints.' : 'Hardcore off.');
+    setNotice(on ? 'Hardcore on: only lowest-stroke words count, and no hints.' : 'Hardcore off.');
   };
 
   // The maze's doors, shipped with it (worked out from the words only if they're missing).
@@ -450,7 +421,6 @@ export function MazeApp() {
         }
         setRefused(null);
         setNotice(null);
-        setArmed(false);
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
@@ -471,7 +441,6 @@ export function MazeApp() {
       }
       setRefused(null);
       setNotice(null);
-      setArmed(false);
       setHistory((h) => [...h, cells]);
       setCells(next);
       return true;
@@ -532,7 +501,6 @@ export function MazeApp() {
     // The latest thing asked for wins the step line.
     setRefused(null);
     setNotice(null);
-    setArmed(false);
     // The search takes a moment on a phone: show the hint once it's ready, without blocking the tap.
     window.setTimeout(() => {
       // From the latest hint, so two quick asks show two levels, as they're counted.
@@ -580,22 +548,10 @@ export function MazeApp() {
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
           compact={compact || height < 500}
           actions={
-            // The game's buttons in one bar: How to play, hardcore and settings.
+            // The game's buttons in one bar: How to play and settings (hardcore is a setting).
             <div className="toolbar">
               <button ref={helpBtn} className="tool-btn help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
                 ?
-              </button>
-              <button
-                className={`tool-btn hardcore-btn${hardcore ? ' on' : ''}${armed ? ' armed' : ''}`}
-                aria-pressed={hardcore}
-                aria-label="Hardcore mode"
-                title={hardcore ? 'Hardcore is on: only words on a lowest-stroke route open' : 'Hardcore: only words on a lowest-stroke route open (starts the puzzle over)'}
-                onClick={toggleHardcore}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path className="flame" d="M12 2.8c.9 3.4 5.6 5.6 5.6 10.6a5.6 5.6 0 0 1-11.2 0c0-2.6 1.6-4.3 2.6-5.6.3 1.8 1.2 3 2.3 3.6-.5-3 .1-6 .7-8.6Z" />
-                  <path className="core" d="M12 13.2c1.3 1.3 2.3 2.4 2.1 3.9a2.1 2.1 0 0 1-4.2 0c0-1.4 1-2.5 2.1-3.9Z" />
-                </svg>
               </button>
               <button ref={gearBtn} className="tool-btn gear-btn" aria-label="Settings" aria-haspopup="dialog" aria-expanded={settings} onClick={() => setSettings(true)}>
                 <GearIcon />
@@ -710,7 +666,7 @@ export function MazeApp() {
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the next word's meaning, then the letters to change, then the word.</li>
-                    <li>Want a challenge? {coarse ? 'Tap' : 'Click'} the flame for hardcore: only words on a lowest-stroke route count, and there are no hints.</li>
+                    <li>Want a challenge? Turn on Hardcore in Settings before your first stroke: only words on a lowest-stroke route count, and no hints.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
@@ -1037,7 +993,20 @@ export function MazeApp() {
         {rail > 0 && <AdSlot key={`left-${rail}`} className="ad-rail left" label="Advertisement, left" slot={AD_SLOTS.railLeft} width={rail} height={RAIL_H} />}
         {rail > 0 && <AdSlot key={`right-${rail}`} className="ad-rail right" label="Advertisement, right" slot={AD_SLOTS.railRight} width={rail} height={RAIL_H} />}
       </div>
-      <AnimatePresence>{settings && <Settings theme={theme} onTheme={chooseTheme} prefs={prefs} onPrefs={changePrefs} onClose={closeSettings} />}</AnimatePresence>
+      <AnimatePresence>
+        {settings && (
+          <Settings
+            theme={theme}
+            onTheme={chooseTheme}
+            prefs={prefs}
+            onPrefs={changePrefs}
+            hardcore={hardcore}
+            hardcoreLocked={lockHardcore}
+            onHardcore={changeHardcore}
+            onClose={closeSettings}
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>{sharing && <ShareSheet result={sharing} onClose={closeShare} />}</AnimatePresence>
       {inkFlights}
       {celebrating && (

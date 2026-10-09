@@ -34,11 +34,14 @@ function Segmented<T extends string>({ label, options, value, onChange, note }: 
   );
 }
 
-/** On or off, with a line on what it does. A tap anywhere on the row flips it. */
-function Toggle({ label, note, on, onChange }: { label: string; note: string; on: boolean; onChange: (on: boolean) => void }) {
+/**
+ * On or off, with a line on what it does. A tap anywhere on the row flips it. A locked one says
+ * why (`locked`) and doesn't flip; it can still be focused, so a screen reader hears why.
+ */
+function Toggle({ label, note, on, onChange, locked }: { label: string; note: string; on: boolean; onChange: (on: boolean) => void; locked?: string }) {
   const id = useId();
   return (
-    <label className="toggle">
+    <label className={`toggle${locked ? ' locked' : ''}`}>
       <span className="toggle-text">
         <span className="toggle-label" id={`${id}-l`}>
           {label}
@@ -46,8 +49,21 @@ function Toggle({ label, note, on, onChange }: { label: string; note: string; on
         <span className="setting-note" id={`${id}-n`}>
           {note}
         </span>
+        {locked && (
+          <span className="setting-note toggle-locked" id={`${id}-k`}>
+            {locked}
+          </span>
+        )}
       </span>
-      <button role="switch" aria-checked={on} aria-labelledby={`${id}-l`} aria-describedby={`${id}-n`} className="switch" onClick={() => onChange(!on)}>
+      <button
+        role="switch"
+        aria-checked={on}
+        aria-disabled={locked ? true : undefined}
+        aria-labelledby={`${id}-l`}
+        aria-describedby={locked ? `${id}-n ${id}-k` : `${id}-n`}
+        className="switch"
+        onClick={() => !locked && onChange(!on)}
+      >
         <span className="knob" />
       </button>
     </label>
@@ -59,11 +75,15 @@ interface Props {
   onTheme: (choice: ThemeChoice) => void;
   prefs: Prefs;
   onPrefs: (patch: Partial<Prefs>) => void;
+  /** Hardcore, which can only be switched before the puzzle starts (see src/hardcore.ts). */
+  hardcore: boolean;
+  hardcoreLocked: boolean;
+  onHardcore: (on: boolean) => void;
   onClose: () => void;
 }
 
 /** The settings pop-up (the gear). Escape, the ×, Done or a tap outside closes it. */
-export function Settings({ theme, onTheme, prefs, onPrefs, onClose }: Props) {
+export function Settings({ theme, onTheme, prefs, onPrefs, hardcore, hardcoreLocked, onHardcore, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
@@ -101,6 +121,14 @@ export function Settings({ theme, onTheme, prefs, onPrefs, onClose }: Props) {
         />
         <div className="setting">
           <span className="setting-label">Playing</span>
+          {/* Like Wordle's hard mode: chosen before a puzzle starts, so it never restarts one. */}
+          <Toggle
+            label="Hardcore"
+            note="Only words on a lowest-stroke route count, and there are no hints."
+            on={hardcore}
+            onChange={onHardcore}
+            locked={hardcoreLocked ? 'Change it before your first stroke or hint, or after Restart.' : undefined}
+          />
           <Toggle
             label="Letter guide"
             note="The A to Z under the word, lighting up the letters a stroke is in."
