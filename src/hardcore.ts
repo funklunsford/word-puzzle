@@ -1,6 +1,7 @@
 // Hardcore (Settings → Playing): only words on a lowest-stroke route open, each reached on par,
-// and there are no hints. Like Wordle's hard mode it's chosen before a puzzle starts, so switching
-// it never restarts one in progress. Kept in this browser.
+// and there are no hints. Turning it on starts a puzzle in progress over, so a hardcore result never
+// carries strokes, words or hints from before; turning it off lets the puzzle go on. Kept in this
+// browser.
 
 const KEY = 'strokes:hardcore';
 
@@ -22,10 +23,9 @@ export function saveHardcore(on: boolean) {
 }
 
 /**
- * Whether the switch is locked: once the puzzle has started (a word made, a stroke on the board,
- * or a hint taken, which hardcore wouldn't have given) it stays as it is until Restart. Undoing
- * every stroke of the first step unlocks it again.
+ * Whether the puzzle has started, so turning hardcore on starts it over: a word made, a stroke on
+ * the board, or a hint taken (which hardcore wouldn't have given).
  */
-export function hardcoreLocked({ words, strokes, hints }: { words: number; strokes: number; hints: number }): boolean {
+export function hasStarted({ words, strokes, hints }: { words: number; strokes: number; hints: number }): boolean {
   return words > 0 || strokes > 0 || hints > 0;
 }

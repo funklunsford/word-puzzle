@@ -8,7 +8,7 @@ import type { Need, Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
 import { clue, doorsFrom, hintSays, nextHintLevel, nextStep, type Doors, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
-import { hardcoreLocked, loadHardcore, saveHardcore } from './hardcore';
+import { hasStarted, loadHardcore, saveHardcore } from './hardcore';
 import { COARSE, useMedia } from './useMedia';
 import { InkDrop } from './components/maze/InkDrop';
 import { InkPot } from './components/maze/InkPot';
@@ -315,16 +315,16 @@ export function MazeApp() {
   useEffect(restart, [restart]);
 
   /**
-   * Hardcore is switched in Settings, and only before the puzzle starts (no stroke, word or hint
-   * yet, or after Restart), so it never has to start a puzzle over.
+   * Hardcore is switched in Settings. Turning it on starts a puzzle in progress over (no stroke,
+   * word or hint carries into a hardcore result); turning it off lets the puzzle go on.
    */
-  const lockHardcore = hardcoreLocked({ words: trail.length - 1, strokes: history.length, hints: hintsUsed });
   const changeHardcore = (on: boolean) => {
-    if (lockHardcore) return;
+    const over = on && hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed });
     saveHardcore(on);
     setHardcore(on);
+    if (over) restart();
     setRefused(null);
-    setNotice(on ? 'Hardcore on: only lowest-stroke words count, and no hints.' : 'Hardcore off.');
+    setNotice(on ? `Hardcore on${over ? ', so the puzzle starts over' : ''}: only lowest-stroke words count, and no hints.` : 'Hardcore off.');
   };
 
   // The maze's doors, shipped with it (worked out from the words only if they're missing).
@@ -666,7 +666,7 @@ export function MazeApp() {
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the next word's meaning, then the letters to change, then the word.</li>
-                    <li>Want a challenge? Turn on Hardcore in Settings before your first stroke: only words on a lowest-stroke route count, and no hints.</li>
+                    <li>Want a challenge? Turn on Hardcore in Settings (it starts the puzzle over): only words on a lowest-stroke route count, and no hints.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
@@ -835,8 +835,7 @@ export function MazeApp() {
               ) : (
                 <button className="pill step-btn hint-btn" onClick={askHint} disabled={won || shownHint?.level === 3}>
                   <HintIcon />
-                  {/* What the next ask shows. */}
-                  {!shownHint ? 'Hint' : shownHint.level === 1 ? 'Letters' : shownHint.level === 2 ? 'Next word' : 'Hint used'}
+                  Hint
                 </button>
               )}
             </div>
@@ -1001,7 +1000,6 @@ export function MazeApp() {
             prefs={prefs}
             onPrefs={changePrefs}
             hardcore={hardcore}
-            hardcoreLocked={lockHardcore}
             onHardcore={changeHardcore}
             onClose={closeSettings}
           />

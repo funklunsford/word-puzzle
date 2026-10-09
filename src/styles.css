@@ -714,23 +714,6 @@ select,
   outline-offset: 2px;
 }
 
-/* A setting that can't be changed now (hardcore once the puzzle has started): the switch fades,
-   and a line says when it can be. */
-.toggle.locked {
-  cursor: default;
-}
-
-.toggle.locked .switch {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.toggle .toggle-locked {
-  margin-top: 4px;
-  font-weight: 600;
-  color: var(--ink);
-}
-
 /* (Narrower windows shrink it to leave the toolbar room on either side: it's about 86 px wide.) */
 .masthead-art {
   width: min(520px, calc(100% - 200px));
