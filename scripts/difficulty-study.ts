@@ -274,6 +274,7 @@ function study(puzzle: Puzzle, games: number, bc: Float64Array | null, players =
     gates: gates.length,
     routes0: routes,
     routes2: within(2),
+    spread: inner.length / Math.max(1, puzzle.path.length - 2),
     hidden: hidden.get(g)!,
     goalNear,
     falseDoors,
@@ -301,7 +302,13 @@ function study(puzzle: Puzzle, games: number, bc: Float64Array | null, players =
       walkMeetT05: walkChance(words, adj, puzzle, { games, target: 'meet', sure: true, temperature: 0.5 }).par,
       walkMeetT2: walkChance(words, adj, puzzle, { games, target: 'meet', sure: true, temperature: 2 }).par,
     });
-    for (const budget of [10, 20, 40]) for (const plan of ['forward', 'meet'] as const) row[`${plan}${budget}`] = planChance(words, adj, puzzle, plan, { games, budget }).par;
+    for (const budget of [10, 20, 40])
+      for (const plan of ['forward', 'meet'] as const) {
+        const odds = planChance(words, adj, puzzle, plan, { games, budget });
+        row[`${plan}${budget}`] = odds.par;
+        row[`${plan}${budget}near1`] = odds.near1;
+        row[`${plan}${budget}near2`] = odds.near2;
+      }
     row.backward20 = planChance(words, adj, puzzle, 'backward', { games, budget: 20 }).par;
     row.forward20h = planChance(words, adj, puzzle, 'forward', { games, budget: 20, hidden: 0.5 }).par;
     row.meet20h = planChance(words, adj, puzzle, 'meet', { games, budget: 20, hidden: 0.5 }).par;
@@ -319,16 +326,16 @@ const PLAYERS: [string, string, string?, string?][] = [
   ['Forward walker (today’s par chance)', 'walkGoal', 'walkGoal1', 'walkGoal2'],
   ['Forward walker, goal → start', 'walkBack'],
   ['Meet walker, goal’s side mapped 2 doors back', 'walkMeet2'],
-  ['Meet walker, goal’s side mapped 3 doors back, never sure of a door', 'walkMeetNoSure'],
+  ['Meet walker, goal’s side mapped 3 doors back, not taking doors sure to make par', 'walkMeetNoSure'],
   ['Meet walker, goal’s side mapped 3 doors back', 'walkMeet', 'walkMeet1', 'walkMeet2near'],
   ['Meet walker, goal’s side mapped 4 doors back', 'walkMeet4'],
-  ['Forward planner, 10 looks', 'forward10'],
-  ['Meet planner, 10 looks', 'meet10'],
-  ['Forward planner, 20 looks', 'forward20'],
+  ['Forward planner, 10 looks', 'forward10', 'forward10near1', 'forward10near2'],
+  ['Meet planner, 10 looks', 'meet10', 'meet10near1', 'meet10near2'],
+  ['Forward planner, 20 looks', 'forward20', 'forward20near1', 'forward20near2'],
   ['Backward planner, 20 looks', 'backward20'],
-  ['Meet planner, 20 looks', 'meet20'],
-  ['Forward planner, 40 looks', 'forward40'],
-  ['Meet planner, 40 looks', 'meet40'],
+  ['Meet planner, 20 looks', 'meet20', 'meet20near1', 'meet20near2'],
+  ['Forward planner, 40 looks', 'forward40', 'forward40near1', 'forward40near2'],
+  ['Meet planner, 40 looks', 'meet40', 'meet40near1', 'meet40near2'],
   ['Forward planner, 20 looks, sees half the 2–3 letter doors', 'forward20h'],
   ['Meet planner, 20 looks, sees half the 2–3 letter doors', 'meet20h'],
 ];
@@ -424,6 +431,7 @@ function poolTables(rows: Row[], dailies: Row[]) {
     ['words to remove to cut start from goal', 'cut'],
     ['highest betweenness on the route', 'betweenness'],
     ['lowest routes', 'routes0'],
+    ['words on any lowest route, per word on one', 'spread'],
     ['routes within 2 strokes of par', 'routes2'],
     ['near misses within 3 doors of the goal', 'goalNear'],
     ['one-letter decoys of the goal', 'falseDoors'],
@@ -437,6 +445,7 @@ function poolTables(rows: Row[], dailies: Row[]) {
     const x = col(rows, k);
     console.log(`| ${name} | ${f2(median(x))} | ${SHORT.map((o) => f2(spearman(x, col(rows, o)))).join(' | ')} | ${k === 'walkGoal' ? '–' : f2(partial(x, col(rows, 'meet10'), col(rows, 'walkGoal')))} |`);
   }
+  console.log(`\nPockets beside the route against near misses (within 2 strokes of par): forward walker ${f2(spearman(col(rows, 'pocketsBeside'), col(rows, 'walkGoal2')))}, meet walker ${f2(spearman(col(rows, 'pocketsBeside'), col(rows, 'walkMeet2near')))}`);
   console.log(`\nPlayers against each other:\n\n| | ${SHORT.join(' | ')} |\n|---|${SHORT.map(() => '---').join('|')}|`);
   for (const a of SHORT) console.log(`| ${a} | ${SHORT.map((b) => f2(spearman(col(rows, a), col(rows, b)))).join(' | ')} |`);
 

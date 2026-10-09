@@ -590,3 +590,26 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The `fiveLetters` flag is on by default:** every device gets the 5-letter game, with its dailies (`src/daily/days-5/`), definitions and results. `?flags=-fiveLetters` or `?letters=4` still plays the 4-letter game, whose days, scenes and results are kept.
 - **Players who were on the 4-letter game** keep those results under their old keys; their 5-letter record starts fresh.
 - **Next:** the daily runbook still checks in a 4-letter day and builds its celebration scene, which only `?letters=4` shows now.
+
+## Difficulty at 5 letters, against working back from the goal (2026-10-09, branch `difficulty-5`)
+- **Why:** in playtests the owner made par by working about 3 steps back from the goal, then about 3 from the start, while every difficulty measure looked only forward. The study is in `docs/difficulty-5-letters.md`, with methods, tables and sources.
+- **Findings:**
+  - Going forward, the pool is as hard as designed: the simulated forward walker makes par 4% of the time.
+  - Working back gets round it. For half the 5-letter pool (220 of 420) the strategy is a rule of thumb, and half the pool isn't tricky played goal → start.
+  - Simulated planners make par 51% of the time working back first, against 15% heading forward, when both look at 10 words (91% against 66% at 20).
+  - It works because judging by eye is nearly exact 1–2 doors out and poor 4–6 out, and routes are only 4–6 doors long.
+  - Pockets make no measurable difference to any simulated player.
+- **New measures** (`src/difficulty.ts`, with tests):
+  - `goalSide`: the goal's side, mapped a number of doors back.
+  - `meetDepth`: planning depth after mapping the goal's side; 1 means the strategy is a rule of thumb.
+  - `walkChance`: parChance's walker, heading for the goal or the goal's side, counting near misses; `parChance` now uses it, unchanged on every pool puzzle.
+  - `planChance`: players who plan before moving, forward, back or from both ends.
+  - `searchEffort`: the words a search from both ends must look at (MM's).
+  - `reversed` and `isTrickyBothWays`.
+- **Tools:**
+  - `scripts/mazes.ts --out FILE --rule meet --best 13-16` rebuilds a pool for comparison. With none of these options it rebuilds the shipped pools byte for byte.
+  - `scripts/difficulty-study.ts` prints the doc's tables.
+- **Not applied yet** (the pool, the dailies and the rhythm are unchanged):
+  - Pick puzzles by `--rule meet` at lowest strokes 13–16. The meet planner at 10 looks goes from 51% to 27% and the forward planner at 20 looks from 66% to 53%, at 5.45 doors a puzzle against 4.9.
+  - Rank the daily thirds by par chance and search effort together, which makes the hard third harder for every simulated player.
+  - Find out whether players miss doors that change two letters at once.
