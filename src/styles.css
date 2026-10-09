@@ -801,8 +801,9 @@ select,
   color: var(--ok);
 }
 
+/* As wide as its widest line, so the goal and the count sit centred as a pair. */
 .score-panel {
-  flex: 0 1 200px;
+  flex: 0 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -827,10 +828,10 @@ select,
 
 .score-sub {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 4px 14px;
+  gap: 4px;
   font-size: 15px;
   color: var(--muted);
 }
@@ -1952,15 +1953,15 @@ select,
   gap: 10px;
 }
 
-/* The score card in two rows: the goal, the stroke count and ?, then the details across the
-   card's full width (the score panel's pieces join the card's own flex rows). */
+/* The score card in two rows: the goal and the stroke count centred on top, then the details
+   across the card's full width (the score panel's pieces join the card's own flex rows). */
 .maze.compact .scorecard {
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   gap: 6px 12px;
   padding: 10px 12px;
-  text-align: left;
+  text-align: center;
   border-radius: 18px;
   box-shadow: 0 4px 0 var(--ledge);
 }
@@ -1981,10 +1982,18 @@ select,
   display: contents;
 }
 
+/* Beside the goal, centred with it as a pair. */
 .maze.compact .score-big {
   order: 1;
-  flex: 1 1 auto;
+  flex: none;
   font-size: 15px;
+}
+
+/* HARDCORE goes under the count, so the pair still fits on one row at 320 px. */
+.maze.compact .hardcore-tag {
+  display: block;
+  width: fit-content;
+  margin: 3px auto 0;
 }
 
 .maze.compact .score-big strong {
@@ -1994,7 +2003,8 @@ select,
 .maze.compact .score-sub {
   order: 3;
   flex: 1 1 100%;
-  justify-content: flex-start;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 0 12px;
   font-size: 12px;
   line-height: 1.4;
@@ -2002,7 +2012,6 @@ select,
 
 .maze.compact .score-stats {
   order: 5;
-  justify-content: flex-start;
   gap: 4px;
 }
 
@@ -2014,6 +2023,7 @@ select,
 .maze.compact .ink-bank {
   order: 4;
   flex: 1 1 100%;
+  justify-content: center;
   font-size: 12px;
 }
 
