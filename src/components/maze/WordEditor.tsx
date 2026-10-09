@@ -7,6 +7,7 @@ import { EMPTY_CELL_X, formedLooks, onlyFit, recognize, slotKey, slotsFor, type 
 import { TileStroke, minHalfWidthAt } from '../Glyph';
 import { MorphStroke, centerlinePath } from './MorphStroke';
 import { COARSE, useMedia } from '../../useMedia';
+import { restingTurn } from '../../turns';
 
 export const CELL_W = 4;
 /**
@@ -54,8 +55,6 @@ const LIFT = 1.08;
 const ARM = 0.6;
 const RELEASE = 1.6;
 const SWIPE = 0.5;
-/** A finger's swipe to turn a stroke: as short as a mouse's (a stroke carried onto its spot never counts as one, see Aim.settled). */
-const SWIPE_TOUCH = 0.5;
 /** Slower than this (letter units a second), a pointer is resting or creeping, not swiping. */
 const CREEP = 1.5;
 
@@ -117,7 +116,7 @@ interface Drag {
   overCell: number | null;
   /** The look it had in a formed letter when picked up (U's cup), so it eases back to itself as it lifts. */
   look0: Pt[] | null;
-  /** A finger, not a mouse or pen: the stroke is held above the fingertip, and turns with a longer swipe. */
+  /** A finger, not a mouse or pen: the stroke is held above the fingertip, and isn't turned by a swipe. */
   touch: boolean;
   /** Where it was picked up (screen px). */
   home: { x: number; y: number };
@@ -154,8 +153,6 @@ interface Props {
   hinted?: number[];
   /** The strokes in the tray (all of them by default; How to play's practice offers a few). */
   tray?: readonly TileId[];
-  /** A swipe turns a stroke as it's placed (Settings can turn this off: then a double-tap or double-click turns one). */
-  swipe?: boolean;
 }
 
 /** How far above a fingertip a held stroke rides (px), so the finger doesn't hide it. */
@@ -239,7 +236,7 @@ const TWISTS = new Set(
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
  * slot from where it was released or flies back to its tray tile.
  */
-export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS, swipe = true }: Props) {
+export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<{ cell: number; key: string } | null>(null);
   /** A stroke flying home to its tray tile after the drag ended (removed, or not placed). */
@@ -418,14 +415,23 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
       return { overCell, target: { cell: overCell, slot: ways[0] }, aim: null, turn };
     }
 
-    // It settles the way it's held, or the nearest way that fits, and a swipe turns it (a mouse's or a
-    // finger's, a finger's a little longer):
+    // It settles the way it's held, or the nearest way that fits, and a mouse's swipe turns it:
     // whichever way round points most along the swipe (up turns V into Λ; left and right turn an arc
-    // or a bowl). Swipes count from where the cursor came onto the spot, or last turned it.
+    // or a bowl). Swipes count from where the cursor came onto the spot, or last turned it. A finger
+    // doesn't swipe (phones turn a stroke with a double-tap): under one, a stroke carried out of a
+    // letter into an empty one lands the way the tray starts it, so D's arc makes a C (see restingTurn).
     let aim: Aim = held ? d.aim! : { cell: overCell, x: at.x, y: at.y, armed: false, settled: false, ax: lx, ay: ly };
     const rawLocal = toCell(overCell, raw.x, raw.y) ?? local;
-    const closest = (turn: number) => ways.reduce((a, b) => (Math.abs(wrap((b.placement.rot ?? 0) - turn)) < Math.abs(wrap((a.placement.rot ?? 0) - turn)) ? b : a));
-    let way = closest(d.turn);
+    const swipes = !d.touch;
+    const settle = restingTurn({
+      ways: ways.map((w) => w.placement.rot ?? 0),
+      held: d.turn,
+      tile: d.tile,
+      // (Only when nothing can turn it as it lands.)
+      fromLetter: !swipes && d.source.kind === 'cell' && d.source.cell !== overCell,
+      intoEmpty: without(overCell, d.source).length === 0,
+    });
+    let way = ways.find((w) => (w.placement.rot ?? 0) === settle)!;
     if (!aim.armed && dist(aim) < ARM) aim = { ...aim, armed: true, ax: rawLocal.lx, ay: rawLocal.ly };
     // While it's still coming in towards the spot, swipes count from wherever it has got to; once it
     // stops getting closer, they count from its closest point.
@@ -439,11 +445,11 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     const restLocal = rest && toCell(overCell, rest.x, rest.y);
     if (aim.armed && restLocal) aim = { ...aim, settled: true, ax: restLocal.lx, ay: restLocal.ly };
     else if (aim.armed && creeping) aim = { ...aim, ax: rawLocal.lx, ay: rawLocal.ly };
-    if (aim.armed && swipe) {
+    if (aim.armed && swipes) {
       const dx = rawLocal.lx - aim.ax;
       const dy = rawLocal.ly - aim.ay;
       const len = Math.hypot(dx, dy);
-      if (len >= (d.touch ? SWIPE_TOUCH : SWIPE)) {
+      if (len >= SWIPE) {
         const along = (w: Slot) => {
           const [px, py] = pointing(d.tile, w.placement.rot ?? 0);
           return (px * dx + py * dy) / len;
@@ -682,9 +688,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
 
     const slots = cellsRef.current.map((_, c) => slotsFor(without(c, source), tile));
     // A stroke lifted from a spot that fits it more than one way (a lone V, which can be Λ) is
-    // already on that spot: a swipe from wherever it was pressed turns it there. Under a finger it
-    // stays on its spot (not lifted above the fingertip) until the finger leaves it, so a swipe to
-    // turn it never carries it out of its letter.
+    // already on that spot: a mouse's swipe from wherever it was pressed turns it there. Under a
+    // finger it stays on its spot (not lifted above the fingertip) until the finger leaves it, so a
+    // small wobble never carries it out of its letter.
     let aim: Aim | null = null;
     g.liftLater = 0;
     if (source.kind === 'cell' && TILES[tile].rotates) {
@@ -957,7 +963,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
                 </motion.g>
               </svg>
               <span className="cell-letter">
-                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (swipe ? 'swipe to turn' : 'turn it first') : noFit ? 'no fit' : (letter ?? 'no letter')}
+                {target ? `→ ${target.slot.toward.join(' ')}` : misfit ? (held?.touch ? 'turn it first' : 'swipe to turn') : noFit ? 'no fit' : (letter ?? 'no letter')}
               </span>
             </div>
           );

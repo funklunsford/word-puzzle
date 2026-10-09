@@ -185,7 +185,7 @@ export function MazeApp() {
   const themeRef = useRef(theme);
   themeRef.current = theme;
   useEffect(() => followSystemTheme(() => themeRef.current), []);
-  // The rest of the settings: motion, swipe to turn, the letter guide, definitions, colour-blind squares.
+  // The rest of the settings: motion, the letter guide, definitions, colour-blind squares.
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
@@ -703,13 +703,13 @@ export function MazeApp() {
                   </div>
                   <p className="help-lead">Turn one word into another, in as few strokes as you can.</p>
                   <HowToTry touch={coarse} />
-                  {/* Touch screens and mouse play differently (tap vs click, double-tap vs swipe to turn), so each gets its own. */}
+                  {/* Touch screens and mouse play differently (tap vs click; a mouse can also swipe to turn), so each gets its own. */}
                   <ul className="how">
                     <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
-                      <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it{prefs.swipe ? ', or swipe as you place it' : ''}.</li>
+                      <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it.</li>
                     ) : (
-                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, double-click it{prefs.swipe ? ', or swipe as you place it' : ''}.</li>
+                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, double-click it, or swipe as you place it.</li>
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>
@@ -752,11 +752,10 @@ export function MazeApp() {
               room={room}
               onEdit={onEdit}
               onHoverTile={setHoverTile}
-              swipe={prefs.swipe}
               onMiss={(why) =>
                 setNotice(
                   why === 'turn'
-                    ? `That fits there turned the other way: ${prefs.swipe ? 'swipe as you drop it' : 'turn it in the tray first'}.`
+                    ? `That fits there turned the other way: ${coarse ? 'turn it in the tray first' : 'swipe as you drop it'}.`
                     : "That stroke doesn't fit in that letter.",
                 )
               }
