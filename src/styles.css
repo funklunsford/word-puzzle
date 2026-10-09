@@ -1135,6 +1135,14 @@ select,
   stroke-width: 0.06;
 }
 
+/* A mouse's swipe, drawn when the ghost holds still (reduced motion). */
+.how-try-trail {
+  stroke: color-mix(in srgb, var(--ink) 55%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1 5;
+}
+
 .hardcore-tag {
   margin-left: 8px;
   vertical-align: 0.35em;

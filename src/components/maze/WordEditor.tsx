@@ -158,6 +158,11 @@ interface Props {
   hinted?: number[];
   /** The strokes in the tray (all of them by default; How to play's practice offers a few). */
   tray?: readonly TileId[];
+  /**
+   * A placed stroke How to play's ghost is turning ("cell|slot key"): its ink is hidden while the
+   * ghost draws it turning in its place (it can still be pressed).
+   */
+  ghosted?: string;
 }
 
 /** How far above a fingertip a held stroke rides (px), so the finger doesn't hide it. */
@@ -241,7 +246,7 @@ const TWISTS = new Set(
  * follows the cursor at the point it was grabbed, glides onto spots, and either springs into its
  * slot from where it was released or flies back to its tray tile.
  */
-export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS }: Props) {
+export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, onMiss, compact = false, hinted, tray = TILE_IDS, ghosted }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<{ cell: number; key: string } | null>(null);
   /** A stroke flying home to its tray tile after the drag ended (removed, or not placed). */
@@ -964,7 +969,13 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
                             : { ...SETTLE, opacity: { duration: leaving ? 0.08 : 0.15 } }
                         }
                       >
-                        <motion.g key={wiggled} initial={wiggled ? { rotate: 0 } : false} animate={wiggled ? { rotate: [0, 11, -8, 4, 0] } : undefined} transition={WIGGLE}>
+                        <motion.g
+                          key={wiggled}
+                          initial={wiggled ? { rotate: 0 } : false}
+                          animate={wiggled ? { rotate: [0, 11, -8, 4, 0] } : undefined}
+                          transition={WIGGLE}
+                          style={ghosted === `${c}|${key}` ? { visibility: 'hidden' } : undefined}
+                        >
                           {/* Eases into its formed letter's look and back (U's bar bends into the cup). */}
                           <MorphStroke
                             tile={p.tile}
