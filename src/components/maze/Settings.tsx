@@ -102,12 +102,6 @@ export function Settings({ theme, onTheme, prefs, onPrefs, onClose }: Props) {
         <div className="setting">
           <span className="setting-label">Playing</span>
           <Toggle
-            label="Swipe to turn"
-            note="Off: double-tap or double-click a stroke to turn it, in the tray or in a letter."
-            on={prefs.swipe}
-            onChange={(swipe) => onPrefs({ swipe })}
-          />
-          <Toggle
             label="Letter guide"
             note="The A to Z under the word, lighting up the letters a stroke is in."
             on={prefs.letters}

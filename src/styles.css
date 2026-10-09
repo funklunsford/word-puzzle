@@ -801,8 +801,9 @@ select,
   color: var(--ok);
 }
 
+/* As wide as its widest line, so the goal and the count sit centred as a pair. */
 .score-panel {
-  flex: 0 1 200px;
+  flex: 0 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -827,10 +828,10 @@ select,
 
 .score-sub {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 4px 14px;
+  gap: 4px;
   font-size: 15px;
   color: var(--muted);
 }
@@ -873,7 +874,7 @@ select,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 124px;
+  min-width: 146px;
   min-height: 44px;
   font-size: 13px;
   font-weight: 700;
@@ -884,7 +885,7 @@ select,
 
 /* The Hint button keeps one width as its label changes (Hint, Next word, Hint used). */
 .hint-btn {
-  min-width: 124px;
+  min-width: 146px;
 }
 
 /* Hardcore: the flame in the toolbar. Unlit, an outline; lit, it burns on the spicy colour (only
@@ -1217,11 +1218,13 @@ select,
   font-size: 13px;
 }
 
+/* A finger scrolls the page from anywhere here but a stroke: the editor claims a touch that lands
+   on one (see WordEditor), and the tray's tiles take none of the page's gestures. */
 .editor {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  touch-action: none;
+  touch-action: manipulation;
   user-select: none;
 }
 
@@ -1274,8 +1277,8 @@ select,
   cursor: default;
 }
 
-/* A placed stroke under the mouse turns red and lifts a little: a click removes it. (The orange-red
-   --spicy is kept for "doesn't fit".) */
+/* A placed stroke under the mouse, or under a finger pressing it, turns red and lifts a little: a
+   click or tap removes it. (The orange-red --spicy is kept for "doesn't fit".) */
 .placed.hovered {
   filter: drop-shadow(0 0.06px 0.08px color-mix(in srgb, var(--ink) 45%, transparent));
 }
@@ -1324,6 +1327,11 @@ select,
   cursor: grab;
   touch-action: none;
   transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, border-color 0.15s, background 0.15s;
+}
+
+/* A locked step or a won game: nothing to drag, so a swipe on a tile scrolls the page. */
+.editor.disabled .tray-tile {
+  touch-action: manipulation;
 }
 
 /* A tray stroke under the mouse invites a grab: its tile rises on its ledge and brightens, and the
@@ -1384,7 +1392,7 @@ select,
   filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ink) 30%, transparent));
 }
 
-/* Under the board: Undo / Reset as pill buttons, the status line, and this step's dots. */
+/* Under the board: Undo, Reset and Hint as pill buttons, the status line, and this step's dots. */
 .controls {
   display: flex;
   flex-direction: column;
@@ -1423,6 +1431,32 @@ select,
   cursor: default;
 }
 
+/* The step's buttons: an icon drawn in strokes beside each label, never wrapped apart from it. */
+.step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.step-icon {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  margin-left: -3px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The bulb's glass is lit in gold while there's a hint to take. */
+.hint-btn:not(:disabled) .glow {
+  fill: color-mix(in srgb, var(--gold) 40%, transparent);
+}
+
 .pill.quiet {
   font-size: 14px;
   padding: 6px 14px;
@@ -1445,7 +1479,7 @@ select,
   font-weight: 700;
 }
 
-/* Strokes this step: three dots under Undo / Reset step, filling white (the text colour) as
+/* Strokes this step: three dots under Undo / Reset, filling white (the text colour) as
    strokes are used, all red once the step is out of strokes. */
 .step-meter {
   display: flex;
@@ -1945,15 +1979,15 @@ select,
   gap: 10px;
 }
 
-/* The score card in two rows: the goal, the stroke count and ?, then the details across the
-   card's full width (the score panel's pieces join the card's own flex rows). */
+/* The score card in two rows: the goal and the stroke count centred on top, then the details
+   across the card's full width (the score panel's pieces join the card's own flex rows). */
 .maze.compact .scorecard {
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   gap: 6px 12px;
   padding: 10px 12px;
-  text-align: left;
+  text-align: center;
   border-radius: 18px;
   box-shadow: 0 4px 0 var(--ledge);
 }
@@ -1974,10 +2008,18 @@ select,
   display: contents;
 }
 
+/* Beside the goal, centred with it as a pair. */
 .maze.compact .score-big {
   order: 1;
-  flex: 1 1 auto;
+  flex: none;
   font-size: 15px;
+}
+
+/* HARDCORE goes under the count, so the pair still fits on one row at 320 px. */
+.maze.compact .hardcore-tag {
+  display: block;
+  width: fit-content;
+  margin: 3px auto 0;
 }
 
 .maze.compact .score-big strong {
@@ -1987,7 +2029,8 @@ select,
 .maze.compact .score-sub {
   order: 3;
   flex: 1 1 100%;
-  justify-content: flex-start;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 0 12px;
   font-size: 12px;
   line-height: 1.4;
@@ -1995,7 +2038,6 @@ select,
 
 .maze.compact .score-stats {
   order: 5;
-  justify-content: flex-start;
   gap: 4px;
 }
 
@@ -2007,6 +2049,7 @@ select,
 .maze.compact .ink-bank {
   order: 4;
   flex: 1 1 100%;
+  justify-content: center;
   font-size: 12px;
 }
 
@@ -2078,6 +2121,43 @@ select,
 
 .maze.compact .controls {
   gap: 6px;
+}
+
+/* Undo, Reset and Hint share one row, down to a 320 px screen (a narrower one puts Hint on a row
+   of its own rather than squeezing them). */
+.maze.compact .pill-row {
+  gap: 6px;
+}
+
+.maze.compact .step-btn {
+  gap: 5px;
+  padding-left: 12px;
+  padding-right: 14px;
+  font-size: 15px;
+}
+
+.maze.compact .step-icon {
+  width: 17px;
+  height: 17px;
+  margin-left: 0;
+}
+
+.maze.compact .hint-btn,
+.maze.compact .no-hints {
+  min-width: 122px;
+}
+
+@media (max-width: 359px) {
+  .maze.compact .step-btn {
+    padding-left: 10px;
+    padding-right: 12px;
+    font-size: 14px;
+  }
+
+  .maze.compact .hint-btn,
+  .maze.compact .no-hints {
+    min-width: 114px;
+  }
 }
 
 .maze.compact .side-card {
@@ -2232,4 +2312,58 @@ select,
 /* The step line says nothing until there's something to say (a stroke used, a word made, a hint). */
 .step-status:empty {
   display: none;
+}
+
+/* ---------- Ad slots (the ads flag; see src/ads.ts and src/components/AdSlot.tsx) ----------
+   Boxes of a fixed size in the page's own grid, so an ad filling one moves nothing, and none can
+   sit over the game. Each is its own stacking layer under the page's pop-ups, the held stroke and
+   the celebration, and clips whatever is put in it. */
+.ad-slot {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Phones: the banner over the header (a box for 320×50 and 320×100). It's last in the page, for
+   the keyboard; the grid draws it first. On a 320 px phone it reaches into the page's padding. */
+.maze.ad-top {
+  grid-template-areas: 'ad' 'mast' 'main' 'side';
+}
+
+.ad-banner {
+  grid-area: ad;
+  justify-self: center;
+}
+
+/* Wide desktops: a rail either side of the game and its path card, level with the header. */
+.maze.rails {
+  max-width: none;
+  grid-template-areas:
+    'rail-l mast mast rail-r'
+    'rail-l main side rail-r';
+}
+
+.ad-rail.left {
+  grid-area: rail-l;
+}
+
+.ad-rail.right {
+  grid-area: rail-r;
+}
+
+/* In development, an empty slot shows its size, to judge the layout by. */
+.ad-slot.dev::before {
+  content: 'Ad · ' attr(data-size);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
