@@ -11,7 +11,7 @@ export function plainScene(THREE: Three, { word, cssColor }: { word: string; css
   const index: number[] = [];
   const HALF = 0.06;
   for (const { tile, pts } of wordStrokes(word)) {
-    const c = new THREE.Color().setRGB(...cssColor(`--t-${tile}`, '#3f5a74'), THREE.SRGBColorSpace);
+    const c = new THREE.Color().setRGB(...cssColor(`--t-${tile}`, '#395a7b'), THREE.SRGBColorSpace);
     const base = positions.length / 3;
     pts.forEach((p, i) => {
       const [a, b] = [pts[Math.max(0, i - 1)], pts[Math.min(pts.length - 1, i + 1)]];

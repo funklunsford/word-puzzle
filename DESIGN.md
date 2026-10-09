@@ -710,3 +710,23 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **`npm run daily` defaults to 5 letters;** `--letters 4` reaches the old game. Checking a day in prints its number.
 - **`docs/daily-celebration-prompt.md`** is kept, marked as no longer followed. It's the contract for the 4-letter celebration scenes that `src/celebration/scenes.test.ts` checks.
 
+
+## Light-theme colours that stand out like the dark ones (2026-10-09, branch `light-colors`)
+- **The owner's ask:** the light theme's colours should stand out as much as the dark theme's. Measured as contrast against what they're drawn on, the dark theme's strokes average 6.5:1 against a cell, but the light ones only 5.2:1. The light ochre V was 3.1:1 and the sage diagonal 3.8:1. The gold goal ring was 2.1:1 (10.6:1 in dark), and the grey text 3.2:1 (5.4:1).
+- **Strokes** (`--t-*` in `src/styles.css`): same hues, deeper and a little richer. Each is at least as far from a cell's white as its dark-mode colour is from the dark cell, and never less than before:
+
+  | Stroke | Before | After | Dark |
+  |---|---|---|---|
+  | long bar | #3f5a74 7.2 | #395a7b 7.2 | 6.4 |
+  | short bar | #b0583a 4.9 | #a84409 6.0 | 6.0 |
+  | long diagonal / | #6f8c58 3.8 | #3e580c 8.1 | 8.1 |
+  | long diagonal \ | #4e6b3f 6.0 | #4b6c2f 6.0 | 5.3 |
+  | short diagonal | #3f7f73 4.7 | #0a6b5d 6.4 | 6.5 |
+  | big chevron V | #b98a2f 3.1 | #7f5608 6.5 | 8.0 |
+  | small chevron | #8a4f70 6.1 | #934974 6.1 | 5.7 |
+  | arc | #6b5b8f 6.0 | #6f5899 5.9 | 6.0 |
+  | bowl | #a8545d 5.1 | #a53c42 6.3 | 6.3 |
+
+  The ochre V is a deep amber at 6.5:1 rather than 8:1, since no yellow that dark is still golden. The closest two strokes (short bar and bowl) are further apart than the closest two in dark (OKLab 0.059 against 0.048), so none is harder to tell from another.
+- **Accents** (light only): gold #d9a520 → #ad8211 (3.5:1, the goal ring and label), grey text #8b8794 → #6d6976 (5.3:1, as in dark), success green #5e8c4f → #497c38, warning orange #e4572e → #d4410d, and the remove red #e5484d → #df2c3b (about 4.6–5:1).
+- **The share card and link preview** are always drawn on paper, so they take the same colours (`PAPER` in `src/share.ts`). `public/og.png` was redrawn with `drawPreviewCard`.

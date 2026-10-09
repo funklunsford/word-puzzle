@@ -47,17 +47,17 @@ const PAPER = {
   bg: '#f7f4ee',
   surface: '#ffffff',
   ink: '#2b2a33',
-  muted: '#8b8794',
+  muted: '#6d6976',
   line: '#e4dfd5',
   ledge: '#e4ddcf',
-  gold: '#d9a520',
-  spicy: '#e4572e',
+  gold: '#ad8211',
+  spicy: '#d4410d',
   squares: ['#efeae0', '#f2c65a', '#e8913a', '#d9542f'],
   squareLedges: ['#ddd6c8', '#d6a63a', '#c9752a', '#b54224'],
   /** Colour-blind: yellow, blue, red (light, middle, dark to red-green colour blindness too). */
   squaresCB: ['#efeae0', '#f2c65a', '#3f7fd6', '#b8402a'],
   squareLedgesCB: ['#ddd6c8', '#d6a63a', '#2f63ad', '#8f2f1e'],
-  tiles: { LV: '#3f5a74', H: '#b0583a', LD: '#6f8c58', LB: '#4e6b3f', SB: '#3f7f73', BV: '#b98a2f', SC: '#8a4f70', C: '#6b5b8f', P: '#a8545d' } as Record<string, string>,
+  tiles: { LV: '#395a7b', H: '#a84409', LD: '#3e580c', LB: '#4b6c2f', SB: '#0a6b5d', BV: '#7f5608', SC: '#934974', C: '#6f5899', P: '#a53c42' } as Record<string, string>,
 };
 
 const FONT = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif';

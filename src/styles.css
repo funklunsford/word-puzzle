@@ -2,33 +2,36 @@
   --bg: #f7f4ee;
   --surface: #ffffff;
   --ink: #2b2a33;
-  --muted: #8b8794;
+  --muted: #6d6976;
   --line: #e4dfd5;
-  --gold: #d9a520;
+  --gold: #ad8211;
   --ink-pot: #34478f;
   --ink-fill: #26357a;
   --feather: #f4ecdc;
-  --spicy: #e4572e;
+  --spicy: #d4410d;
   /* A placed stroke under the mouse: red, as a click removes it (orange-red --spicy is "doesn't fit"). */
-  --remove: #e5484d;
-  --ok: #5e8c4f;
+  --remove: #df2c3b;
+  --ok: #497c38;
   --ledge: #e4ddcf;
   --pastel-1: #ffc95c;
   --pastel-2: #d6b8f2;
   --pastel-3: #a9d6bc;
   --pastel-4: #b6c5f3;
 
-  /* Stroke colours: earth pigments (slate, terracotta, ochre, sage, moss, verdigris, plum,
-     heather, clay). */
-  --t-LV: #3f5a74;
-  --t-H: #b0583a;
-  --t-LD: #6f8c58;
-  --t-LB: #4e6b3f;
-  --t-SB: #3f7f73;
-  --t-BV: #b98a2f;
-  --t-SC: #8a4f70;
-  --t-C: #6b5b8f;
-  --t-P: #a8545d;
+  /* Stroke colours: earth pigments (slate, terracotta, olive, moss, verdigris, amber, plum,
+     heather, clay), each at least as far from the white of a letter's cell as its dark-mode colour
+     is from the dark one (5.9–8:1), and never less than before, so the strokes stand out as much in
+     both. Same hues, deeper and a little richer; the ochre is a deep amber (6.5:1), since no yellow
+     is that dark and still golden. */
+  --t-LV: #395a7b;
+  --t-H: #a84409;
+  --t-LD: #3e580c;
+  --t-LB: #4b6c2f;
+  --t-SB: #0a6b5d;
+  --t-BV: #7f5608;
+  --t-SC: #934974;
+  --t-C: #6f5899;
+  --t-P: #a53c42;
 
   color-scheme: light;
 }
