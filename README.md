@@ -10,7 +10,7 @@ npm run daily        # candidates for the next daily puzzle (see below)
 npm run deploy       # publish the built site (only) to https://funklunsford.github.io/strokes/
 ```
 
-There's a new puzzle every day (`src/daily/days/`), each with its own win celebration. To add the next one, run `/daily` in Claude Code, which follows [docs/daily-celebration-prompt.md](docs/daily-celebration-prompt.md): choose the puzzle, make its celebration, check it, and open a pull request.
+There's a new 5-letter puzzle every day (`src/daily/days-5/`). To add the next one, run `/daily` in Claude Code, which follows [docs/daily-prompt.md](docs/daily-prompt.md): choose the puzzle, check it, and open a pull request. (The 4-letter game's days and their win celebrations are in `src/daily/days/`; it gets no new ones.)
 
 Every merge to `main` deploys the site through GitHub Actions (`.github/workflows/deploy.yml`). One-time setup, to let it publish:
 
