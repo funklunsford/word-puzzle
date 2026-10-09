@@ -47,6 +47,8 @@ const SETTLE = { type: 'spring', bounce: 0, duration: 0.35 } as const;
 const GLIDE = { type: 'spring', bounce: 0, duration: 0.18 } as const;
 /** A released stroke springing into its slot: a little give, because the drag carried momentum. */
 const LAND = { type: 'spring', bounce: 0.2, duration: 0.4 } as const;
+/** A held stroke turning round, by a swipe or to fit its spot: unhurried, so the turn can be followed. */
+const TURN = { type: 'spring', bounce: 0, duration: 0.7 } as const;
 /** How much a stroke grows when it's picked up. */
 const LIFT = 1.08;
 
@@ -785,10 +787,10 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
       const rest = prev && last.t - prev.t > 100 ? { x: prev.x, y: prev.y - grip.current.lift } : null;
       const nd = { ...d, moved, entered, ...(moved ? locate(d, ev.clientX, ay, { x: ev.clientX, y: rawY }, creeping, rest) : {}) };
       dragRef.current = nd;
-      // Turns snap: the stroke springs round to its new way.
+      // A turn swings the stroke round to its new way.
       if (nd.turn !== d.turn && !reduce) {
         gr.set(gr.get() + d.turn - nd.turn);
-        animate(gr, 0, SETTLE);
+        animate(gr, 0, TURN);
       }
       if (moved) steer(nd, ev.clientX, ay);
       return nd;

@@ -64,8 +64,8 @@ export function HowToTry({ touch }: { touch: boolean }) {
   const [geo, setGeo] = useState<Geo | null>(null);
   const step = steps[stepIndex];
   /** Past the five moves: more letters, with the whole tray. */
-  const practising = stepIndex >= TUTORIAL.length;
-  const tray = practising ? TILE_IDS : TRAY;
+  const practicing = stepIndex >= TUTORIAL.length;
+  const tray = practicing ? TILE_IDS : TRAY;
   /** The letters made in more practice, latest last. */
   const made = useRef<string[]>([]);
   /** The five moves are all done: time to offer more. */
@@ -119,7 +119,7 @@ export function HowToTry({ touch }: { touch: boolean }) {
     setCells(next);
     if (recognize(next[0]) === step.goal) {
       setDone(true);
-      if (practising) made.current.push(step.goal);
+      if (practicing) made.current.push(step.goal);
       if (stepIndex < TUTORIAL.length - 1)
         window.setTimeout(() => {
           const following = TUTORIAL[stepIndex + 1];
@@ -127,7 +127,7 @@ export function HowToTry({ touch }: { touch: boolean }) {
           goTo(following, following.start === step.goal ? next : [fresh(following.start)]);
         }, 1300);
       // More practice carries on to another letter from this one.
-      else if (practising) window.setTimeout(() => morePractice(next[0]), 1300);
+      else if (practicing) window.setTimeout(() => morePractice(next[0]), 1300);
     }
     return true;
   };
@@ -146,7 +146,7 @@ export function HowToTry({ touch }: { touch: boolean }) {
   };
 
   const plan = done ? null : step.next(cells[0]);
-  const say = done ? step.done : plan ? plan.say[touch ? 'touch' : 'mouse'] : practising ? `Not quite: make ${withArticle(step.goal)}.` : 'Not quite.';
+  const say = done ? step.done : plan ? plan.say[touch ? 'touch' : 'mouse'] : practicing ? `Not quite: make ${withArticle(step.goal)}.` : 'Not quite.';
   /** The move the ghost is showing, while the player leaves the practice alone. */
   const ghost = geo && plan && idle ? plan.ghost : null;
   // A turn is shown on the stroke itself: the ghost draws it turning, so the editor hides its own.
@@ -154,8 +154,8 @@ export function HowToTry({ touch }: { touch: boolean }) {
   return (
     <section className="how-try" aria-label="Try it">
       <div className="how-try-head">
-        <span className="how-try-label">{practising ? 'Practice' : 'Try it'}</span>
-        {practising ? (
+        <span className="how-try-label">{practicing ? 'Practice' : 'Try it'}</span>
+        {practicing ? (
           made.current.length > 0 && (
             <span className="how-try-count">
               {made.current.length} {made.current.length === 1 ? 'letter' : 'letters'} made
@@ -181,9 +181,9 @@ export function HowToTry({ touch }: { touch: boolean }) {
       {/* The five moves done: ask whether they'd like to carry on with other letters. */}
       {finished && (
         <div className="how-try-more">
-          <span>Want to practise other letters?</span>
+          <span>Want to practice other letters?</span>
           <button className="pill quiet" onClick={() => morePractice(cells[0])}>
-            Practise more letters
+            Practice more letters
           </button>
         </div>
       )}
@@ -300,8 +300,10 @@ function GhostMove({ plan, content, geo, touch, still }: { plan: Ghost; content:
       };
     } else {
       // Press it, swipe a little the way it will point (up for a V, right for a C), and let go:
-      // it lifts, turns over on its spot as the swipe goes, and settles there.
-      times = [0, 0.1, 0.2, 0.4, 0.48, 0.62, 0.8, 0.88, 0.9, 1];
+      // it lifts, turns over on its spot as the swipe goes, and settles there. The swipe takes about
+      // a second, slow enough to follow the stroke turning.
+      duration = 3.6;
+      times = [0, 0.08, 0.16, 0.46, 0.52, 0.68, 0.82, 0.88, 0.9, 1];
       const [dx, dy] = pointing(plan.at.tile, rot + 180);
       const to = { x: p.x + dx * 0.8 * k, y: p.y + dy * 0.8 * k };
       swipeTo = to;
