@@ -397,13 +397,18 @@ by construction.
    - Then add `searchEffort` and meet depth to `KeptDifficulty` (`keep`) so the pool and the day files
      carry them. That changes the pool file, so it belongs with the rebuild, and the pool test will
      check the new fields.
+   - Change what assumes a pocket beside every route. The 5-letter pool test ("is all tricky, and
+     every puzzle passes a pocket", `src/difficulty.test.ts`) should check `meetDepth(...) >= 2`
+     instead. `scripts/daily.ts` says "passes a pocket" in its header and describes each candidate's
+     pockets. The daily runbook (`docs/daily-celebration-prompt.md`) prefers a pair with a trap into a
+     pocket, and only about a tenth of the rebuilt pool has one.
 2. **Rank the daily thirds by par chance and search effort together.** In `scripts/daily.ts`, sort the
    pool by the sum of each puzzle's place by par chance and its place by `searchEffort` (most first),
    instead of par chance alone. Ties are broken as now.
    - On today's pool, the hard third against today's hard third: the forward planner at 20 looks
      44% → 34%, the meet planner at 10 looks 35% → 28% and at 20 looks 82% → 79%, the meet walker
-     33% → 31%, and the forward walker unchanged at 1%. It is harder for every player, using a measure
-     built from none of them.
+     33% → 31%, and the forward walker unchanged at 1% (par chance is half the ranking). It is harder
+     for every player, and the measure it adds is built from none of them.
    - On the 13–16 pool: the forward planner 30% → 20%, the meet planner 12% → 8% at 10 looks and
      59% → 54% at 20.
    - It needs no rebuild (search effort takes a moment per puzzle at daily time), so it can come first

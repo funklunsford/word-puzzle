@@ -541,7 +541,8 @@ if (mode === 'pool') {
     const at = rows.filter((r) => n(r, 'best') === b);
     const [x, y] = [at.filter(today), at.filter(meetRule)];
     const both = (k: string) => `${pct(mean(col(x, k)))} / ${pct(mean(col(y, k)))}`;
-    console.log(`| ${b} | ${at.length} | ${pct(x.length / at.length)} / ${pct(y.length / at.length)} | ${mean(col(x, 'doors')).toFixed(1)} / ${mean(col(y, 'doors')).toFixed(1)} | ${SHORT.map(both).join(' | ')} |`);
+    const doors = (rs: Row[]) => (rs.length ? mean(col(rs, 'doors')).toFixed(1) : '–');
+    console.log(`| ${b} | ${at.length} | ${pct(x.length / at.length)} / ${pct(y.length / at.length)} | ${doors(x)} / ${doors(y)} | ${SHORT.map(both).join(' | ')} |`);
   }
   const pocketless = rows.filter((r) => n(r, 'tricky') === 1 && n(r, 'pocketsBeside') === 0);
   const pocketed = rows.filter(today);
