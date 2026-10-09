@@ -874,7 +874,7 @@ select,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 124px;
+  min-width: 146px;
   min-height: 44px;
   font-size: 13px;
   font-weight: 700;
@@ -885,7 +885,7 @@ select,
 
 /* The Hint button keeps one width as its label changes (Hint, Next word, Hint used). */
 .hint-btn {
-  min-width: 124px;
+  min-width: 146px;
 }
 
 /* Hardcore: the flame in the toolbar. Unlit, an outline; lit, it burns on the spicy colour (only
@@ -1392,7 +1392,7 @@ select,
   filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ink) 30%, transparent));
 }
 
-/* Under the board: Undo / Reset as pill buttons, the status line, and this step's dots. */
+/* Under the board: Undo, Reset and Hint as pill buttons, the status line, and this step's dots. */
 .controls {
   display: flex;
   flex-direction: column;
@@ -1431,6 +1431,32 @@ select,
   cursor: default;
 }
 
+/* The step's buttons: an icon drawn in strokes beside each label, never wrapped apart from it. */
+.step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.step-icon {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  margin-left: -3px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The bulb's glass is lit in gold while there's a hint to take. */
+.hint-btn:not(:disabled) .glow {
+  fill: color-mix(in srgb, var(--gold) 40%, transparent);
+}
+
 .pill.quiet {
   font-size: 14px;
   padding: 6px 14px;
@@ -1453,7 +1479,7 @@ select,
   font-weight: 700;
 }
 
-/* Strokes this step: three dots under Undo / Reset step, filling white (the text colour) as
+/* Strokes this step: three dots under Undo / Reset, filling white (the text colour) as
    strokes are used, all red once the step is out of strokes. */
 .step-meter {
   display: flex;
@@ -2095,6 +2121,43 @@ select,
 
 .maze.compact .controls {
   gap: 6px;
+}
+
+/* Undo, Reset and Hint share one row, down to a 320 px screen (a narrower one puts Hint on a row
+   of its own rather than squeezing them). */
+.maze.compact .pill-row {
+  gap: 6px;
+}
+
+.maze.compact .step-btn {
+  gap: 5px;
+  padding-left: 12px;
+  padding-right: 14px;
+  font-size: 15px;
+}
+
+.maze.compact .step-icon {
+  width: 17px;
+  height: 17px;
+  margin-left: 0;
+}
+
+.maze.compact .hint-btn,
+.maze.compact .no-hints {
+  min-width: 122px;
+}
+
+@media (max-width: 359px) {
+  .maze.compact .step-btn {
+    padding-left: 10px;
+    padding-right: 12px;
+    font-size: 14px;
+  }
+
+  .maze.compact .hint-btn,
+  .maze.compact .no-hints {
+    min-width: 114px;
+  }
 }
 
 .maze.compact .side-card {

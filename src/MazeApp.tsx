@@ -16,6 +16,7 @@ import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
 import { HowToTry } from './components/maze/HowToTry';
 import { GearIcon, Settings } from './components/maze/Settings';
+import { HintIcon, ResetIcon, UndoIcon } from './components/maze/StepIcons';
 import { ShareSheet } from './components/maze/ShareSheet';
 import type { ShareResult } from './share';
 import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
@@ -856,17 +857,21 @@ export function MazeApp() {
               </p>
             )}
             <div className="pill-row">
-              <button className="pill" onClick={undo} disabled={!history.length}>
+              <button className="pill step-btn" onClick={undo} disabled={!history.length}>
+                <UndoIcon />
                 Undo
               </button>
-              <button className="pill" onClick={resetStep} disabled={!history.length}>
-                Reset step
+              {/* Back to the start of this step (the word the step began on). */}
+              <button className="pill step-btn" onClick={resetStep} disabled={!history.length}>
+                <ResetIcon />
+                Reset
               </button>
               {/* No hints in hardcore: the button gives way to a quiet note. */}
               {hardcore ? (
                 <span className="no-hints">No hints</span>
               ) : (
-                <button className="pill hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
+                <button className="pill step-btn hint-btn" onClick={askHint} disabled={won || shownHint?.level === 2}>
+                  <HintIcon />
                   {!shownHint ? 'Hint' : shownHint.level === 1 ? 'Next word' : 'Hint used'}
                 </button>
               )}
