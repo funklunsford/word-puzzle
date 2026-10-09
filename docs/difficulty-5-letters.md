@@ -187,7 +187,7 @@ need one on every lowest route. The fewest such doors on a lowest route is 0 for
 - **Route length decides it.** Every 4-door puzzle falls to the meet walker (3 back, then 1 door
   forward). At 6 doors the meet planner at 10 looks makes par 19% of the time.
 - **A narrow goal helps the strategy.** With a 2-door goal or a goal in a pocket, the meet planner at
-  10 looks makes par 65–69% of the time (47% otherwise).
+  10 looks makes par 65–69% of the time, against 51% across the pool.
 - **The one daily, SNARE → SHOUT**, needs no 2–3 letter door, so a planner who misses those still makes
   par. Working back finds it easily: 98% at 20 looks.
 - **At 4 letters the strategy would have done even better.** Routes there are 3 to 5 doors, so the
