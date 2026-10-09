@@ -14,19 +14,21 @@ export const CELL_W = 4;
  * On phones the cells are narrow, so the four of them draw the word big (a half-built W spills
  * over its neighbours for a moment).
  */
-const CELL_W_COMPACT = 2.6;
+export const CELL_W_COMPACT = 2.6;
 /**
  * The widest a formed letter is drawn in those cells, so the pen keeps clear of the cell's border
  * (only W, 2.5 units at its usual squeeze, is wider: it's drawn a little narrower on phones).
  */
-const MAX_DRAWN_COMPACT = 2.2;
+export const MAX_DRAWN_COMPACT = 2.2;
 /**
- * Five letters on a phone (the fiveLetters flag) share the row in narrower cells still, so each is
- * drawn bigger than a 2.6-unit cell would make it. The pen keeps the same clearance: no letter is
- * drawn wider than 2 units (A, O, V and Y are 2 wide; W is drawn narrower than in four-letter cells).
+ * Five letters on a phone share the row in narrower cells still, so each is drawn bigger than a
+ * 2.6-unit cell would make it. The widest letters (A, M, O, Q, V and Y, 2 units; W) are drawn at
+ * most 1.7 units wide there, a little narrower, so an O's ink (thickest at the back of its curves)
+ * keeps as clear of the cell's sides as it does in four-letter cells. Narrowing those few letters
+ * keeps every letter as tall as before; widening the cell for the same room would shrink them all.
  */
-const CELL_W_COMPACT_5 = 2.4;
-const MAX_DRAWN_COMPACT_5 = 2;
+export const CELL_W_COMPACT_5 = 2.4;
+export const MAX_DRAWN_COMPACT_5 = 1.7;
 export const CELL_TOP = -0.7;
 const CELL_H = 3.6;
 /** A press that moves less than this many pixels is a tap (remove), not a drag. Fingers wobble more. */
@@ -159,7 +161,7 @@ interface Props {
 export const fingerLift = (unit: number) => Math.round(Math.min(72, Math.max(44, 1.7 * unit)));
 
 /** How much a formed letter is narrowed (W); on phones no letter is drawn wider than `maxDrawn` (null elsewhere). */
-function drawnSqueeze(letter: string | null, maxDrawn: number | null): number {
+export function drawnSqueeze(letter: string | null, maxDrawn: number | null): number {
   if (!letter) return 1;
   return drawnScale(letter).shape * (maxDrawn ? Math.min(1, maxDrawn / drawnWidth(letter)) : 1);
 }
@@ -303,6 +305,23 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   const [wiggle, setWiggle] = useState<{ id: string; n: number }>({ id: '', n: 0 });
   // A word changed some other way (undo, reset, a new puzzle) drops a waiting removal.
   useEffect(() => () => settleTap(false), [cells]);
+
+  // A finger scrolls the page from anywhere on the editor except a stroke (placed, or in the tray):
+  // a touch that lands on one is claimed for the stroke at once, before the page can start to
+  // scroll, since a drag up from the tray looks just like a swipe to scroll down. (While a finger
+  // holds a stroke, a second one is claimed anywhere on the page: see start.) Claiming it must
+  // happen on touchstart (cancelling pointerdown doesn't stop a scroll) with a listener that isn't
+  // passive, which React's onTouchStart is.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const claim = (ev: TouchEvent) => {
+      const on = ev.target instanceof Element && ev.target.closest('.placed, .tray-tile');
+      if (on && !disabled) ev.preventDefault();
+    };
+    el.addEventListener('touchstart', claim, { passive: false });
+    return () => el.removeEventListener('touchstart', claim);
+  }, [disabled]);
   const [nudges, setNudges] = useState<Partial<Record<TileId, number>>>({});
 
   // The floating stroke: centre (screen px), scale (1 = word size) and extra rotation (flights).
@@ -765,6 +784,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     // page as the stroke lifts (where nothing bubbles up to the window). Each event is handled once.
     const pressed = e.currentTarget as Element;
     const targets: EventTarget[] = touch ? [window, pressed] : [window];
+    // While a finger holds the stroke, another finger anywhere can't scroll or zoom the page.
+    const still = (ev: TouchEvent) => ev.preventDefault();
+    if (touch) window.addEventListener('touchstart', still, { passive: false });
     let last: Event | null = null;
     const once = (ev: Event) => ev !== last && ((last = ev), true);
     const onMove = (ev: PointerEvent) => {
@@ -777,6 +799,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
         t.removeEventListener('pointerup', onUp as EventListener);
         t.removeEventListener('pointercancel', onUp as EventListener);
       }
+      window.removeEventListener('touchstart', still);
       const d = update(ev);
       dragRef.current = null;
       setDrag(null);
@@ -821,7 +844,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     const s = strokeAt(cell, e.clientX, e.clientY);
     if (s) pressPlaced(e, cell, s.p, s.x);
   };
-  /** A mouse over the word: the stroke a click would remove is tinted (see .placed.hovered). */
+  /** A mouse over the word: the stroke a click would remove is tinted (see .placed.hovered; a finger pressing one tints it too). */
   const hoverAt = (e: React.PointerEvent, cell: number) => {
     if (e.pointerType !== 'mouse' || dragRef.current) return;
     const s = strokeAt(cell, e.clientX, e.clientY);
@@ -838,6 +861,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   };
 
   const held = drag?.moved ? drag : null;
+  // A finger pressing (or holding) a placed stroke tints it the way a mouse over it does: it's the
+  // one a tap removes. Not a second tap, which turns it, and not once it lifts.
+  const pressed = drag?.touch && !drag.moved && !drag.again && drag.source.kind === 'cell' ? `${drag.source.cell}|${drag.source.key}` : null;
   // The pressed stroke leaves its cell (or tile) for the floating layer once the pointer moves: until
   // then the press may be a tap or click (to remove it, or the first of two to turn it), and it stays put.
   const lifting = !!drag && drag.moved;
@@ -911,7 +937,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
                   {shown.map(({ p, look }) => {
                     const key = slotKey(p);
                     const x = squeezed(p.x);
-                    const hovered = !drag && !disabled && hover?.cell === c && hover.key === key;
+                    const hovered = !disabled && ((!drag && hover?.cell === c && hover.key === key) || pressed === `${c}|${key}`);
                     const landing = landings.current.get(`${c}|${key}`);
                     // Tapped on a touch screen and about to go: dimmed (still there to tap again).
                     const leaving = pendingStroke === `${c}|${key}`;
