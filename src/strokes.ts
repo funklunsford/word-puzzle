@@ -229,7 +229,9 @@ function stepCost(from: string[], to: string[]): number {
         // Remove it.
         if (go(cells.map((x, k) => (k === c ? rest : x)))) return true;
         // Move it: to another letter, or elsewhere in its own (turned on its spot, say). It can land
-        // turned: a swipe turns a carried stroke, under a mouse or a finger.
+        // turned: a mouse's swipe turns a carried stroke. A finger can't swipe, but every step stays
+        // just as cheap under one (src/turns.ts: a stroke carried into an empty letter lands the way
+        // the tray starts it).
         for (let d = 0; d < cells.length; d++) {
           const base = d === c ? rest : cells[d];
           for (const slot of slotsFor(base, p.tile)) {

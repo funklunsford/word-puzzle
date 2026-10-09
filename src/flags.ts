@@ -11,6 +11,10 @@ export const FLAGS = {
   // 2026-10-08): phones and tablets do too, with the word given more of a phone's width. Takes
   // effect on the next load; ?flags=-fiveLetters or ?letters=4 plays the 4-letter game.
   fiveLetters: { label: '5 letters on phones and tablets', on: true },
+  // Off (until AdSense is set up): no ads, and the page exactly as without them. On: space for
+  // ads, a banner over the header on phones and a rail either side of the game on wide desktops
+  // (see src/ads.ts, where the AdSense IDs go).
+  ads: { label: 'Ad slots', on: false },
 } as const;
 
 export type Flag = keyof typeof FLAGS;

@@ -2313,3 +2313,57 @@ select,
 .step-status:empty {
   display: none;
 }
+
+/* ---------- Ad slots (the ads flag; see src/ads.ts and src/components/AdSlot.tsx) ----------
+   Boxes of a fixed size in the page's own grid, so an ad filling one moves nothing, and none can
+   sit over the game. Each is its own stacking layer under the page's pop-ups, the held stroke and
+   the celebration, and clips whatever is put in it. */
+.ad-slot {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Phones: the banner over the header (a box for 320×50 and 320×100). It's last in the page, for
+   the keyboard; the grid draws it first. On a 320 px phone it reaches into the page's padding. */
+.maze.ad-top {
+  grid-template-areas: 'ad' 'mast' 'main' 'side';
+}
+
+.ad-banner {
+  grid-area: ad;
+  justify-self: center;
+}
+
+/* Wide desktops: a rail either side of the game and its path card, level with the header. */
+.maze.rails {
+  max-width: none;
+  grid-template-areas:
+    'rail-l mast mast rail-r'
+    'rail-l main side rail-r';
+}
+
+.ad-rail.left {
+  grid-area: rail-l;
+}
+
+.ad-rail.right {
+  grid-area: rail-r;
+}
+
+/* In development, an empty slot shows its size, to judge the layout by. */
+.ad-slot.dev::before {
+  content: 'Ad · ' attr(data-size);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
