@@ -73,8 +73,11 @@ const POINTS = Object.fromEntries(
     return [t, [c[0] / n, c[1] / n]];
   }),
 ) as Record<TileId, number[]>;
-/** Which way a stroke points at `rot` degrees (clockwise), as a unit vector in screen axes (y down). */
-const pointing = (t: TileId, rot: number) => {
+/**
+ * Which way a stroke points at `rot` degrees (clockwise), as a unit vector in screen axes (y down).
+ * A mouse's swipe turns a stroke to point the way the swipe goes (How to play's ghost swipes so).
+ */
+export const pointing = (t: TileId, rot: number) => {
   const a = (rot * Math.PI) / 180;
   const [x, y] = POINTS[t];
   return [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
@@ -548,11 +551,9 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   /** The next way round a placed stroke fits on its own spot (cycling), or null if it fits only one way there. */
   const turnedInPlace = (d: Drag, cell: number, original: Placement): Placement | null => {
     const rot = norm(original.rot ?? 0);
-    // A stroke alone in its cell (V's chevron) is offered back at the empty cell's x, not where it
-    // sits in its letter: there only its height has to match, and it keeps its own x.
-    const alone = cellsRef.current[cell].length === 1;
+    // (A stroke alone in its cell is offered its spots at its own x: see start.)
     const ways = d.slots[cell]
-      .map((s) => (alone ? { ...s.placement, x: original.x } : s.placement))
+      .map((s) => s.placement)
       .filter((q) => q.x === original.x && q.y === original.y && norm(q.rot ?? 0) !== rot)
       .sort((a, b) => norm(norm(a.rot ?? 0) - rot) - norm(norm(b.rot ?? 0) - rot));
     return ways[0] ?? null;
@@ -706,6 +707,14 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
     samples.current = [{ t: performance.now(), x: e.clientX, y: e.clientY }];
 
     const slots = cellsRef.current.map((_, c) => slotsFor(without(c, source), tile));
+    // A stroke alone in its letter (V's chevron) is offered its own cell's spots at its own x, not
+    // the empty cell's (every spot in an empty cell is as good as the same one shifted). So held
+    // over its spot it stays where it's drawn (it used to jump half a unit left while a swipe turned
+    // it, and slide back once dropped), and put back as it was, it hasn't moved.
+    if (source.kind === 'cell' && cellsRef.current[source.cell].length === 1) {
+      const dx = cellsRef.current[source.cell][0].x - EMPTY_CELL_X;
+      slots[source.cell] = slots[source.cell].map((s) => ({ ...s, placement: { ...s.placement, x: Math.round((s.placement.x + dx) * 100) / 100 } }));
+    }
     // A stroke lifted from a spot that fits it more than one way (a lone V, which can be Λ) is
     // already on that spot: a mouse's swipe from wherever it was pressed turns it there. Under a
     // finger it stays on its spot (not lifted above the fingertip) until the finger leaves it, so a

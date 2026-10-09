@@ -54,7 +54,7 @@ export const TUTORIAL: Step[] = [
     done: 'An A: turned over, then crossed.',
     next: (c) => {
       if (recognize(c) === 'V')
-        return { say: { touch: 'Double-tap the V to turn it over.', mouse: 'Double-click the V to turn it over.' }, ghost: { kind: 'turn', at: c[0] } };
+        return { say: { touch: 'Double-tap the V to turn it over.', mouse: 'Swipe the V up to turn it over.' }, ghost: { kind: 'turn', at: c[0] } };
       const to = isTurned(c, 'BV') ? spotFor(c, 'H', 'A') : undefined;
       return to ? { say: same('Now drag a bar across it to make A.'), ghost: { kind: 'carry', tile: 'H', from: 'tray', to } } : null;
     },
@@ -65,7 +65,7 @@ export const TUTORIAL: Step[] = [
     done: 'A D: turned around, then a long bar.',
     next: (c) => {
       if (recognize(c) === 'C')
-        return { say: { touch: 'Double-tap the C to turn it around.', mouse: 'Double-click the C to turn it around.' }, ghost: { kind: 'turn', at: c[0] } };
+        return { say: { touch: 'Double-tap the C to turn it around.', mouse: 'Swipe the C to the right to turn it around.' }, ghost: { kind: 'turn', at: c[0] } };
       const to = isTurned(c, 'C') ? spotFor(c, 'LV', 'D') : undefined;
       return to ? { say: same('Now drag a long bar onto its left side to make D.'), ghost: { kind: 'carry', tile: 'LV', from: 'tray', to } } : null;
     },
@@ -168,7 +168,8 @@ export const withArticle = (letter: string) => `${'AEFHILMNORSX'.includes(letter
 export function sayMove(g: Ghost, goal: string): Say {
   const make = `Make ${withArticle(goal)}:`;
   if (g.kind === 'carry') return same(g.from === 'tray' ? `${make} drag the stroke shown in from the tray.` : `${make} drag the stroke shown to its new spot.`);
-  if (g.kind === 'turn') return { touch: `${make} double-tap the stroke shown to turn it.`, mouse: `${make} double-click the stroke shown to turn it.` };
+  // (A mouse swipes the stroke the way it should point, as the ghost shows; a finger double-taps it.)
+  if (g.kind === 'turn') return { touch: `${make} double-tap the stroke shown to turn it.`, mouse: `${make} swipe the stroke shown to turn it.` };
   return { touch: `${make} tap the stroke shown to remove it.`, mouse: `${make} click the stroke shown to remove it.` };
 }
 

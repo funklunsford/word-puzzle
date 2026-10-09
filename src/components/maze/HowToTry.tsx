@@ -6,7 +6,7 @@ import { inkSeed, strokeCenterline } from '../../ink';
 import { recognize, slotKey } from '../../strokes';
 import { TUTORIAL, offersMore, practiceGoals, practiceStep, withArticle, type Ghost, type Step } from '../../tutorial';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
-import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift, trayCentring } from './WordEditor';
+import { CELL_TOP, CELL_W, WordEditor, centerOffset, fingerLift, pointing, trayCentring } from './WordEditor';
 
 /** The practice tray: a long bar, a bar, a chevron and an arc (every stroke the steps use). More practice gets the whole tray. */
 const TRAY: TileId[] = ['LV', 'H', 'BV', 'C'];
@@ -263,11 +263,21 @@ function GhostMove({ plan, content, geo, touch, still }: { plan: Ghost; content:
     const p = at(g.x, g.y);
     const rot = plan.at.rot ?? 0;
     duration = 2.6;
-    // Two taps or clicks, and it turns over.
-    times = [0, 0.1, 0.2, 0.28, 0.36, 0.44, 0.7, 0.86, 1];
-    pointer = { x: hold(9, p.x), y: hold(9, p.y), opacity: [0, 1, 1, 1, 1, 1, 1, 0, 0], scale: [1, 1, 0.85, 1, 0.85, 1, 1, 1, 1] };
-    ring = [0, 0, 0.7, 0, 0.7, 0, 0, 0, 0];
-    copy = { tile: plan.at.tile, rot, seed: inkSeed(plan.at), x: hold(9, spot.x), y: hold(9, spot.y), opacity: [0, 0, 0, 0, 0, 0.8, 0.8, 0, 0], scale: hold(9, 1), rotate: [0, 0, 0, 0, 0, 0, 180, 180, 180] };
+    if (touch) {
+      // Two taps, and it turns over.
+      times = [0, 0.1, 0.2, 0.28, 0.36, 0.44, 0.7, 0.86, 1];
+      pointer = { x: hold(9, p.x), y: hold(9, p.y), opacity: [0, 1, 1, 1, 1, 1, 1, 0, 0], scale: [1, 1, 0.85, 1, 0.85, 1, 1, 1, 1] };
+      ring = [0, 0, 0.7, 0, 0.7, 0, 0, 0, 0];
+      copy = { tile: plan.at.tile, rot, seed: inkSeed(plan.at), x: hold(9, spot.x), y: hold(9, spot.y), opacity: [0, 0, 0, 0, 0, 0.8, 0.8, 0, 0], scale: hold(9, 1), rotate: [0, 0, 0, 0, 0, 0, 180, 180, 180] };
+    } else {
+      // Press it, swipe a little the way it will point (up for a V, right for a C), and let go:
+      // it lifts, turns over on its spot as the swipe goes, and settles there.
+      times = [0, 0.1, 0.2, 0.4, 0.48, 0.62, 0.85, 1];
+      const [dx, dy] = pointing(plan.at.tile, rot + 180);
+      const to = { x: p.x + dx * 0.8 * k, y: p.y + dy * 0.8 * k };
+      pointer = { x: [p.x, p.x, p.x, to.x, to.x, to.x, to.x, to.x], y: [p.y, p.y, p.y, to.y, to.y, to.y, to.y, to.y], opacity: [0, 1, 1, 1, 1, 1, 0, 0], scale: [1, 1, 0.85, 0.85, 1, 1, 1, 1] };
+      copy = { tile: plan.at.tile, rot, seed: inkSeed(plan.at), x: hold(8, spot.x), y: hold(8, spot.y), opacity: [0, 0, 0.8, 0.8, 0.8, 0.8, 0, 0], scale: [1, 1, 1.08, 1.08, 1, 1, 1, 1], rotate: [0, 0, 0, 180, 180, 180, 180, 180] };
+    }
   } else {
     // Point at the bar, tap or click (with a mouse it reddens first, as hovering does), and it goes.
     const spot = at(plan.at.x, plan.at.y);

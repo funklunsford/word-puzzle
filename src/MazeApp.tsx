@@ -704,13 +704,13 @@ export function MazeApp() {
                   </div>
                   <p className="help-lead">Turn one word into another, in as few strokes as you can.</p>
                   <HowToTry touch={coarse} />
-                  {/* Touch screens and mouse play differently (tap vs click; a mouse can also swipe to turn), so each gets its own. */}
+                  {/* Touch screens and mouse play differently (tap vs click; a finger double-taps to turn, a mouse swipes), so each gets its own. */}
                   <ul className="how">
                     <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
                       <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it.</li>
                     ) : (
-                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, double-click it, or swipe as you place it.</li>
+                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, swipe it as you place it.</li>
                     )}
                     <li>Going back to a word you've visited is free.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint.</li>

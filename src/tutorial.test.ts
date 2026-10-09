@@ -35,6 +35,19 @@ describe("How to play's practice", () => {
     expect(first.next([])).toBeNull();
   });
 
+  it('teaches turning with a swipe on a mouse, and a double-tap on a touch screen', () => {
+    const turns = TUTORIAL.map((s) => s.next(fresh(s.start))).filter((plan) => plan?.ghost.kind === 'turn');
+    expect(turns.length).toBe(2); // V → A and C → D
+    for (const plan of turns) {
+      expect(plan!.say.mouse).toMatch(/^Swipe the [VC] /);
+      expect(plan!.say.touch).toMatch(/^Double-tap /);
+    }
+    expect(sayMove({ kind: 'turn', at: { tile: 'BV', x: 1, y: 1 } }, 'A')).toEqual({
+      touch: 'Make an A: double-tap the stroke shown to turn it.',
+      mouse: 'Make an A: swipe the stroke shown to turn it.',
+    });
+  });
+
   it('offers more practice only once the last of the five moves is made', () => {
     TUTORIAL.forEach((_, i) => {
       expect(offersMore(i, false), `move ${i + 1}, not yet made`).toBe(false);
