@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, type TileId } from '../../glyphs';
+import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, type Placement, type TileId } from '../../glyphs';
 import { inkOutline, inkSeed } from '../../ink';
 import { TileStroke } from '../Glyph';
 
@@ -8,6 +8,18 @@ const GAP = 0.7;
 const SPACE = 1.6;
 /** The wordmark's pen: a fifth broader than the game's, so the name stands out but still matches the tray. */
 const BOLD = 1.2;
+/**
+ * A pen nib before the D, from strokes the name doesn't use: the two slashes for its point, the
+ * small chevron for its shoulders and a long bar for its slit. It's 2 by 3 units, drawn at `scale`
+ * to stand a cap height tall, `gap` before the D.
+ */
+const NIB_PARTS: Placement[] = [
+  { tile: 'LB', x: -0.5, y: 0.5 },
+  { tile: 'LD', x: 0.5, y: 0.5 },
+  { tile: 'SC', x: 0, y: -1, rot: 180 },
+  { tile: 'LV', x: 0, y: 0.5 },
+];
+const NIB = { scale: 0.66, gap: 0.85 };
 /**
  * Ink run down from the D's bowl (its letter and part), `x` right of its stem: a neck `neck` wide
  * each side, flaring where it leaves the stroke, down to a teardrop of radius `drop` whose centre is
@@ -27,29 +39,35 @@ interface Placed {
   y: number;
   rot: number;
   seed: number;
+  /** How big it's drawn: 1 in the name, smaller in the nib. */
+  scale: number;
   /** Where its part tile sits, relative to the stroke's place in the wordmark. */
   from: { x: number; y: number; rot: number };
 }
 
-/** Lay out the wordmark and the parts row, and work out where each stroke flies in from. */
+/** Lay out the wordmark (the nib, then the name) and the parts row, and work out where each stroke flies in from. */
 function layout() {
-  let x = 0;
   const raw: Omit<Placed, 'from'>[] = [];
+  // The nib, its middle level with the letters' middle.
+  for (const [pi, p] of NIB_PARTS.entries()) {
+    raw.push({ key: `nib-${pi}`, tile: p.tile, x: NIB.scale * (1 + p.x), y: 1 + NIB.scale * p.y, rot: p.rot ?? 0, seed: inkSeed(p), scale: NIB.scale });
+  }
+  let x = 2 * NIB.scale + NIB.gap;
   for (const [li, ch] of [...WORDMARK].entries()) {
     if (ch === ' ') {
       x += SPACE - GAP;
       continue;
     }
     for (const [pi, p] of LETTERS[ch].parts.entries()) {
-      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
+      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p), scale: 1 });
     }
     x += drawnWidth(ch) + GAP;
   }
-  const wordWidth = x - GAP;
+  const markWidth = x - GAP;
   const rowWidth = TILE_IDS.length * PART + (TILE_IDS.length - 1) * PART_GAP;
   // Centre the wordmark and the parts row in whichever is wider.
-  const width = Math.max(wordWidth, rowWidth);
-  const strokes = raw.map((s) => ({ ...s, x: s.x + (width - wordWidth) / 2 }));
+  const width = Math.max(markWidth, rowWidth);
+  const strokes = raw.map((s) => ({ ...s, x: s.x + (width - markWidth) / 2 }));
   const rowStart = (width - rowWidth) / 2 + PART / 2;
   const parts = TILE_IDS.map((tile, i) => ({ tile, x: rowStart + i * (PART + PART_GAP), y: PART_Y }));
   const placed: Placed[] = strokes.map((s) => {
@@ -102,8 +120,9 @@ const DROP = (() => {
   const ys = [...steps(-3 * r, -r / 3, 8), ...steps(-r / 3, r, 16).slice(1)];
   return symmetric(ys, (y) => (y <= -r / 3 ? (y + 3 * r) / Math.sqrt(8) : Math.sqrt(Math.max(0, r * r - y * y))));
 })();
-/** Once the D has landed, a bead of ink swells under it, then creeps down and stops. */
-const DRIP_RUN = { delay: 1.05, duration: 1.8, times: [0, 0.2, 1], ease: 'easeOut' as const };
+/** Once the D has landed (`LANDED` after its bowl sets off), a bead of ink swells under it, then creeps down and stops. */
+const DRIP_RUN = { duration: 1.8, times: [0, 0.2, 1], ease: 'easeOut' as const };
+const LANDED = 0.8;
 
 /** When the `i`th stroke sets off for its letter (its fade in, too). */
 const setOff = (i: number) => 0.2 + i * 0.045;
@@ -114,10 +133,11 @@ const setOff = (i: number) => 0.2 + i * 0.045;
  * never hangs there before the letter does.
  */
 function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order: number }) {
+  const run = { ...DRIP_RUN, delay: setOff(order) + LANDED };
   return (
     <g className="drip" transform={`translate(${x} ${y})`} fill={`var(--t-${tile})`}>
       <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15, delay: setOff(order) }}>
-        <motion.path d={NECK} style={{ originY: 0 }} initial={{ scaleY: 0 }} animate={{ scaleY: [0, 0, 1] }} transition={DRIP_RUN} />
+        <motion.path d={NECK} style={{ originY: 0 }} initial={{ scaleY: 0 }} animate={{ scaleY: [0, 0, 1] }} transition={run} />
         <g transform={`translate(0 ${DRIP.len})`}>
           <motion.path
             d={DROP}
@@ -125,7 +145,7 @@ function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order
             style={{ originY: 0.75 }}
             initial={{ y: -DRIP.len, scale: 0 }}
             animate={{ y: [-DRIP.len, -DRIP.len, 0], scale: [0, 0.7, 1] }}
-            transition={DRIP_RUN}
+            transition={run}
           />
         </g>
       </motion.g>
@@ -134,10 +154,10 @@ function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order
 }
 
 /**
- * The header graphic: the ten strokes as a parts row, and the wordmark built from them. On load
- * every stroke leaves its part tile, turns and snaps into its letter, the way players build words.
- * On phones (`compact`) only the wordmark is shown, its strokes flying in from above, to leave
- * the screen to the game.
+ * The header graphic: the nine strokes as a parts row, and the wordmark built from them (a pen nib
+ * and the name). On load every stroke leaves its part tile, turns and snaps into place, the way
+ * players build words. On phones (`compact`) only the wordmark is shown, its strokes flying in from
+ * above, to leave the screen to the game.
  */
 /** The wordmark, with an optional line under it (the daily's number and date), and buttons in its corner (the gear). */
 export function Masthead({ compact = false, dateline, actions }: { compact?: boolean; dateline?: string; actions?: React.ReactNode }) {
@@ -166,10 +186,11 @@ export function Masthead({ compact = false, dateline, actions }: { compact?: boo
           <g key={s.key} transform={`translate(${s.x} ${s.y})`}>
             <motion.g
               initial={{ x: s.from.x, y: s.from.y, rotate: s.from.rot, scale: PART_SCALE, opacity: 0 }}
-              animate={{ x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 }}
+              animate={{ x: 0, y: 0, rotate: 0, scale: s.scale, opacity: 1 }}
               transition={{ type: 'spring', bounce: 0.2, duration: 0.7, delay: setOff(i), opacity: { duration: 0.15, delay: setOff(i) } }}
             >
-              <TileStroke tile={s.tile} rot={s.rot} seed={s.seed} weight={BOLD} />
+              {/* A smaller stroke gets a broader pen, so the nib's lines are as thick as the letters'. */}
+              <TileStroke tile={s.tile} rot={s.rot} seed={s.seed} weight={BOLD / s.scale} />
             </motion.g>
           </g>
         ))}

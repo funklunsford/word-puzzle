@@ -766,3 +766,11 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The drip** hangs from the D's bowl, 0.36 units right of its stem, in the bowl's colour. It's a thin neck that flares where it leaves the ink (tilted to the bowl's edge, so no corner of it shows) and runs into a teardrop whose centre is 0.42 below the ink.
 - **Its motion:** once the D has landed (1.05 s), a bead swells under the bowl, then creeps down and stops (1.8 s in all). With less motion it's drawn whole, fading in with the bowl.
 - **The share card, link preview and tab icon** keep the regular wordmark.
+
+## A pen nib before the name (2026-10-10, branch `rename-diplet`)
+- **The problem:** DIPLET is built from only 4 of the 9 strokes (six long bars, five bars, one arc, one bowl), so the header barely shows the strokes the game is played with. Each letter has exactly one build in the game, so the name's own strokes can't change without showing letters players can't make.
+- **The owner's choice:** a pen nib before the D, built from strokes the name doesn't use: the two slashes for its point, the small chevron for its shoulders and a long bar for its slit (`NIB_PARTS` in `src/components/maze/Masthead.tsx`). With it the header shows 7 of the 9 strokes, and a nib beside the dripping D reads as a pen dipped in ink.
+- **How it's drawn:** the nib is 2 by 3 units, drawn at 0.66 so it stands a cap height tall, 0.85 before the D. Its strokes get a pen broadened to match (`BOLD / scale`), so its lines are as thick as the letters'. The nib and the name are centred together under the parts row.
+- **On load** the nib's strokes fly in from their tiles first, then the letters, left to right; the drip starts once the D has landed (0.8 s after its bowl sets off). With less motion everything fades in in place.
+- **Tried and dropped:** an ink drop and a tilted nib (both clumsy, and the tail read as a stubby block), all nine strokes in a 3 × 3 grid (busy), and each stroke set a little apart from its stem (shows how letters are built, but adds no new strokes).
+- **Not changed yet:** the share card, link preview and tab icon still show the name alone.
