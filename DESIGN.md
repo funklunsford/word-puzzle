@@ -759,3 +759,10 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - the address, https://funklunsford.github.io/strokes/ (the `funklunsford/strokes` repo), so links already shared keep working. GitHub doesn't redirect a Pages site when its repo is renamed, so moving it would break them;
   - the saved-data keys (`strokes:prefs`, `strokes:theme`, `strokes:hardcore`, `strokes:seen-help`, `strokes:flags`, `strokes:result…`), so no one loses their settings or results;
   - names in the code (`src/strokes.ts`, `STROKES_REPO`, the `STROKES_DEPLOY_KEY` secret) and the older notes, including the 4-letter celebration runbook.
+
+## A bold wordmark, with ink dripping from the D (2026-10-10, branch `rename-diplet`)
+- **The owner's ask:** the name at the top in bold, and the D dripping a little ink.
+- **Bold:** the header's wordmark is drawn with a pen half as broad again (`BOLD` in `src/components/maze/Masthead.tsx`, through a new `weight` for `inkOutline`), so the nib's thick and thin parts stay. The parts row above it, and every stroke in the game, keep the usual pen.
+- **The drip** hangs from the D's bowl, 0.36 units right of its stem, in the bowl's colour. It's a thin neck that flares where it leaves the ink (tilted to the bowl's edge, so no corner of it shows) and runs into a teardrop whose centre is 0.42 below the ink.
+- **Its motion:** once the D has landed (1.05 s), a bead swells under the bowl, then creeps down and stops (1.8 s in all). With less motion it's drawn whole, fading in with the bowl.
+- **The share card, link preview and tab icon** keep the regular wordmark.

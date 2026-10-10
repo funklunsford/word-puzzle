@@ -22,14 +22,16 @@ interface TileStrokeProps {
   squeeze?: number;
   /** Draw it as its formed letter shows it (U's cup, G's chin); see Look. */
   look?: Look;
+  /** Broaden the pen (see inkOutline): the wordmark is drawn bold. */
+  weight?: number;
 }
 
 /** One stroke, drawn in ink (see ink.ts). The only place strokes are rendered. */
-export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink', squeeze = 1, look }: TileStrokeProps) {
+export function TileStroke({ tile, rot = 0, x = 0, y = 0, minHalfWidth = 0, seed, fill, className = 'ink', squeeze = 1, look, weight = 1 }: TileStrokeProps) {
   return (
     <path
       className={className}
-      d={inkOutline(tile, rot, seed ?? inkSeed({ tile, x, y, rot }), minHalfWidth, squeeze, look, [x, y])}
+      d={inkOutline(tile, rot, seed ?? inkSeed({ tile, x, y, rot }), minHalfWidth, squeeze, look, [x, y], weight)}
       transform={x || y ? `translate(${x} ${y})` : undefined}
       fill={fill ?? `var(--t-${tile})`}
     />

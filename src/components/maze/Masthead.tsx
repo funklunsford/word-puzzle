@@ -1,11 +1,19 @@
 import { motion } from 'motion/react';
-import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth } from '../../glyphs';
-import { inkSeed } from '../../ink';
+import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, type TileId } from '../../glyphs';
+import { inkOutline, inkSeed } from '../../ink';
 import { TileStroke } from '../Glyph';
 
 const WORDMARK = 'DIPLET';
 const GAP = 0.7;
 const SPACE = 1.6;
+/** The wordmark's pen: half as broad again as the game's, so the name reads bold. */
+const BOLD = 1.5;
+/**
+ * Ink run down from the D's bowl (its letter and part), `x` right of its stem: a neck `neck` wide
+ * each side, flaring where it leaves the stroke, down to a teardrop of radius `drop` whose centre is
+ * `len` below the ink's edge.
+ */
+const DRIP = { letter: 0, part: 1, x: 0.36, len: 0.42, neck: 0.05, flare: 0.07, drop: 0.1 };
 /** Parts row: one tile per stroke type, above the wordmark. */
 const PART = 1.6;
 const PART_GAP = 0.45;
@@ -48,11 +56,82 @@ function layout() {
     const part = parts.find((p) => p.tile === s.tile)!;
     return { ...s, from: { x: part.x - s.x, y: part.y - s.y, rot: (TILES[s.tile].display ?? 0) - s.rot } };
   });
-  return { width, parts, placed };
+  const stem = strokes.find((s) => s.key === `${DRIP.letter}-0`)!;
+  const bowl = strokes.find((s) => s.key === `${DRIP.letter}-${DRIP.part}`)!;
+  const hang = stem.x + DRIP.x;
+  // The ink's lower edge there, and how it slopes (the bowl curves up towards its right).
+  const slope = (inkFoot(bowl, hang + 0.1) - inkFoot(bowl, hang - 0.1)) / 0.2;
+  return { width, parts, placed, drip: { tile: bowl.tile, x: hang, y: inkFoot(bowl, hang), slope, order: strokes.indexOf(bowl) } };
 }
 
-const { width, parts, placed } = layout();
+/** How far down a placed stroke's ink reaches at `x` (its outline has a point about every 0.02 units). */
+function inkFoot(s: Omit<Placed, 'from'>, x: number) {
+  const nums = inkOutline(s.tile, s.rot, s.seed, 0, 1, undefined, [0, 0], BOLD).match(/-?\d*\.?\d+/g)!.map(Number);
+  let foot = -Infinity;
+  for (let i = 0; i < nums.length; i += 2) if (Math.abs(nums[i] + s.x - x) < 0.03) foot = Math.max(foot, nums[i + 1]);
+  return s.y + foot;
+}
+
+const { width, parts, placed, drip } = layout();
 const PAD = 0.5;
+
+/**
+ * A closed outline about x = 0, `half(y)` wide each side at each of `ys`, its sides lifted by
+ * `tilt(y)` per unit out (right side up for a negative tilt).
+ */
+function symmetric(ys: number[], half: (y: number) => number, tilt: (y: number) => number = () => 0) {
+  const at = (x: number, y: number) => `${x.toFixed(3)} ${(y + tilt(y) * x).toFixed(3)}`;
+  return `M${ys.map((y) => at(-half(y), y)).join(' L')} L${[...ys].reverse().map((y) => at(half(y), y)).join(' L')} Z`;
+}
+const steps = (from: number, to: number, n: number) => Array.from({ length: n + 1 }, (_, i) => from + ((to - from) * i) / n);
+/**
+ * The drip's neck, from inside the ink down to the drop's centre: thinning a little, and flaring
+ * where it leaves the stroke, the flare tilted to the ink's edge (`slope`) so none of it shows above.
+ */
+function neck(slope: number) {
+  const flare = (y: number) => Math.exp(-Math.max(0, y) / 0.05);
+  return symmetric(steps(-0.08, DRIP.len, 30), (y) => DRIP.neck * (1 - (0.2 * Math.max(0, y)) / DRIP.len) + DRIP.flare * flare(y), (y) => slope * flare(y));
+}
+const NECK = neck(drip.slope);
+/**
+ * The drop, centred on the origin: a circle drawn up into a point 3 radii above its centre, so the
+ * neck swells into it (the sides run on tangent to the circle from a third of a radius above it).
+ */
+const DROP = (() => {
+  const r = DRIP.drop;
+  const ys = [...steps(-3 * r, -r / 3, 8), ...steps(-r / 3, r, 16).slice(1)];
+  return symmetric(ys, (y) => (y <= -r / 3 ? (y + 3 * r) / Math.sqrt(8) : Math.sqrt(Math.max(0, r * r - y * y))));
+})();
+/** Once the D has landed, a bead of ink swells under it, then creeps down and stops. */
+const DRIP_RUN = { delay: 1.05, duration: 1.8, times: [0, 0.2, 1], ease: 'easeOut' as const };
+
+/** When the `i`th stroke sets off for its letter (its fade in, too). */
+const setOff = (i: number) => 0.2 + i * 0.045;
+
+/**
+ * Ink run down from the D's bowl (see DRIP), hanging from `x, y` on the ink's lower edge. It fades
+ * in with the bowl (the `order`th stroke), so with less motion, when it's drawn whole at once, it
+ * never hangs there before the letter does.
+ */
+function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order: number }) {
+  return (
+    <g className="drip" transform={`translate(${x} ${y})`} fill={`var(--t-${tile})`}>
+      <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15, delay: setOff(order) }}>
+        <motion.path d={NECK} style={{ originY: 0 }} initial={{ scaleY: 0 }} animate={{ scaleY: [0, 0, 1] }} transition={DRIP_RUN} />
+        <g transform={`translate(0 ${DRIP.len})`}>
+          <motion.path
+            d={DROP}
+            // Grow about the drop's centre, three quarters of the way down its outline.
+            style={{ originY: 0.75 }}
+            initial={{ y: -DRIP.len, scale: 0 }}
+            animate={{ y: [-DRIP.len, -DRIP.len, 0], scale: [0, 0.7, 1] }}
+            transition={DRIP_RUN}
+          />
+        </g>
+      </motion.g>
+    </g>
+  );
+}
 
 /**
  * The header graphic: the ten strokes as a parts row, and the wordmark built from them. On load
@@ -82,14 +161,15 @@ export function Masthead({ compact = false, dateline, actions }: { compact?: boo
             </g>
           </g>
         ))}
+        <Drip x={drip.x} y={drip.y} tile={drip.tile} order={drip.order} />
         {placed.map((s, i) => (
           <g key={s.key} transform={`translate(${s.x} ${s.y})`}>
             <motion.g
               initial={{ x: s.from.x, y: s.from.y, rotate: s.from.rot, scale: PART_SCALE, opacity: 0 }}
               animate={{ x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', bounce: 0.2, duration: 0.7, delay: 0.2 + i * 0.045, opacity: { duration: 0.15, delay: 0.2 + i * 0.045 } }}
+              transition={{ type: 'spring', bounce: 0.2, duration: 0.7, delay: setOff(i), opacity: { duration: 0.15, delay: setOff(i) } }}
             >
-              <TileStroke tile={s.tile} rot={s.rot} seed={s.seed} />
+              <TileStroke tile={s.tile} rot={s.rot} seed={s.seed} weight={BOLD} />
             </motion.g>
           </g>
         ))}
