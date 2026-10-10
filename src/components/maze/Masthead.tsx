@@ -6,8 +6,8 @@ import { TileStroke } from '../Glyph';
 const WORDMARK = 'DIPLET';
 const GAP = 0.7;
 const SPACE = 1.6;
-/** The wordmark's pen: half as broad again as the game's, so the name reads bold. */
-const BOLD = 1.5;
+/** The wordmark's pen: a fifth broader than the game's, so the name stands out but still matches the tray. */
+const BOLD = 1.2;
 /**
  * Ink run down from the D's bowl (its letter and part), `x` right of its stem: a neck `neck` wide
  * each side, flaring where it leaves the stroke, down to a teardrop of radius `drop` whose centre is
