@@ -6,8 +6,8 @@ import { PUZZLE_SHAPES, buildGraph, classifyNeed, isObvious, routeWords, solve }
 import { STEP_LIMIT, wordDistance } from '../strokes';
 import { DAYS, DAYS_5, LAUNCH, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
 
-/** 5-letter days checked in before the pool's puzzles grew to 15–18 strokes. */
-const EARLIER_FIVE = ['2026-10-07'];
+/** 5-letter days picked while the pool's puzzles ran 15–18 strokes (2026-10-09), with that range. */
+const EARLIER_FIVE: Record<string, readonly [number, number]> = { '2026-10-08': [15, 18], '2026-10-09': [15, 18] };
 const files = (glob: Record<string, DailyPuzzle>) => Object.entries(glob).map(([path, day]) => ({ file: path.slice(path.lastIndexOf('/') + 1), day }));
 /** Each game's days, against its own words: the 4-letter one, and the desktop's 5-letter one. */
 const games = [
@@ -86,11 +86,10 @@ describe('the daily puzzles', () => {
           });
 
           // The first 4-letter daily is the original puzzle, WILD → TAME (lowest 13); the rest come from the pool.
-          // The first 5-letter daily, SNARE → SHOUT (lowest 14), came from the pool before its puzzles
-          // grew from 12–15 strokes to 15–18 (2026-10-09).
+          // 5-letter days picked while the pool's puzzles ran another length keep that length.
           if (letters !== 4 || day.date !== LAUNCH)
             it("fits the pool's rules: tricky, at the game's length", () => {
-              const [lo, hi] = letters === 5 && EARLIER_FIVE.includes(day.date) ? [12, 15] : PUZZLE_SHAPES[letters].best;
+              const [lo, hi] = (letters === 5 && EARLIER_FIVE[day.date]) || PUZZLE_SHAPES[letters].best;
               expect(day.tricky).toBe(true);
               expect(best).toBeGreaterThanOrEqual(lo);
               expect(best).toBeLessThanOrEqual(hi);

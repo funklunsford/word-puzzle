@@ -730,3 +730,19 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   The ochre V is a deep amber at 6.5:1 rather than 8:1, since no yellow that dark is still golden. The closest two strokes (short bar and bowl) are further apart than the closest two in dark (OKLab 0.059 against 0.048), so none is harder to tell from another.
 - **Accents** (light only): gold #d9a520 → #ad8211 (3.5:1, the goal ring and label), grey text #8b8794 → #6d6976 (5.3:1, as in dark), success green #5e8c4f → #497c38, warning orange #e4572e → #d4410d, and the remove red #e5484d → #df2c3b (about 4.6–5:1).
 - **The share card and link preview** are always drawn on paper, so they take the same colours (`PAPER` in `src/share.ts`). `public/og.png` was redrawn with `drawPreviewCard`.
+
+## A door shorter: 12–15 strokes again, with the meet rule (2026-10-09, branch `fewer-doors`)
+- **The owner's call:** the game felt a bit difficult, so lower the average doors (steps) a puzzle takes by one. A step changes at most 3 strokes, so fewer doors means fewer strokes too. Trial pools, all with the meet rule (scored by `scripts/difficulty-study.ts`, share of games at par):
+
+  | | 15–18 (before) | **12–15 (now)** | 13–15 | 12–16 | 12–15, at most 5 doors |
+  |---|---|---|---|---|---|
+  | lowest strokes / doors, average | 16.5 / 6.08 | **13.5 / 5.17** | 14.0 / 5.23 | 14.0 / 5.37 | 13.5 / 5.00 |
+  | working 3 back from the goal (the owner's strategy) | 7% | **13%** | 13% | 12% | 14% |
+  | working 4 back | 35% | **89%** | 85% | 74% | 100% |
+  | planner from both ends, 20 looks | 55% | **87%** | 84% | 79% | 91% |
+  | forward planner, 20 looks | 32% | **66%** | 60% | 55% | 67% |
+  | forward walker within 2 strokes | 5% | **10%** | 8% | 8% | 10% |
+
+- **The pool** (`PUZZLE_SHAPES[5]`): lowest strokes 12–15 over 4–8 doors (5.17 on average: 348 puzzles of 5 doors, 71 of 6, 1 of 7), still picked by the meet rule, so working back 3 doors from the goal never solves one by rule of thumb. 420 puzzles from 9,791 candidates; 461 different start and goal words. Capping the doors at 5 would hit the target exactly, but every puzzle would be the same length and easier still.
+- **Days already published** (MINER → CHEER, POUCH → BATCH) keep their 15–18 puzzles; their test allows that range for them.
+- **`scripts/mazes.ts --steps 4-5`** builds a pool with another range of doors, for comparisons like the one above.

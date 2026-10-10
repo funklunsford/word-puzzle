@@ -93,13 +93,14 @@ export const PUZZLE_SHAPE = { best: [9, 11], steps: [3, 8] } as const;
 
 /**
  * The shape by word length. Five-letter words sit much farther apart (33 strokes between two words
- * typically, against 19), so their puzzles run longer: 15–18 strokes, over 4–8 words (12–15 until
- * 2026-10-09, when the difficulty study showed working back from the goal beat the shorter ones; see
- * docs/difficulty-5-letters.md).
+ * typically, against 19), so their puzzles run longer: 12–15 strokes, over 4–8 words (about 5 doors).
+ * They were 15–18 for a day (2026-10-09), when the difficulty study showed working back from the goal
+ * beat the shorter ones; picking them by the study's rule instead (see scripts/mazes.ts) holds that
+ * off at this length, a door shorter (docs/difficulty-5-letters.md).
  */
 export const PUZZLE_SHAPES: Record<number, { best: readonly [number, number]; steps: readonly [number, number] }> = {
   4: PUZZLE_SHAPE,
-  5: { best: [15, 18], steps: [4, 8] },
+  5: { best: [12, 15], steps: [4, 8] },
 };
 
 /**
