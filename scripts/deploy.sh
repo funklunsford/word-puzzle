@@ -24,7 +24,7 @@ grep '^#' data/familiar-4.txt | sed -E 's/^# ?//' > dist/licenses/SCOWL.txt
 cp data/WORDNET-LICENSE.txt dist/licenses/WORDNET.txt
 touch dist/.nojekyll # serve files as they are
 cat > dist/README.md <<'MD'
-# Strokes
+# Diplet
 
 A word maze where every letter is built from pen strokes. Play it at https://funklunsford.github.io/strokes/
 
@@ -69,15 +69,15 @@ cd "$SITE"
 git init -q -b main
 git add -A
 if [ -n "${DEPLOY_KEY:-}" ]; then
-  git commit -q -m "Deploy Strokes (source ${SOURCE})"
+  git commit -q -m "Deploy Diplet (source ${SOURCE})"
 else
-  git commit -q -m "Deploy Strokes (source ${SOURCE})
+  git commit -q -m "Deploy Diplet (source ${SOURCE})
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 fi
 
 if [ "$EXISTS" != true ]; then
-  gh repo create "$REPO" --public --description "Strokes: a word maze where every letter is built from pen strokes"
+  gh repo create "$REPO" --public --description "Diplet: a word maze where every letter is built from pen strokes"
 fi
 git ${AUTH[@]+"${AUTH[@]}"} push -q --force "$REMOTE" main
 if [ -z "${DEPLOY_KEY:-}" ] && ! gh api "repos/${REPO}/pages" >/dev/null 2>&1; then

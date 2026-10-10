@@ -746,3 +746,16 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The pool** (`PUZZLE_SHAPES[5]`): lowest strokes 12–15 over 4–8 doors (5.17 on average: 348 puzzles of 5 doors, 71 of 6, 1 of 7), still picked by the meet rule, so working back 3 doors from the goal never solves one by rule of thumb. 420 puzzles from 9,791 candidates; 461 different start and goal words. Capping the doors at 5 would hit the target exactly, but every puzzle would be the same length and easier still.
 - **Days already published** (MINER → CHEER, POUCH → BATCH) keep their 15–18 puzzles; their test allows that range for them.
 - **`scripts/mazes.ts --steps 4-5`** builds a pool with another range of doors, for comparisons like the one above.
+
+## Renamed Diplet (2026-10-10, branch `rename-diplet`)
+- **The owner's call:** the game is now **Diplet**, from a doublet (Lewis Carroll's name for turning one word into another, step by step) and dipping a pen in ink, since every letter here is drawn stroke by stroke.
+- **What changed:**
+  - the header's wordmark (`WORDMARK` in `src/components/maze/Masthead.tsx`), still built from the parts row as the page loads. DIPLET is 8.5 units wide where STROKES was 12.7, but the parts row (18 units) still sets the header's size, so its letters are as big as before;
+  - the page title and link-preview tags (`index.html`), and the link preview itself (`public/og.png`, redrawn with `drawPreviewCard`). Its tag asks for `og.png?v=diplet`, so apps that cached the old picture by its address fetch the new one;
+  - the share card's wordmark, the share title ("Diplet No. 4 · 5 letters"), its alt text and the saved file's name (`diplet-4.png`);
+  - the browser-tab icon: the wordmark's D, in the same ink and board colours as the S was (`scripts/favicon.ts` → `public/favicon.svg`);
+  - the README, the daily runbook and `/daily`, and the README and commit message `scripts/deploy.sh` writes to the site's repo.
+- **What didn't:**
+  - the address, https://funklunsford.github.io/strokes/ (the `funklunsford/strokes` repo), so links already shared keep working. GitHub doesn't redirect a Pages site when its repo is renamed, so moving it would break them;
+  - the saved-data keys (`strokes:prefs`, `strokes:theme`, `strokes:hardcore`, `strokes:seen-help`, `strokes:flags`, `strokes:result…`), so no one loses their settings or results;
+  - names in the code (`src/strokes.ts`, `STROKES_REPO`, the `STROKES_DEPLOY_KEY` secret) and the older notes, including the 4-letter celebration runbook.

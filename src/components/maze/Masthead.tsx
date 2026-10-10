@@ -3,7 +3,7 @@ import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth } from '../../glyphs';
 import { inkSeed } from '../../ink';
 import { TileStroke } from '../Glyph';
 
-const WORDMARK = 'STROKES';
+const WORDMARK = 'DIPLET';
 const GAP = 0.7;
 const SPACE = 1.6;
 /** Parts row: one tile per stroke type, above the wordmark. */
@@ -65,7 +65,7 @@ export function Masthead({ compact = false, dateline, actions }: { compact?: boo
   const top = compact ? -PAD : PART_Y - PART / 2 - PAD;
   return (
     <header className="masthead">
-      <svg className="masthead-art" viewBox={`${-PAD} ${top} ${width + 2 * PAD} ${2.4 + PAD - top}`} role="img" aria-label="Strokes">
+      <svg className="masthead-art" viewBox={`${-PAD} ${top} ${width + 2 * PAD} ${2.4 + PAD - top}`} role="img" aria-label="Diplet">
         {!compact && parts.map((p) => (
           <g key={p.tile} transform={`translate(${p.x} ${p.y})`}>
             <rect
