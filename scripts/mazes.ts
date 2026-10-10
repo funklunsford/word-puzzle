@@ -14,6 +14,7 @@
 //                  of 2 or more), with no pocket needed: the 5-letter default
 //   --rule pocket  pick puzzles that are tricky with a pocket beside the route: the 4-letter default
 //   --best 13-16   another range of lowest strokes
+//   --steps 4-5    another range of doors on the route (words after the start)
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { findPockets, isTricky, keep, measure, meetDepth, parChance, walkChance, type Difficulty } from '../src/difficulty';
@@ -26,12 +27,13 @@ const option = (name: string) => {
   return i >= 0 ? process.argv[i + 1] : undefined;
 };
 const LETTERS = Number(option('--letters') ?? 4);
-if (![4, 5].includes(LETTERS)) throw new Error('usage: vite-node scripts/mazes.ts [--letters 5] [--out FILE] [--rule meet] [--best 13-16]');
+if (![4, 5].includes(LETTERS)) throw new Error('usage: vite-node scripts/mazes.ts [--letters 5] [--out FILE] [--rule meet] [--best 13-16] [--steps 4-5]');
 const suffix = LETTERS === 4 ? '' : `-${LETTERS}`;
 const OUT = option('--out');
 const RULE = option('--rule') ?? (LETTERS === 5 ? 'meet' : 'pocket');
 if (!['pocket', 'meet'].includes(RULE)) throw new Error('--rule takes pocket or meet');
 const BEST = option('--best')?.split('-').map(Number) as [number, number] | undefined;
+const STEPS = option('--steps')?.split('-').map(Number) as [number, number] | undefined;
 
 // Opposites make a nice maze: WILD → TAME, 13 strokes over 5 rooms, all everyday words. Most
 // 5-letter opposites can't reach each other (BLACK, WHITE); SHARP → BLUNT can, in 20.
@@ -69,10 +71,10 @@ const inkPots = { pots, best: ink.best, walk: ink.walk };
 // holds out against working back from the goal: with the goal's side mapped 3 doors back, the way
 // there still takes planning 2 steps ahead (meetDepth; see src/difficulty.ts and
 // docs/difficulty-5-letters.md). Its mix is set by quota (POOL_MIXES in src/maze.ts), evenly across
-// the best totals (9, 10 and 11; 15 to 18 for 5-letter words, whose pool is balanced by best total
+// the best totals (9, 10 and 11; 12 to 15 for 5-letter words, whose pool is balanced by best total
 // alone).
 const POOL = 420;
-const SHAPE = BEST ? { ...PUZZLE_SHAPES[LETTERS], best: BEST } : PUZZLE_SHAPES[LETTERS];
+const SHAPE = { ...PUZZLE_SHAPES[LETTERS], ...(BEST && { best: BEST }), ...(STEPS && { steps: STEPS }) };
 const MIX = POOL_MIXES[LETTERS];
 const everyday = new Set(parseWordList(readFileSync(new URL(`../data/everyday-${LETTERS}.txt`, import.meta.url), 'utf8')));
 const definitions = JSON.parse(readFileSync(new URL(`../public/definitions${suffix}.json`, import.meta.url), 'utf8'));
