@@ -1,5 +1,6 @@
+import { useId } from 'react';
 import { motion } from 'motion/react';
-import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, type Placement, type TileId } from '../../glyphs';
+import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, type TileId } from '../../glyphs';
 import { inkOutline, inkSeed } from '../../ink';
 import { TileStroke } from '../Glyph';
 
@@ -9,17 +10,16 @@ const SPACE = 1.6;
 /** The wordmark's pen: a fifth broader than the game's, so the name stands out but still matches the tray. */
 const BOLD = 1.2;
 /**
- * A pen nib before the D, from strokes the name doesn't use: the two slashes for its point, the
- * small chevron for its shoulders and a long bar for its slit. It's 2 by 3 units, drawn at `scale`
- * to stand a cap height tall, `gap` before the D.
+ * A gold pen nib before the D, a cap height tall with its tip on the baseline: an arched top,
+ * rounded shoulders and sides sweeping in to a fine point, with a breather hole and a slit cut
+ * through it. It's `width` wide, `gap` before the D.
  */
-const NIB_PARTS: Placement[] = [
-  { tile: 'LB', x: -0.5, y: 0.5 },
-  { tile: 'LD', x: 0.5, y: 0.5 },
-  { tile: 'SC', x: 0, y: -1, rot: 180 },
-  { tile: 'LV', x: 0, y: 0.5 },
-];
-const NIB = { scale: 0.66, gap: 0.85 };
+const NIB = { width: 1.06, gap: 0.8 };
+const NIB_PATH =
+  'M0 0 Q0.22 -0.01 0.42 0.06 C0.5 0.2 0.54 0.38 0.53 0.55 C0.51 0.95 0.15 1.55 0 2 C-0.15 1.55 -0.51 0.95 -0.53 0.55 C-0.54 0.38 -0.5 0.2 -0.42 0.06 Q-0.22 -0.01 0 0 Z' +
+  ' M0.085 0.82 A0.085 0.085 0 1 0 -0.085 0.82 A0.085 0.085 0 1 0 0.085 0.82 Z M-0.02 0.905 L0.02 0.905 L0.01 1.97 L-0.01 1.97 Z';
+/** The ink it was dipped in, up to a wavy line across its lower part (clipped to the nib). */
+const NIB_INK = 'M-0.7 1.27 C-0.42 1.15 -0.2 1.35 0 1.25 C0.2 1.15 0.42 1.35 0.7 1.22 L0.7 2.1 L-0.7 2.1 Z';
 /**
  * Ink run down from the D's bowl (its letter and part), `x` right of its stem: a neck `neck` wide
  * each side, flaring where it leaves the stroke, down to a teardrop of radius `drop` whose centre is
@@ -39,8 +39,6 @@ interface Placed {
   y: number;
   rot: number;
   seed: number;
-  /** How big it's drawn: 1 in the name, smaller in the nib. */
-  scale: number;
   /** Where its part tile sits, relative to the stroke's place in the wordmark. */
   from: { x: number; y: number; rot: number };
 }
@@ -48,18 +46,15 @@ interface Placed {
 /** Lay out the wordmark (the nib, then the name) and the parts row, and work out where each stroke flies in from. */
 function layout() {
   const raw: Omit<Placed, 'from'>[] = [];
-  // The nib, its middle level with the letters' middle.
-  for (const [pi, p] of NIB_PARTS.entries()) {
-    raw.push({ key: `nib-${pi}`, tile: p.tile, x: NIB.scale * (1 + p.x), y: 1 + NIB.scale * p.y, rot: p.rot ?? 0, seed: inkSeed(p), scale: NIB.scale });
-  }
-  let x = 2 * NIB.scale + NIB.gap;
+  // The name starts after the nib.
+  let x = NIB.width + NIB.gap;
   for (const [li, ch] of [...WORDMARK].entries()) {
     if (ch === ' ') {
       x += SPACE - GAP;
       continue;
     }
     for (const [pi, p] of LETTERS[ch].parts.entries()) {
-      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p), scale: 1 });
+      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
     }
     x += drawnWidth(ch) + GAP;
   }
@@ -67,7 +62,8 @@ function layout() {
   const rowWidth = TILE_IDS.length * PART + (TILE_IDS.length - 1) * PART_GAP;
   // Centre the wordmark and the parts row in whichever is wider.
   const width = Math.max(markWidth, rowWidth);
-  const strokes = raw.map((s) => ({ ...s, x: s.x + (width - markWidth) / 2 }));
+  const left = (width - markWidth) / 2;
+  const strokes = raw.map((s) => ({ ...s, x: s.x + left }));
   const rowStart = (width - rowWidth) / 2 + PART / 2;
   const parts = TILE_IDS.map((tile, i) => ({ tile, x: rowStart + i * (PART + PART_GAP), y: PART_Y }));
   const placed: Placed[] = strokes.map((s) => {
@@ -79,7 +75,7 @@ function layout() {
   const hang = stem.x + DRIP.x;
   // The ink's lower edge there, and how it slopes (the bowl curves up towards its right).
   const slope = (inkFoot(bowl, hang + 0.1) - inkFoot(bowl, hang - 0.1)) / 0.2;
-  return { width, parts, placed, drip: { tile: bowl.tile, x: hang, y: inkFoot(bowl, hang), slope, order: strokes.indexOf(bowl) } };
+  return { width, parts, placed, nib: left + NIB.width / 2, drip: { tile: bowl.tile, x: hang, y: inkFoot(bowl, hang), slope, order: strokes.indexOf(bowl) } };
 }
 
 /** How far down a placed stroke's ink reaches at `x` (its outline has a point about every 0.02 units). */
@@ -90,7 +86,7 @@ function inkFoot(s: Omit<Placed, 'from'>, x: number) {
   return s.y + foot;
 }
 
-const { width, parts, placed, drip } = layout();
+const { width, parts, placed, nib, drip } = layout();
 const PAD = 0.5;
 
 /**
@@ -154,10 +150,44 @@ function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order
 }
 
 /**
- * The header graphic: the nine strokes as a parts row, and the wordmark built from them (a pen nib
- * and the name). On load every stroke leaves its part tile, turns and snaps into place, the way
- * players build words. On phones (`compact`) only the wordmark is shown, its strokes flying in from
- * above, to leave the screen to the game.
+ * The nib (see NIB), centred on `x`. It drops in first, then ink climbs its tip as if it had just
+ * been dipped.
+ */
+function Nib({ x }: { x: number }) {
+  const clip = useId();
+  return (
+    <g className="nib" transform={`translate(${x} 0)`}>
+      <motion.g
+        initial={{ y: -1.2, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', bounce: 0.2, duration: 0.7, delay: 0.1, opacity: { duration: 0.15, delay: 0.1 } }}
+      >
+        <defs>
+          <clipPath id={clip}>
+            <path d={NIB_PATH} clipRule="evenodd" />
+          </clipPath>
+        </defs>
+        <path d={NIB_PATH} fillRule="evenodd" fill="var(--gold)" />
+        <g clipPath={`url(#${clip})`}>
+          <motion.path
+            d={NIB_INK}
+            fill="var(--t-C)"
+            style={{ originY: 1 }}
+            initial={{ scaleY: 0 }}
+            animate={{ scaleY: 1 }}
+            transition={{ duration: 0.5, delay: 0.6, ease: 'easeOut' }}
+          />
+        </g>
+      </motion.g>
+    </g>
+  );
+}
+
+/**
+ * The header graphic: the nine strokes as a parts row, and the wordmark: a pen nib and the name
+ * built from the strokes. On load every stroke leaves its part tile, turns and snaps into its
+ * letter, the way players build words. On phones (`compact`) only the wordmark is shown, its
+ * strokes flying in from above, to leave the screen to the game.
  */
 /** The wordmark, with an optional line under it (the daily's number and date), and buttons in its corner (the gear). */
 export function Masthead({ compact = false, dateline, actions }: { compact?: boolean; dateline?: string; actions?: React.ReactNode }) {
@@ -181,16 +211,16 @@ export function Masthead({ compact = false, dateline, actions }: { compact?: boo
             </g>
           </g>
         ))}
+        <Nib x={nib} />
         <Drip x={drip.x} y={drip.y} tile={drip.tile} order={drip.order} />
         {placed.map((s, i) => (
           <g key={s.key} transform={`translate(${s.x} ${s.y})`}>
             <motion.g
               initial={{ x: s.from.x, y: s.from.y, rotate: s.from.rot, scale: PART_SCALE, opacity: 0 }}
-              animate={{ x: 0, y: 0, rotate: 0, scale: s.scale, opacity: 1 }}
+              animate={{ x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 }}
               transition={{ type: 'spring', bounce: 0.2, duration: 0.7, delay: setOff(i), opacity: { duration: 0.15, delay: setOff(i) } }}
             >
-              {/* A smaller stroke gets a broader pen, so the nib's lines are as thick as the letters'. */}
-              <TileStroke tile={s.tile} rot={s.rot} seed={s.seed} weight={BOLD / s.scale} />
+              <TileStroke tile={s.tile} rot={s.rot} seed={s.seed} weight={BOLD} />
             </motion.g>
           </g>
         ))}
