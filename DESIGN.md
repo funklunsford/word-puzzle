@@ -797,3 +797,12 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The lean:** the nib turns 20° about its middle (`NIB.tilt` in `src/components/maze/Masthead.tsx`), its point towards the D. The name is spaced from the leaning outline and then set 0.3 further off (`NIB.room`), so the nib stands a little apart from the word.
 - **The ink** (`.nib-ink` in `src/styles.css`) starts as the ink climbs the tip, 0.6 s in. Over 3 s it runs through the strokes' colours in tray order (long bar, bar, both slashes, tail, big chevron, small chevron, bowl) and settles on the arc's purple, the D's colour. It's a CSS animation, so it follows the light or dark palette; with less motion it's purple from the start.
 - **No bead at the nib's point:** the drop that swelled there was taken out (the owner's call); the D's drip stays.
+
+## Dailies merge themselves, every midnight (2026-10-10, branch `daily-auto-merge`)
+- **The owner's call:** run the daily every day at midnight Eastern, and merge each new daily in without waiting for a review.
+- **The runbook** (`docs/daily-prompt.md`, and `/daily`) now merges the pull request once every check in step 2 has passed. If a check fails, the pull request stays open with a note saying what failed.
+- **The schedule** is a task in the Claude app, `daily-puzzle`, at `0 0 * * *` in the Mac's local time (America/New_York, so midnight EDT or EST). It runs while the app is open; a run missed while the app was closed happens when it next opens.
+- **Each run:**
+  - stops if a daily pull request is still open;
+  - adds every missing day up to today as one batch;
+  - works in its own worktree (`.claude/worktrees/daily`) with its own dev server, so the owner's checkout is never touched.

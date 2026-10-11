@@ -2,7 +2,8 @@
 
 This is the runbook Claude follows to add a daily puzzle. Run it with `/daily` (optionally
 `/daily 2026-10-10`) from a Claude Code session in this repo, on a Mac with the dev server
-available, since step 2 looks at the puzzle in a browser.
+available, since step 2 looks at the puzzle in a browser. It also runs by itself every night at
+midnight Eastern (see "On a schedule" below).
 
 It makes one day. For a batch, follow it once per date, in date order, on one branch with one pull
 request.
@@ -60,4 +61,21 @@ new days.)
   - why you chose it, in a sentence or two, and what you passed over;
   - its route and lowest strokes;
   - the checks that passed.
-- **Don't merge it.** The owner reviews and merges, and merging into `main` deploys the site.
+- **Merge it** once every check in step 2 has passed:
+  `gh pr merge {PR} --repo funklunsford/word-puzzle --merge --subject "Merge daily {DATE}: {START} → {GOAL}"`.
+  Merging into `main` deploys the site, so the day's puzzle goes live without waiting for a review.
+- **If a check failed, don't merge.** Leave the pull request open and say in it what failed, for
+  the owner to look at.
+
+## On a schedule
+
+A scheduled task in the Claude app (`daily-puzzle`) runs this runbook every day at midnight Eastern
+time, on the owner's Mac while the app is open (if the app was closed, it runs when it next opens).
+Each run:
+
+- stops, without adding anything, if a pull request from a `daily/` branch is still open;
+- adds every missing day, from the day after the latest file in `src/daily/days-5/` on `main` up to
+  and including today in Eastern time, as one batch with one pull request;
+- works in its own worktree, `.claude/worktrees/daily`, with its own dev server for the look in
+  step 2, so the owner's checkout is never touched, and removes it when done;
+- merges the pull request once the checks pass, as step 3 says.
