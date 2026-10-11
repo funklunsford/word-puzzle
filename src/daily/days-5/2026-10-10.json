@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-10",
+  "puzzle": {
+    "start": "PAPER",
+    "goal": "LEVER",
+    "best": 13,
+    "path": [
+      "PAPER",
+      "PIPER",
+      "RIPER",
+      "RIVER",
+      "LIVER",
+      "LEVER"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 2,
+    "traps": [
+      {
+        "at": "PIPER",
+        "door": "VIPER",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "PAPER",
+        "door": "PACER",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "PAPER",
+        "door": "BAKER",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": true,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "TAPER",
+      "LITER",
+      "FIVER"
+    ],
+    "best": 12,
+    "walk": [
+      "PAPER",
+      "TAPER",
+      "LATER",
+      "LITER",
+      "LIVER",
+      "LEVER"
+    ]
+  },
+  "onRoute": {
+    "LEVER": 13,
+    "LIVER": 10,
+    "PAPER": 0,
+    "PIPER": 3,
+    "RIPER": 4,
+    "RIVER": 7
+  }
+}
