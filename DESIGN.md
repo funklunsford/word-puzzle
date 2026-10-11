@@ -773,7 +773,7 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Now:** a drawn gold nib (`NIB_PATH` in `src/components/maze/Masthead.tsx`, `--gold`), a cap height tall with its tip on the baseline, 0.8 before the D. It has an arched top, rounded shoulders, sides sweeping in to a fine point, and a breather hole and slit cut through it. Its tip is dipped in the same purple ink as the drip from the D, up to a wavy line. It isn't built from game strokes, so the parts row above the name stays the place that shows all nine.
 - **On load** the nib drops in first, then ink climbs its tip as if it had just been dipped; the letters follow and the D drips once it lands. With less motion it all fades in in place.
 - **Also tried:** an ink drop and a tilted nib made of strokes (clumsy), all nine strokes in a 3 × 3 grid (busy), each stroke set a little apart from its stem (shows how letters are built, but adds no new strokes), and a steel nib (dull grey at header size).
-- **Only in the header** (the owner's call): the share card, link preview and tab icon show the name alone.
+- **In the header and on the link preview** (the owner's call); the result card and tab icon show the name alone.
 
 ## Renamed Diplets, with green ink on the nib (2026-10-10, branch `rename-diplet`)
 - **The owner's call:** rename the game Diplets, to give the word more to show. The S is two bowls, so the name now has curves at both ends (the D's arc, the S's two bowls) instead of ending on straight bars. It's still built from the same 4 kinds of stroke (six long bars, five bars, one arc, three bowls): the S adds two bowls, not new kinds.
@@ -813,3 +813,9 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **In the source:** `scripts/deploy.sh` (and `scripts/setup-deploy-key.sh`) now default to `funklunsford/diplets`. The deploy key and the `STROKES_DEPLOY_KEY` secret carry over, since a deploy key belongs to the repo whatever it's called. The link-preview tags (`og:url`, `og:image`), the share link and the card's footer (`SITE` in `src/share.ts`), the README and comments all use the new address.
 - **Players keep their settings and results:** saved data lives per origin (funklunsford.github.io), not per path, so the `strokes:` keys carry over.
 - **Old links:** GitHub doesn't redirect a Pages site when its repo is renamed, so links to /strokes/ now get a 404.
+
+## The nib on the link preview (2026-10-10, branch `preview-nib`)
+- **The owner's call:** the general link preview (`public/og.png`, the card shown when the site's link is shared) gets the nib before the name, as in the header. The result card and tab icon stay without it.
+- **One nib for both:** its shape, lean and spacing moved from the header into `src/nib.ts`, with `afterNib` placing the letters after it.
+- **On the card:** `drawWord` in `src/share.ts` draws it before the name in the paper palette's gold, its tip dipped in the D's purple. The card is a still picture, so there's no colour cycle.
+- `public/og.png` was redrawn, and its tag now asks for `og.png?v=nib` so apps fetch the new one.
