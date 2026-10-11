@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Publish the built game to GitHub Pages: only the site files, never the source.
 #
-#   npm run deploy        # → https://funklunsford.github.io/strokes/
+#   npm run deploy        # → https://funklunsford.github.io/diplets/
 #
 # Builds, adds the licence notices the word list and definitions require on every copy, and
 # force-pushes the result as a single commit to the public repo below (creating it and turning
@@ -12,7 +12,7 @@
 # hand, it needs the GitHub CLI, logged in (`gh auth login`).
 set -euo pipefail
 
-REPO="${STROKES_REPO:-funklunsford/strokes}"
+REPO="${STROKES_REPO:-funklunsford/diplets}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
@@ -26,7 +26,7 @@ touch dist/.nojekyll # serve files as they are
 cat > dist/README.md <<'MD'
 # Diplets
 
-A word maze where every letter is built from pen strokes. Play it at https://funklunsford.github.io/strokes/
+A word maze where every letter is built from pen strokes. Play it at https://funklunsford.github.io/diplets/
 
 This repository holds only the built site, published from a private source project.
 

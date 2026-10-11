@@ -23,7 +23,7 @@ export interface ShareResult {
   steps: { from: string; to: string; cost: number }[];
 }
 
-export const SITE = 'https://funklunsford.github.io/strokes/';
+export const SITE = 'https://funklunsford.github.io/diplets/';
 
 /** Strokes a letter change takes (a stroke moved within the letter counts once). */
 function letterStrokes(a: string, b: string): number {
