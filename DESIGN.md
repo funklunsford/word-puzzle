@@ -806,3 +806,10 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - stops if a daily pull request is still open;
   - adds every missing day up to today as one batch;
   - works in its own worktree (`.claude/worktrees/daily`) with its own dev server, so the owner's checkout is never touched.
+
+## The site moves to /diplets/ (2026-10-10, branch `pages-diplets`)
+- **The owner's call:** serve the game at https://funklunsford.github.io/diplets/ instead of /strokes/.
+- **On GitHub:** the site's repo was renamed from `funklunsford/strokes` to `funklunsford/diplets`, with the description "Diplets: a word maze where every letter is built from pen strokes". GitHub Pages serves a project site at the repo's name.
+- **In the source:** `scripts/deploy.sh` (and `scripts/setup-deploy-key.sh`) now default to `funklunsford/diplets`. The deploy key and the `STROKES_DEPLOY_KEY` secret carry over, since a deploy key belongs to the repo whatever it's called. The link-preview tags (`og:url`, `og:image`), the share link and the card's footer (`SITE` in `src/share.ts`), the README and comments all use the new address.
+- **Players keep their settings and results:** saved data lives per origin (funklunsford.github.io), not per path, so the `strokes:` keys carry over.
+- **Old links:** GitHub doesn't redirect a Pages site when its repo is renamed, so links to /strokes/ now get a 404.
