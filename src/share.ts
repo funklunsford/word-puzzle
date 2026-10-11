@@ -6,6 +6,7 @@
 
 import { LETTERS, TILE_IDS, TRAY_TURN, drawnScale, drawnWidth, type TileId } from './glyphs';
 import { inkOutline, inkSeed, opticalOffset } from './ink';
+import { NIB, NIB_INK, NIB_LEAD, NIB_PATH, afterNib } from './nib';
 import { spaced } from './spacing';
 import { letterDiff } from './strokes';
 
@@ -63,10 +64,14 @@ const PAPER = {
 
 const FONT = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif';
 
-/** Draw a word in the game's own ink, `unit` px per letter unit, centred on cx, its top at y, its letters optically spaced (see spacing.ts). */
-function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: number, unit: number) {
-  const starts = spaced(word);
+/**
+ * Draw a word in the game's own ink, `unit` px per letter unit, centred on cx, its top at y, its
+ * letters optically spaced (see spacing.ts). With `nib`, the wordmark's pen nib goes before it.
+ */
+function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: number, unit: number, nib = false) {
+  const starts = nib ? afterNib(word) : spaced(word);
   const left = cx - ((starts[starts.length - 1] + drawnWidth(word[word.length - 1])) * unit) / 2;
+  if (nib) drawNib(ctx, left + NIB_LEAD * unit, y, unit);
   for (const [i, ch] of [...word].entries()) {
     const x = left + starts[i] * unit;
     const g = LETTERS[ch];
@@ -82,6 +87,24 @@ function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: nu
       ctx.restore();
     }
   }
+}
+
+/** The wordmark's gold nib (see nib.ts), its middle at x, its top at y, its tip dipped in the D's purple. */
+function drawNib(ctx: CanvasRenderingContext2D, x: number, y: number, unit: number) {
+  const nib = new Path2D(NIB_PATH);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(unit, unit);
+  // Leaning about its middle, as in the header.
+  ctx.translate(0, 1);
+  ctx.rotate((NIB.tilt * Math.PI) / 180);
+  ctx.translate(0, -1);
+  ctx.fillStyle = PAPER.gold;
+  ctx.fill(nib, 'evenodd');
+  ctx.clip(nib, 'evenodd');
+  ctx.fillStyle = PAPER.tiles.C;
+  ctx.fill(new Path2D(NIB_INK));
+  ctx.restore();
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -276,7 +299,7 @@ export async function drawPreviewCard(canvas = document.createElement('canvas'))
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
   cardBase(ctx, W, H, 40);
-  drawWord(ctx, 'DIPLETS', W / 2, 96, 56);
+  drawWord(ctx, 'DIPLETS', W / 2, 96, 56, true);
   ctx.textAlign = 'center';
   ctx.fillStyle = PAPER.ink;
   ctx.font = `800 44px ${FONT}`;

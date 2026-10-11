@@ -1,56 +1,13 @@
 import { useId } from 'react';
 import { motion } from 'motion/react';
 import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, type TileId } from '../../glyphs';
-import { inkOutline, inkSeed, type Pt } from '../../ink';
-import { profileOf, spaced } from '../../spacing';
+import { inkOutline, inkSeed } from '../../ink';
+import { NIB, NIB_INK, NIB_LEAD, NIB_PATH, afterNib } from '../../nib';
 import { TileStroke } from '../Glyph';
 
 const WORDMARK = 'DIPLETS';
 /** The wordmark's pen: a fifth broader than the game's, so the name stands out but still matches the tray. */
 const BOLD = 1.2;
-/**
- * A gold pen nib before the D, a cap height tall: an arched top, rounded shoulders and sides
- * sweeping in to a fine point, with a breather hole and a slit cut through it. It leans `tilt`
- * degrees about its middle, its point towards the D, and sits `room` further from the D than the
- * letters' own spacing would put it. It's dipped in ink (see .nib-ink in styles.css).
- */
-const NIB = { tilt: -20, room: 0.3 };
-/** The nib's right side, from the middle of its top to its point: a quadratic, then two cubics. Its left side mirrors it. */
-const NIB_SIDE: Pt[][] = [
-  [[0, 0], [0.22, -0.01], [0.42, 0.06]],
-  [[0.42, 0.06], [0.5, 0.2], [0.54, 0.38], [0.53, 0.55]],
-  [[0.53, 0.55], [0.51, 0.95], [0.15, 1.55], [0, 2]],
-];
-const mirror = ([x, y]: Pt): Pt => [-x, y];
-const curve = (seg: Pt[]) => `${seg.length === 3 ? 'Q' : 'C'}${seg.slice(1).map(([x, y]) => `${x} ${y}`).join(' ')}`;
-/** The nib's outline, then its breather hole and slit (cut through it by filling even-odd). */
-const NIB_PATH = [
-  'M0 0',
-  ...NIB_SIDE.map(curve),
-  ...[...NIB_SIDE].reverse().map((seg) => curve([...seg].reverse().map(mirror))),
-  'Z M0.085 0.82 A0.085 0.085 0 1 0 -0.085 0.82 A0.085 0.085 0 1 0 0.085 0.82 Z M-0.02 0.905 L0.02 0.905 L0.01 1.97 L-0.01 1.97 Z',
-].join(' ');
-/** A point `t` of the way along a Bézier segment. */
-function bezier(seg: Pt[], t: number): Pt {
-  let pts = seg;
-  while (pts.length > 1) pts = pts.slice(1).map((p, i): Pt => [pts[i][0] + (p[0] - pts[i][0]) * t, pts[i][1] + (p[1] - pts[i][1]) * t]);
-  return pts[0];
-}
-/** A point of the nib, leaning by its tilt about its middle (0, 1). */
-function tilted([x, y]: Pt): Pt {
-  const t = (NIB.tilt * Math.PI) / 180;
-  return [x * Math.cos(t) - (y - 1) * Math.sin(t), 1 + x * Math.sin(t) + (y - 1) * Math.cos(t)];
-}
-/** The leaning nib's outline as points, its middle at 0: what the name is spaced from. */
-const NIB_PROFILE = (() => {
-  const side = NIB_SIDE.flatMap((seg) => Array.from({ length: 16 }, (_, i) => bezier(seg, (i + 1) / 16)));
-  const outline: Pt[] = [[0, 0], ...side, ...[...side].reverse().map(mirror)];
-  return profileOf([outline.map(tilted)]);
-})();
-/** How far the leaning nib reaches left of its middle. */
-const NIB_LEAD = -Math.min(...NIB_PROFILE.left.filter(Number.isFinite));
-/** The ink it was dipped in, up to a wavy line across its lower part (clipped to the nib). */
-const NIB_INK = 'M-0.7 1.27 C-0.42 1.15 -0.2 1.35 0 1.25 C0.2 1.15 0.42 1.35 0.7 1.22 L0.7 2.1 L-0.7 2.1 Z';
 /**
  * Ink run down from the D's bowl (its letter and part), `x` right of its stem: a neck `neck` wide
  * each side, flaring where it leaves the stroke, down to a teardrop of radius `drop` whose centre is
@@ -77,8 +34,8 @@ interface Placed {
 /** Lay out the wordmark (the nib, then the name) and the parts row, and work out where each stroke flies in from. */
 function layout() {
   const raw: Omit<Placed, 'from'>[] = [];
-  // The letters after the nib, optically spaced (see spacing.ts), from the nib's left edge.
-  const starts = spaced(WORDMARK, BOLD, NIB_PROFILE).map((x) => x + NIB_LEAD + NIB.room);
+  // The letters after the nib, optically spaced, from the nib's left edge.
+  const starts = afterNib(WORDMARK, BOLD);
   for (const [li, ch] of [...WORDMARK].entries()) {
     for (const [pi, p] of LETTERS[ch].parts.entries()) {
       raw.push({ key: `${li}-${pi}`, tile: p.tile, x: starts[li] + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
