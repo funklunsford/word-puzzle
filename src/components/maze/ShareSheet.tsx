@@ -16,8 +16,8 @@ export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: 
   const file = useRef<File | null>(null);
   const [copied, setCopied] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const name = `diplet-${result.number ?? 'result'}.png`;
-  const title = `Diplet${result.number ? ` No. ${result.number}` : ''}${result.start.length === 5 ? ' · 5 letters' : ''}`;
+  const name = `diplets-${result.number ?? 'result'}.png`;
+  const title = `Diplets${result.number ? ` No. ${result.number}` : ''}${result.start.length === 5 ? ' · 5 letters' : ''}`;
   const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write;
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: 
           </button>
         </div>
         <div className="share-preview">
-          {image ? <img src={image} alt={`Diplet result card: ${result.start} to ${result.goal} in ${result.strokes} strokes`} /> : <div className="share-loading" />}
+          {image ? <img src={image} alt={`Diplets result card: ${result.start} to ${result.goal} in ${result.strokes} strokes`} /> : <div className="share-loading" />}
         </div>
         {note && <p className="setting-note share-note">{note}</p>}
         <div className="pill-row">

@@ -1,4 +1,4 @@
-// The browser-tab icon: the wordmark's D (Diplet's first letter), in the game's own ink, on the dark
+// The browser-tab icon: the wordmark's D (Diplets' first letter), in the game's own ink, on the dark
 // board colour.
 //
 //   npx vite-node scripts/favicon.ts   # → public/favicon.svg

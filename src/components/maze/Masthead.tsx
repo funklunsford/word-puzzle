@@ -4,7 +4,7 @@ import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, type TileId } from '.
 import { inkOutline, inkSeed } from '../../ink';
 import { TileStroke } from '../Glyph';
 
-const WORDMARK = 'DIPLET';
+const WORDMARK = 'DIPLETS';
 const GAP = 0.7;
 const SPACE = 1.6;
 /** The wordmark's pen: a fifth broader than the game's, so the name stands out but still matches the tray. */
@@ -12,9 +12,10 @@ const BOLD = 1.2;
 /**
  * A gold pen nib before the D, a cap height tall with its tip on the baseline: an arched top,
  * rounded shoulders and sides sweeping in to a fine point, with a breather hole and a slit cut
- * through it. It's `width` wide, `gap` before the D.
+ * through it. It's `width` wide, `gap` before the D, dipped in `ink` (the rising slash's green),
+ * with a bead of it of radius `bead` at its point.
  */
-const NIB = { width: 1.06, gap: 0.8 };
+const NIB = { width: 1.06, gap: 0.8, ink: 'var(--t-LD)', bead: 0.09 };
 const NIB_PATH =
   'M0 0 Q0.22 -0.01 0.42 0.06 C0.5 0.2 0.54 0.38 0.53 0.55 C0.51 0.95 0.15 1.55 0 2 C-0.15 1.55 -0.51 0.95 -0.53 0.55 C-0.54 0.38 -0.5 0.2 -0.42 0.06 Q-0.22 -0.01 0 0 Z' +
   ' M0.085 0.82 A0.085 0.085 0 1 0 -0.085 0.82 A0.085 0.085 0 1 0 0.085 0.82 Z M-0.02 0.905 L0.02 0.905 L0.01 1.97 L-0.01 1.97 Z';
@@ -108,14 +109,16 @@ function neck(slope: number) {
 }
 const NECK = neck(drip.slope);
 /**
- * The drop, centred on the origin: a circle drawn up into a point 3 radii above its centre, so the
- * neck swells into it (the sides run on tangent to the circle from a third of a radius above it).
+ * A drop of radius `r`, centred on the origin: a circle drawn up into a point 3 radii above its
+ * centre, so whatever it hangs from swells into it (the sides run on tangent to the circle from a
+ * third of a radius above it).
  */
-const DROP = (() => {
-  const r = DRIP.drop;
+function teardrop(r: number) {
   const ys = [...steps(-3 * r, -r / 3, 8), ...steps(-r / 3, r, 16).slice(1)];
   return symmetric(ys, (y) => (y <= -r / 3 ? (y + 3 * r) / Math.sqrt(8) : Math.sqrt(Math.max(0, r * r - y * y))));
-})();
+}
+const DROP = teardrop(DRIP.drop);
+const BEAD = teardrop(NIB.bead);
 /** Once the D has landed (`LANDED` after its bowl sets off), a bead of ink swells under it, then creeps down and stops. */
 const DRIP_RUN = { duration: 1.8, times: [0, 0.2, 1], ease: 'easeOut' as const };
 const LANDED = 0.8;
@@ -151,7 +154,7 @@ function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order
 
 /**
  * The nib (see NIB), centred on `x`. It drops in first, then ink climbs its tip as if it had just
- * been dipped.
+ * been dipped, and a bead of it swells at the point.
  */
 function Nib({ x }: { x: number }) {
   const clip = useId();
@@ -171,11 +174,22 @@ function Nib({ x }: { x: number }) {
         <g clipPath={`url(#${clip})`}>
           <motion.path
             d={NIB_INK}
-            fill="var(--t-C)"
+            fill={NIB.ink}
             style={{ originY: 1 }}
             initial={{ scaleY: 0 }}
             animate={{ scaleY: 1 }}
             transition={{ duration: 0.5, delay: 0.6, ease: 'easeOut' }}
+          />
+        </g>
+        <g transform={`translate(0 ${2 + 1.2 * NIB.bead})`}>
+          <motion.path
+            d={BEAD}
+            fill={NIB.ink}
+            // Swell about the bead's centre, three quarters of the way down its outline.
+            style={{ originY: 0.75 }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.4, delay: 1.05, ease: 'easeOut' }}
           />
         </g>
       </motion.g>
@@ -194,7 +208,7 @@ export function Masthead({ compact = false, dateline, actions }: { compact?: boo
   const top = compact ? -PAD : PART_Y - PART / 2 - PAD;
   return (
     <header className="masthead">
-      <svg className="masthead-art" viewBox={`${-PAD} ${top} ${width + 2 * PAD} ${2.4 + PAD - top}`} role="img" aria-label="Diplet">
+      <svg className="masthead-art" viewBox={`${-PAD} ${top} ${width + 2 * PAD} ${2.4 + PAD - top}`} role="img" aria-label="Diplets">
         {!compact && parts.map((p) => (
           <g key={p.tile} transform={`translate(${p.x} ${p.y})`}>
             <rect

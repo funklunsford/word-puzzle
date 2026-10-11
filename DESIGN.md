@@ -774,3 +774,9 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **On load** the nib drops in first, then ink climbs its tip as if it had just been dipped; the letters follow and the D drips once it lands. With less motion it all fades in in place.
 - **Also tried:** an ink drop and a tilted nib made of strokes (clumsy), all nine strokes in a 3 × 3 grid (busy), each stroke set a little apart from its stem (shows how letters are built, but adds no new strokes), and a steel nib (dull grey at header size).
 - **Not changed yet:** the share card, link preview and tab icon still show the name alone.
+
+## Renamed Diplets, with green ink on the nib (2026-10-10, branch `rename-diplet`)
+- **The owner's call:** rename the game Diplets, to give the word more to show. The S is two bowls, so the name now has curves at both ends (the D's arc, the S's two bowls) instead of ending on straight bars. It's still built from the same 4 kinds of stroke (six long bars, five bars, one arc, three bowls): the S adds two bowls, not new kinds.
+- **The nib's ink is green** (the rising slash's green, `--t-LD`), on its dipped tip and in a bead that swells at its point once the ink has climbed it. That brings a colour the name doesn't use; a purple dip with a green bead was tried and read as two inks.
+- **Changed with the name:** the wordmark, the page title and link-preview tags, the link preview itself (`public/og.png`, redrawn; its tag now asks for `og.png?v=diplets`), the share card, its title, alt text and saved file (`diplets-4.png`), the README, the daily runbook and `/daily`, and what `scripts/deploy.sh` writes to the site's repo.
+- **Unchanged:** the address (/strokes/), the `strokes:` saved-data keys, names in the code, and the tab icon (still the D).

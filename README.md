@@ -1,6 +1,6 @@
-# Diplet
+# Diplets
 
-A word maze where every letter is built from pen strokes. The name is a doublet (Lewis Carroll's word for turning one word into another, step by step) dipped in ink. Each word is a room: drag strokes in from the tray, tap a stroke to remove it, drag it somewhere else, or, where a chevron, arc or bowl could start a letter either way round, twist it by circling the cursor around its spot (up to 3 strokes per step) to turn the current word into another everyday word, and find the cheapest route from the day's start word to its goal. See [DESIGN.md](DESIGN.md) for the rules and design notes.
+A word maze where every letter is built from pen strokes. The name is doublets (Lewis Carroll's word ladders, turning one word into another step by step) dipped in ink. Each word is a room: drag strokes in from the tray, tap a stroke to remove it, drag it somewhere else, or, where a chevron, arc or bowl could start a letter either way round, twist it by circling the cursor around its spot (up to 3 strokes per step) to turn the current word into another everyday word, and find the cheapest route from the day's start word to its goal. See [DESIGN.md](DESIGN.md) for the rules and design notes.
 
 ```bash
 npm install

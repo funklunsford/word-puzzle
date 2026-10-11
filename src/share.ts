@@ -146,7 +146,7 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
   cardBase(ctx, W, H, 48);
   const cx = W / 2;
 
-  drawWord(ctx, 'DIPLET', cx, 104, 26);
+  drawWord(ctx, 'DIPLETS', cx, 104, 26);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = PAPER.muted;
@@ -277,7 +277,7 @@ export async function drawPreviewCard(canvas = document.createElement('canvas'))
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
   cardBase(ctx, W, H, 40);
-  drawWord(ctx, 'DIPLET', W / 2, 96, 56);
+  drawWord(ctx, 'DIPLETS', W / 2, 96, 56);
   ctx.textAlign = 'center';
   ctx.fillStyle = PAPER.ink;
   ctx.font = `800 44px ${FONT}`;
