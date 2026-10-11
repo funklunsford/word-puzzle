@@ -16,11 +16,6 @@ const BOLD = 1.2;
  * of it of radius `bead` at its point.
  */
 const NIB = { tilt: -20, room: 0.3, bead: 0.09 };
-/**
- * Once the ink has climbed it, the nib gives a little shake from its top, as if flicking off the
- * excess: these turns, in degrees, over `duration` seconds from `delay`. The bead forms after.
- */
-const SHAKE = { turns: [0, -6, 5, -3.5, 2, -0.8, 0], delay: 1.15, duration: 0.75 };
 /** The nib's right side, from the middle of its top to its point: a quadratic, then two cubics. Its left side mirrors it. */
 const NIB_SIDE: Pt[][] = [
   [[0, 0], [0.22, -0.01], [0.42, 0.06]],
@@ -187,8 +182,7 @@ function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order
 
 /**
  * The nib (see NIB), its middle at `x`. It drops in first, then ink climbs its tip as if it had
- * just been dipped, it shakes off the excess (see SHAKE), and a bead of ink swells at the point,
- * hanging straight down.
+ * just been dipped, and a bead of it swells at the point, hanging straight down.
  */
 function Nib({ x }: { x: number }) {
   const clip = useId();
@@ -199,31 +193,24 @@ function Nib({ x }: { x: number }) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', bounce: 0.2, duration: 0.7, delay: 0.1, opacity: { duration: 0.15, delay: 0.1 } }}
       >
-        <motion.g
-          // It swings from the middle of its top, the way a pen does from the hand.
-          style={{ originX: 0.5, originY: 0 }}
-          animate={{ rotate: SHAKE.turns }}
-          transition={{ delay: SHAKE.delay, duration: SHAKE.duration, ease: 'easeInOut' }}
-        >
-          <g transform={`rotate(${NIB.tilt} 0 1)`}>
-            <defs>
-              <clipPath id={clip}>
-                <path d={NIB_PATH} clipRule="evenodd" />
-              </clipPath>
-            </defs>
-            <path d={NIB_PATH} fillRule="evenodd" fill="var(--gold)" />
-            <g clipPath={`url(#${clip})`}>
-              <motion.path
-                d={NIB_INK}
-                className="nib-ink"
-                style={{ originY: 1 }}
-                initial={{ scaleY: 0 }}
-                animate={{ scaleY: 1 }}
-                transition={{ duration: 0.5, delay: 0.6, ease: 'easeOut' }}
-              />
-            </g>
+        <g transform={`rotate(${NIB.tilt} 0 1)`}>
+          <defs>
+            <clipPath id={clip}>
+              <path d={NIB_PATH} clipRule="evenodd" />
+            </clipPath>
+          </defs>
+          <path d={NIB_PATH} fillRule="evenodd" fill="var(--gold)" />
+          <g clipPath={`url(#${clip})`}>
+            <motion.path
+              d={NIB_INK}
+              className="nib-ink"
+              style={{ originY: 1 }}
+              initial={{ scaleY: 0 }}
+              animate={{ scaleY: 1 }}
+              transition={{ duration: 0.5, delay: 0.6, ease: 'easeOut' }}
+            />
           </g>
-        </motion.g>
+        </g>
         <g transform={`translate(${NIB_TIP[0]} ${NIB_TIP[1] + 1.2 * NIB.bead})`}>
           <motion.path
             d={BEAD}
@@ -232,7 +219,7 @@ function Nib({ x }: { x: number }) {
             style={{ originY: 0.75 }}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ duration: 0.4, delay: SHAKE.delay + SHAKE.duration + 0.05, ease: 'easeOut' }}
+            transition={{ duration: 0.4, delay: 1.05, ease: 'easeOut' }}
           />
         </g>
       </motion.g>

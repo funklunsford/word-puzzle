@@ -773,7 +773,7 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Now:** a drawn gold nib (`NIB_PATH` in `src/components/maze/Masthead.tsx`, `--gold`), a cap height tall with its tip on the baseline, 0.8 before the D. It has an arched top, rounded shoulders, sides sweeping in to a fine point, and a breather hole and slit cut through it. Its tip is dipped in the same purple ink as the drip from the D, up to a wavy line. It isn't built from game strokes, so the parts row above the name stays the place that shows all nine.
 - **On load** the nib drops in first, then ink climbs its tip as if it had just been dipped; the letters follow and the D drips once it lands. With less motion it all fades in in place.
 - **Also tried:** an ink drop and a tilted nib made of strokes (clumsy), all nine strokes in a 3 × 3 grid (busy), each stroke set a little apart from its stem (shows how letters are built, but adds no new strokes), and a steel nib (dull grey at header size).
-- **Not changed yet:** the share card, link preview and tab icon still show the name alone.
+- **Only in the header** (the owner's call): the share card, link preview and tab icon show the name alone.
 
 ## Renamed Diplets, with green ink on the nib (2026-10-10, branch `rename-diplet`)
 - **The owner's call:** rename the game Diplets, to give the word more to show. The S is two bowls, so the name now has curves at both ends (the D's arc, the S's two bowls) instead of ending on straight bars. It's still built from the same 4 kinds of stroke (six long bars, five bars, one arc, three bowls): the S adds two bowls, not new kinds.
@@ -790,10 +790,10 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **DIPLETS, origin to origin:** DI 1.70 → 1.71, IP 0.70 → 0.90, PL 1.70 → 1.64, LE 1.70 → 1.48, ET 1.70 → 1.34, TS 1.70 → 1.26. The name is 9.6 units wide instead of 10.45. The nib is spaced from the D the same way, from its outline.
 - **Used for the header and for the name on the share card and link preview** (`drawWord` in `src/share.ts`); the link preview was redrawn. `src/spacing.test.ts` checks that straight stems get more room than rounds and open sides, and that bars never run into the next letter.
 
-## The nib leans in, shakes, and its ink runs through the strokes' colours (2026-10-10, branch `rename-diplet`)
+## The nib leans in, and its ink runs through the strokes' colours (2026-10-10, branch `rename-diplet`)
 - **The owner's calls:**
   - first: angle the nib slightly to face the D, make its ink the D's purple instead of green, and have the ink run through the colours before landing on purple;
-  - then: a little more angle and more room from the D, a slower colour cycle, and a small, tasteful shake.
+  - then: a little more angle and more room from the D, a slower colour cycle, and a small shake, which was tried and taken out again.
 - **The lean:** the nib turns 20° about its middle (`NIB.tilt` in `src/components/maze/Masthead.tsx`), its point towards the D. The bead at its point hangs straight down. The name is spaced from the leaning outline and then set 0.3 further off (`NIB.room`), so the nib stands a little apart from the word.
 - **The ink** (`.nib-ink` in `src/styles.css`) starts as the ink climbs the tip, 0.6 s in. Over 3 s it runs through the strokes' colours in tray order (long bar, bar, both slashes, tail, big chevron, small chevron, bowl) and settles on the arc's purple, the D's colour. It's a CSS animation, so it follows the light or dark palette; with less motion it's purple from the start.
-- **The shake** (`SHAKE`): once the ink has climbed it, the nib swings from the middle of its top, 6° one way, then 5°, 3.5°, 2° and 0.8°, over 0.75 s, as if flicking off the excess. Then the bead swells at its point, taking the ink's colour of the moment. It plays once, on load; with less motion it doesn't play.
+- **The bead** swells at the nib's point once the ink has climbed it, taking the ink's colour of the moment.
