@@ -69,13 +69,15 @@ new days.)
 
 ## On a schedule
 
-A scheduled task in the Claude app (`daily-puzzle`) runs this runbook every day at midnight Eastern
-time, on the owner's Mac while the app is open (if the app was closed, it runs when it next opens).
-Each run:
+A Claude Code routine in Anthropic's cloud, "Diplets daily puzzle" (at claude.ai/code/routines), runs
+this runbook every night, so no one's machine has to be on. It's scheduled at 04:07 and 05:07 UTC,
+so one run lands just after midnight Eastern whether or not daylight saving is on; the other finds
+the day already in and stops. Each run:
 
-- stops, without adding anything, if a pull request from a `daily/` branch is still open;
-- adds every missing day, from the day after the latest file in `src/daily/days-5/` on `main` up to
-  and including today in Eastern time, as one batch with one pull request;
-- works in its own worktree, `.claude/worktrees/daily`, with its own dev server for the look in
-  step 2, so the owner's checkout is never touched, and removes it when done;
-- merges the pull request once the checks pass, as step 3 says.
+- clones this repository and adds every missing day, from the day after the latest file in
+  `src/daily/days-5/` up to and including today in Eastern time;
+- runs `npx tsc --noEmit -p .`, `npx vitest run` and `npm run build` (there's no browser in the cloud,
+  so the look in step 2 is skipped);
+- if they all pass, commits the new days and pushes straight to `main`, which deploys the site.
+  There's no pull request; the commit message says why each pair was chosen;
+- if a check fails, pushes to a `daily/{date}` branch instead and leaves it for the owner.
