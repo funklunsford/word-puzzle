@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-11",
+  "puzzle": {
+    "start": "SLUMP",
+    "goal": "SKILL",
+    "best": 12,
+    "path": [
+      "SLUMP",
+      "SLUNK",
+      "SKUNK",
+      "SKULK",
+      "SKULL",
+      "SKILL"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "SLUMP",
+        "door": "BLIMP",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "SLUNK",
+        "door": "SLINK",
+        "loses": 2,
+        "pocket": false
+      },
+      {
+        "at": "SLUNK",
+        "door": "STINK",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "STUMP",
+      "SPUNK"
+    ],
+    "best": 12,
+    "walk": [
+      "SLUMP",
+      "SLUNK",
+      "SKUNK",
+      "SKULK",
+      "SKULL",
+      "SKILL"
+    ]
+  },
+  "onRoute": {
+    "SKILL": 12,
+    "SKULK": 8,
+    "SKULL": 10,
+    "SKUNK": 5,
+    "SLUMP": 0,
+    "SLUNK": 3
+  }
+}
