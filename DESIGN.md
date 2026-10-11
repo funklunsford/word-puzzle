@@ -780,3 +780,12 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The nib's ink is green** (the rising slash's green, `--t-LD`), on its dipped tip and in a bead that swells at its point once the ink has climbed it. That brings a colour the name doesn't use; a purple dip with a green bead was tried and read as two inks.
 - **Changed with the name:** the wordmark, the page title and link-preview tags, the link preview itself (`public/og.png`, redrawn; its tag now asks for `og.png?v=diplets`), the share card, its title, alt text and saved file (`diplets-4.png`), the README, the daily runbook and `/daily`, and what `scripts/deploy.sh` writes to the site's repo.
 - **Unchanged:** the address (/strokes/), the `strokes:` saved-data keys, names in the code, and the tab icon (still the D).
+
+## Even spacing in the name (2026-10-10, branch `rename-diplet`)
+- **The owner's note:** the spacing in the title looked off. A fixed gap (0.7) between letters' boxes left straight stems cramped (I beside P) and open letters loose (above L's foot, under E's bars, either side of T's stem).
+- **Now the letters are spaced optically** (`src/spacing.ts`), the way type designers space letters:
+  - each pair is set so the white between them, averaged down the cap height, is 0.6;
+  - a hollow deeper than 0.6 into a letter counts only that deep, since the eye doesn't take it for space between letters;
+  - no two letters' ink comes closer than 0.34, a row above or below included.
+- **DIPLETS, origin to origin:** DI 1.70 → 1.71, IP 0.70 → 0.90, PL 1.70 → 1.64, LE 1.70 → 1.48, ET 1.70 → 1.34, TS 1.70 → 1.26. The name is 9.6 units wide instead of 10.45. The nib is spaced from the D the same way, from its outline.
+- **Used for the header and for the name on the share card and link preview** (`drawWord` in `src/share.ts`); the link preview was redrawn. `src/spacing.test.ts` checks that straight stems get more room than rounds and open sides, and that bars never run into the next letter.

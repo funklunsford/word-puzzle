@@ -1,24 +1,46 @@
 import { useId } from 'react';
 import { motion } from 'motion/react';
 import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, type TileId } from '../../glyphs';
-import { inkOutline, inkSeed } from '../../ink';
+import { inkOutline, inkSeed, type Pt } from '../../ink';
+import { profileOf, spaced } from '../../spacing';
 import { TileStroke } from '../Glyph';
 
 const WORDMARK = 'DIPLETS';
-const GAP = 0.7;
-const SPACE = 1.6;
 /** The wordmark's pen: a fifth broader than the game's, so the name stands out but still matches the tray. */
 const BOLD = 1.2;
 /**
  * A gold pen nib before the D, a cap height tall with its tip on the baseline: an arched top,
  * rounded shoulders and sides sweeping in to a fine point, with a breather hole and a slit cut
- * through it. It's `width` wide, `gap` before the D, dipped in `ink` (the rising slash's green),
- * with a bead of it of radius `bead` at its point.
+ * through it. It's `width` wide, spaced from the D like the letters are from each other, dipped in
+ * `ink` (the rising slash's green), with a bead of it of radius `bead` at its point.
  */
-const NIB = { width: 1.06, gap: 0.8, ink: 'var(--t-LD)', bead: 0.09 };
-const NIB_PATH =
-  'M0 0 Q0.22 -0.01 0.42 0.06 C0.5 0.2 0.54 0.38 0.53 0.55 C0.51 0.95 0.15 1.55 0 2 C-0.15 1.55 -0.51 0.95 -0.53 0.55 C-0.54 0.38 -0.5 0.2 -0.42 0.06 Q-0.22 -0.01 0 0 Z' +
-  ' M0.085 0.82 A0.085 0.085 0 1 0 -0.085 0.82 A0.085 0.085 0 1 0 0.085 0.82 Z M-0.02 0.905 L0.02 0.905 L0.01 1.97 L-0.01 1.97 Z';
+const NIB = { width: 1.06, ink: 'var(--t-LD)', bead: 0.09 };
+/** The nib's right side, from the middle of its top to its point: a quadratic, then two cubics. Its left side mirrors it. */
+const NIB_SIDE: Pt[][] = [
+  [[0, 0], [0.22, -0.01], [0.42, 0.06]],
+  [[0.42, 0.06], [0.5, 0.2], [0.54, 0.38], [0.53, 0.55]],
+  [[0.53, 0.55], [0.51, 0.95], [0.15, 1.55], [0, 2]],
+];
+const mirror = ([x, y]: Pt): Pt => [-x, y];
+const curve = (seg: Pt[]) => `${seg.length === 3 ? 'Q' : 'C'}${seg.slice(1).map(([x, y]) => `${x} ${y}`).join(' ')}`;
+/** The nib's outline, then its breather hole and slit (cut through it by filling even-odd). */
+const NIB_PATH = [
+  'M0 0',
+  ...NIB_SIDE.map(curve),
+  ...[...NIB_SIDE].reverse().map((seg) => curve([...seg].reverse().map(mirror))),
+  'Z M0.085 0.82 A0.085 0.085 0 1 0 -0.085 0.82 A0.085 0.085 0 1 0 0.085 0.82 Z M-0.02 0.905 L0.02 0.905 L0.01 1.97 L-0.01 1.97 Z',
+].join(' ');
+/** A point `t` of the way along a Bézier segment. */
+function bezier(seg: Pt[], t: number): Pt {
+  let pts = seg;
+  while (pts.length > 1) pts = pts.slice(1).map((p, i): Pt => [pts[i][0] + (p[0] - pts[i][0]) * t, pts[i][1] + (p[1] - pts[i][1]) * t]);
+  return pts[0];
+}
+/** The nib's outline as points, its middle at 0: what the name is spaced from. */
+const NIB_PROFILE = (() => {
+  const side = NIB_SIDE.flatMap((seg) => Array.from({ length: 16 }, (_, i) => bezier(seg, (i + 1) / 16)));
+  return profileOf([[[0, 0], ...side, ...[...side].reverse().map(mirror)]]);
+})();
 /** The ink it was dipped in, up to a wavy line across its lower part (clipped to the nib). */
 const NIB_INK = 'M-0.7 1.27 C-0.42 1.15 -0.2 1.35 0 1.25 C0.2 1.15 0.42 1.35 0.7 1.22 L0.7 2.1 L-0.7 2.1 Z';
 /**
@@ -47,19 +69,14 @@ interface Placed {
 /** Lay out the wordmark (the nib, then the name) and the parts row, and work out where each stroke flies in from. */
 function layout() {
   const raw: Omit<Placed, 'from'>[] = [];
-  // The name starts after the nib.
-  let x = NIB.width + NIB.gap;
+  // The letters after the nib, optically spaced (see spacing.ts), from the nib's left edge.
+  const starts = spaced(WORDMARK, BOLD, NIB_PROFILE).map((x) => x + NIB.width / 2);
   for (const [li, ch] of [...WORDMARK].entries()) {
-    if (ch === ' ') {
-      x += SPACE - GAP;
-      continue;
-    }
     for (const [pi, p] of LETTERS[ch].parts.entries()) {
-      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: x + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
+      raw.push({ key: `${li}-${pi}`, tile: p.tile, x: starts[li] + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
     }
-    x += drawnWidth(ch) + GAP;
   }
-  const markWidth = x - GAP;
+  const markWidth = starts[WORDMARK.length - 1] + drawnWidth(WORDMARK[WORDMARK.length - 1]);
   const rowWidth = TILE_IDS.length * PART + (TILE_IDS.length - 1) * PART_GAP;
   // Centre the wordmark and the parts row in whichever is wider.
   const width = Math.max(markWidth, rowWidth);
