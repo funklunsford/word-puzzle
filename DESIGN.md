@@ -819,3 +819,10 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **One nib for both:** its shape, lean and spacing moved from the header into `src/nib.ts`, with `afterNib` placing the letters after it.
 - **On the card:** `drawWord` in `src/share.ts` draws it before the name in the paper palette's gold, its tip dipped in the D's purple. The card is a still picture, so there's no colour cycle.
 - `public/og.png` was redrawn, and its tag now asks for `og.png?v=nib` so apps fetch the new one.
+
+## The daily moves to the cloud (2026-10-11, branch `daily-cloud`)
+- **The owner's call:** run the daily in the cloud, so it doesn't depend on the owner's Mac. The local scheduled task stopped on its first night, waiting for a permission prompt nobody was awake to answer.
+- **Now:** a Claude Code routine on the owner's account, "Diplets daily puzzle", runs in Anthropic's cloud with no permission prompts, and pushes each new day straight to `main` once tsc, vitest and the build pass. The owner OK'd deploying to `main` unattended: it's a word puzzle, not a critical service.
+- **Schedule:** 04:07 and 05:07 UTC. Routine schedules are in UTC, so the run an hour apart keeps one just after midnight Eastern in both daylight and standard time; the other finds the day already in and stops.
+- **No browser look** in the cloud: the daily tests check each puzzle against the word list and the pool's rules, and the build must pass. A failed check goes to a `daily/{date}` branch for the owner instead of `main`.
+- **The local task** (`daily-puzzle` in the Claude app) was removed, so only the cloud routine runs.
