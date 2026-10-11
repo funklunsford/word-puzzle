@@ -6,6 +6,7 @@
 
 import { LETTERS, TILE_IDS, TRAY_TURN, drawnScale, drawnWidth, type TileId } from './glyphs';
 import { inkOutline, inkSeed, opticalOffset } from './ink';
+import { spaced } from './spacing';
 import { letterDiff } from './strokes';
 
 export interface ShareResult {
@@ -61,14 +62,13 @@ const PAPER = {
 };
 
 const FONT = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif';
-const GAP = 0.7;
 
-const wordUnits = (word: string) => [...word].reduce((t, ch) => t + drawnWidth(ch), 0) + GAP * (word.length - 1);
-
-/** Draw a word in the game's own ink, `unit` px per letter unit, centred on cx, its top at y. */
+/** Draw a word in the game's own ink, `unit` px per letter unit, centred on cx, its top at y, its letters optically spaced (see spacing.ts). */
 function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: number, unit: number) {
-  let x = cx - (wordUnits(word) * unit) / 2;
-  for (const ch of word) {
+  const starts = spaced(word);
+  const left = cx - ((starts[starts.length - 1] + drawnWidth(word[word.length - 1])) * unit) / 2;
+  for (const [i, ch] of [...word].entries()) {
+    const x = left + starts[i] * unit;
     const g = LETTERS[ch];
     const { shape, place } = drawnScale(ch);
     for (const p of g.parts) {
@@ -81,7 +81,6 @@ function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: nu
       ctx.fill(new Path2D(d));
       ctx.restore();
     }
-    x += (drawnWidth(ch) + GAP) * unit;
   }
 }
 
@@ -146,7 +145,7 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
   cardBase(ctx, W, H, 48);
   const cx = W / 2;
 
-  drawWord(ctx, 'STROKES', cx, 104, 26);
+  drawWord(ctx, 'DIPLETS', cx, 104, 26);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = PAPER.muted;
@@ -277,7 +276,7 @@ export async function drawPreviewCard(canvas = document.createElement('canvas'))
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
   cardBase(ctx, W, H, 40);
-  drawWord(ctx, 'STROKES', W / 2, 96, 56);
+  drawWord(ctx, 'DIPLETS', W / 2, 96, 56);
   ctx.textAlign = 'center';
   ctx.fillStyle = PAPER.ink;
   ctx.font = `800 44px ${FONT}`;

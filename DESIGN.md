@@ -746,3 +746,54 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The pool** (`PUZZLE_SHAPES[5]`): lowest strokes 12–15 over 4–8 doors (5.17 on average: 348 puzzles of 5 doors, 71 of 6, 1 of 7), still picked by the meet rule, so working back 3 doors from the goal never solves one by rule of thumb. 420 puzzles from 9,791 candidates; 461 different start and goal words. Capping the doors at 5 would hit the target exactly, but every puzzle would be the same length and easier still.
 - **Days already published** (MINER → CHEER, POUCH → BATCH) keep their 15–18 puzzles; their test allows that range for them.
 - **`scripts/mazes.ts --steps 4-5`** builds a pool with another range of doors, for comparisons like the one above.
+
+## Renamed Diplet (2026-10-10, branch `rename-diplet`)
+- **The owner's call:** the game is now **Diplet**, from a doublet (Lewis Carroll's name for turning one word into another, step by step) and dipping a pen in ink, since every letter here is drawn stroke by stroke.
+- **What changed:**
+  - the header's wordmark (`WORDMARK` in `src/components/maze/Masthead.tsx`), still built from the parts row as the page loads. DIPLET is 8.5 units wide where STROKES was 12.7, but the parts row (18 units) still sets the header's size, so its letters are as big as before;
+  - the page title and link-preview tags (`index.html`), and the link preview itself (`public/og.png`, redrawn with `drawPreviewCard`). Its tag asks for `og.png?v=diplet`, so apps that cached the old picture by its address fetch the new one;
+  - the share card's wordmark, the share title ("Diplet No. 4 · 5 letters"), its alt text and the saved file's name (`diplet-4.png`);
+  - the browser-tab icon: the wordmark's D, in the same ink and board colours as the S was (`scripts/favicon.ts` → `public/favicon.svg`);
+  - the README, the daily runbook and `/daily`, and the README and commit message `scripts/deploy.sh` writes to the site's repo.
+- **What didn't:**
+  - the address, https://funklunsford.github.io/strokes/ (the `funklunsford/strokes` repo), so links already shared keep working. GitHub doesn't redirect a Pages site when its repo is renamed, so moving it would break them;
+  - the saved-data keys (`strokes:prefs`, `strokes:theme`, `strokes:hardcore`, `strokes:seen-help`, `strokes:flags`, `strokes:result…`), so no one loses their settings or results;
+  - names in the code (`src/strokes.ts`, `STROKES_REPO`, the `STROKES_DEPLOY_KEY` secret) and the older notes, including the 4-letter celebration runbook.
+
+## A bold wordmark, with ink dripping from the D (2026-10-10, branch `rename-diplet`)
+- **The owner's ask:** the name at the top in bold, and the D dripping a little ink.
+- **Bold:** the header's wordmark is drawn with a pen a fifth broader than the game's (`BOLD` in `src/components/maze/Masthead.tsx`, through a new `weight` for `inkOutline`), so the nib's thick and thin parts stay. Half as broad again was tried first; it stood apart from the letters in the tray, so it came down to 1.2. The parts row above it, and every stroke in the game, keep the usual pen.
+- **The drip** hangs from the D's bowl, 0.36 units right of its stem, in the bowl's colour. It's a thin neck that flares where it leaves the ink (tilted to the bowl's edge, so no corner of it shows) and runs into a teardrop whose centre is 0.42 below the ink.
+- **Its motion:** once the D has landed (1.05 s), a bead swells under the bowl, then creeps down and stops (1.8 s in all). With less motion it's drawn whole, fading in with the bowl.
+- **The share card, link preview and tab icon** keep the regular wordmark.
+
+## A pen nib before the name (2026-10-10, branch `rename-diplet`)
+- **The problem:** DIPLET is built from only 4 of the 9 strokes (six long bars, five bars, one arc, one bowl), so the header barely shows the strokes the game is played with. Each letter has exactly one build in the game, so the name's own strokes can't change without showing letters players can't make.
+- **First try, dropped:** a nib built from strokes the name doesn't use (the two slashes for its point, the small chevron for its shoulders, a long bar for its slit), which brought the header to 7 of the 9 strokes. In place it was a crude diamond with a stick: the game's strokes are thick, coloured by kind and fixed in shape, so they can't make a nib's fine slit, its breather hole or the curve of its taper.
+- **Now:** a drawn gold nib (`NIB_PATH` in `src/components/maze/Masthead.tsx`, `--gold`), a cap height tall with its tip on the baseline, 0.8 before the D. It has an arched top, rounded shoulders, sides sweeping in to a fine point, and a breather hole and slit cut through it. Its tip is dipped in the same purple ink as the drip from the D, up to a wavy line. It isn't built from game strokes, so the parts row above the name stays the place that shows all nine.
+- **On load** the nib drops in first, then ink climbs its tip as if it had just been dipped; the letters follow and the D drips once it lands. With less motion it all fades in in place.
+- **Also tried:** an ink drop and a tilted nib made of strokes (clumsy), all nine strokes in a 3 × 3 grid (busy), each stroke set a little apart from its stem (shows how letters are built, but adds no new strokes), and a steel nib (dull grey at header size).
+- **Only in the header** (the owner's call): the share card, link preview and tab icon show the name alone.
+
+## Renamed Diplets, with green ink on the nib (2026-10-10, branch `rename-diplet`)
+- **The owner's call:** rename the game Diplets, to give the word more to show. The S is two bowls, so the name now has curves at both ends (the D's arc, the S's two bowls) instead of ending on straight bars. It's still built from the same 4 kinds of stroke (six long bars, five bars, one arc, three bowls): the S adds two bowls, not new kinds.
+- **The nib's ink is green** (the rising slash's green, `--t-LD`), on its dipped tip and in a bead that swells at its point once the ink has climbed it. That brings a colour the name doesn't use; a purple dip with a green bead was tried and read as two inks.
+- **Changed with the name:** the wordmark, the page title and link-preview tags, the link preview itself (`public/og.png`, redrawn; its tag now asks for `og.png?v=diplets`), the share card, its title, alt text and saved file (`diplets-4.png`), the README, the daily runbook and `/daily`, and what `scripts/deploy.sh` writes to the site's repo.
+- **Unchanged:** the address (/strokes/), the `strokes:` saved-data keys, names in the code, and the tab icon (still the D).
+
+## Even spacing in the name (2026-10-10, branch `rename-diplet`)
+- **The owner's note:** the spacing in the title looked off. A fixed gap (0.7) between letters' boxes left straight stems cramped (I beside P) and open letters loose (above L's foot, under E's bars, either side of T's stem).
+- **Now the letters are spaced optically** (`src/spacing.ts`), the way type designers space letters:
+  - each pair is set so the white between them, averaged down the cap height, is 0.6;
+  - a hollow deeper than 0.6 into a letter counts only that deep, since the eye doesn't take it for space between letters;
+  - no two letters' ink comes closer than 0.34, a row above or below included.
+- **DIPLETS, origin to origin:** DI 1.70 → 1.71, IP 0.70 → 0.90, PL 1.70 → 1.64, LE 1.70 → 1.48, ET 1.70 → 1.34, TS 1.70 → 1.26. The name is 9.6 units wide instead of 10.45. The nib is spaced from the D the same way, from its outline.
+- **Used for the header and for the name on the share card and link preview** (`drawWord` in `src/share.ts`); the link preview was redrawn. `src/spacing.test.ts` checks that straight stems get more room than rounds and open sides, and that bars never run into the next letter.
+
+## The nib leans in, and its ink runs through the strokes' colours (2026-10-10, branch `rename-diplet`)
+- **The owner's calls:**
+  - first: angle the nib slightly to face the D, make its ink the D's purple instead of green, and have the ink run through the colours before landing on purple;
+  - then: a little more angle and more room from the D, a slower colour cycle, and a small shake, which was tried and taken out again.
+- **The lean:** the nib turns 20° about its middle (`NIB.tilt` in `src/components/maze/Masthead.tsx`), its point towards the D. The name is spaced from the leaning outline and then set 0.3 further off (`NIB.room`), so the nib stands a little apart from the word.
+- **The ink** (`.nib-ink` in `src/styles.css`) starts as the ink climbs the tip, 0.6 s in. Over 3 s it runs through the strokes' colours in tray order (long bar, bar, both slashes, tail, big chevron, small chevron, bowl) and settles on the arc's purple, the D's colour. It's a CSS animation, so it follows the light or dark palette; with less motion it's purple from the start.
+- **No bead at the nib's point:** the drop that swelled there was taken out (the owner's call); the D's drip stays.

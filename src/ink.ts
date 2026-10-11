@@ -121,7 +121,7 @@ function keptCenterline(p: Placement, look: Look, squeeze: number): Pt[] {
 }
 
 /** Filled nib-and-ink outline around a centreline (see inkOutline). */
-export function inkPath(pts: Pt[], seed = 0, minHalfWidth = 0): string {
+export function inkPath(pts: Pt[], seed = 0, minHalfWidth = 0, weight = 1): string {
   const n = pts.length;
   const along = [0];
   for (let k = 1; k < n; k++) along.push(along[k - 1] + gap(pts[k], pts[k - 1]));
@@ -142,7 +142,7 @@ export function inkPath(pts: Pt[], seed = 0, minHalfWidth = 0): string {
     const nib = THIN + SPAN * Math.abs(Math.sin(Math.atan2(dy, dx) + NIB));
     const pressure = 1 + PRESSURE * Math.sin(d * 2.7 + seed);
     const ends = 0.6 + 0.4 * smoothstep(0.08, Math.min(d, total - d));
-    const half = Math.max(minHalfWidth, nib * pressure * ends);
+    const half = Math.max(minHalfWidth, nib * pressure * ends * weight);
     const x = pts[k][0] + nx * wobble;
     const y = pts[k][1] + ny * wobble;
     left.push([x + nx * half, y + ny * half]);
@@ -157,13 +157,14 @@ export function inkPath(pts: Pt[], seed = 0, minHalfWidth = 0): string {
  * the origin. `seed` varies the wobble; `minHalfWidth` keeps thin parts visible at small sizes;
  * `squeeze` narrows the stroke's path horizontally (the pen width stays the same). With a `look`,
  * the stroke is drawn as its formed letter shows it (`at` is its position, for the look's offset).
+ * `weight` broadens the pen (1.5 draws every part half as wide again: the wordmark's bold).
  */
-export function inkOutline(tile: TileId, rot = 0, seed = 0, minHalfWidth = 0, squeeze = 1, look?: Look, at: Pt = [0, 0]): string {
-  const key = `${tile}|${rot}|${seed}|${minHalfWidth.toFixed(3)}|${squeeze}${look ? `|${JSON.stringify(look)}@${at}` : ''}`;
+export function inkOutline(tile: TileId, rot = 0, seed = 0, minHalfWidth = 0, squeeze = 1, look?: Look, at: Pt = [0, 0], weight = 1): string {
+  const key = `${tile}|${rot}|${seed}|${minHalfWidth.toFixed(3)}|${squeeze}|${weight}${look ? `|${JSON.stringify(look)}@${at}` : ''}`;
   const hit = outlines.get(key);
   if (hit) return hit;
   const pts = look ? lookCenterline({ tile, x: at[0], y: at[1], rot }, look, squeeze) : strokeCenterline(tile, rot, squeeze);
-  const d = inkPath(pts, seed, minHalfWidth);
+  const d = inkPath(pts, seed, minHalfWidth, weight);
   outlines.set(key, d);
   return d;
 }

@@ -9,7 +9,7 @@ request.
 
 ---
 
-You're adding a day's puzzle to **Strokes**, a word puzzle. Players turn a start word into a goal
+You're adding a day's puzzle to **Diplets**, a word puzzle. Players turn a start word into a goal
 word one real 5-letter word at a time, redrawing letters stroke by stroke, in as few strokes as they
 can. Every device plays 5-letter words. (The 4-letter game is kept behind `?letters=4`, and gets no
 new days.)
