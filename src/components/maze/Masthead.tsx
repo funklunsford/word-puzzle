@@ -9,12 +9,13 @@ const WORDMARK = 'DIPLETS';
 /** The wordmark's pen: a fifth broader than the game's, so the name stands out but still matches the tray. */
 const BOLD = 1.2;
 /**
- * A gold pen nib before the D, a cap height tall with its tip on the baseline: an arched top,
- * rounded shoulders and sides sweeping in to a fine point, with a breather hole and a slit cut
- * through it. It's `width` wide, spaced from the D like the letters are from each other, dipped in
- * `ink` (the rising slash's green), with a bead of it of radius `bead` at its point.
+ * A gold pen nib before the D, a cap height tall: an arched top, rounded shoulders and sides
+ * sweeping in to a fine point, with a breather hole and a slit cut through it. It leans `tilt`
+ * degrees about its middle, its point towards the D, and is spaced from the D like the letters are
+ * from each other. It's dipped in ink (see .nib-ink in styles.css), with a bead of it of radius
+ * `bead` at its point.
  */
-const NIB = { width: 1.06, ink: 'var(--t-LD)', bead: 0.09 };
+const NIB = { tilt: -14, bead: 0.09 };
 /** The nib's right side, from the middle of its top to its point: a quadratic, then two cubics. Its left side mirrors it. */
 const NIB_SIDE: Pt[][] = [
   [[0, 0], [0.22, -0.01], [0.42, 0.06]],
@@ -36,11 +37,21 @@ function bezier(seg: Pt[], t: number): Pt {
   while (pts.length > 1) pts = pts.slice(1).map((p, i): Pt => [pts[i][0] + (p[0] - pts[i][0]) * t, pts[i][1] + (p[1] - pts[i][1]) * t]);
   return pts[0];
 }
-/** The nib's outline as points, its middle at 0: what the name is spaced from. */
+/** A point of the nib, leaning by its tilt about its middle (0, 1). */
+function tilted([x, y]: Pt): Pt {
+  const t = (NIB.tilt * Math.PI) / 180;
+  return [x * Math.cos(t) - (y - 1) * Math.sin(t), 1 + x * Math.sin(t) + (y - 1) * Math.cos(t)];
+}
+/** Where the leaning nib's point is. */
+const NIB_TIP = tilted([0, 2]);
+/** The leaning nib's outline as points, its middle at 0: what the name is spaced from. */
 const NIB_PROFILE = (() => {
   const side = NIB_SIDE.flatMap((seg) => Array.from({ length: 16 }, (_, i) => bezier(seg, (i + 1) / 16)));
-  return profileOf([[[0, 0], ...side, ...[...side].reverse().map(mirror)]]);
+  const outline: Pt[] = [[0, 0], ...side, ...[...side].reverse().map(mirror)];
+  return profileOf([outline.map(tilted)]);
 })();
+/** How far the leaning nib reaches left of its middle. */
+const NIB_LEAD = -Math.min(...NIB_PROFILE.left.filter(Number.isFinite));
 /** The ink it was dipped in, up to a wavy line across its lower part (clipped to the nib). */
 const NIB_INK = 'M-0.7 1.27 C-0.42 1.15 -0.2 1.35 0 1.25 C0.2 1.15 0.42 1.35 0.7 1.22 L0.7 2.1 L-0.7 2.1 Z';
 /**
@@ -70,7 +81,7 @@ interface Placed {
 function layout() {
   const raw: Omit<Placed, 'from'>[] = [];
   // The letters after the nib, optically spaced (see spacing.ts), from the nib's left edge.
-  const starts = spaced(WORDMARK, BOLD, NIB_PROFILE).map((x) => x + NIB.width / 2);
+  const starts = spaced(WORDMARK, BOLD, NIB_PROFILE).map((x) => x + NIB_LEAD);
   for (const [li, ch] of [...WORDMARK].entries()) {
     for (const [pi, p] of LETTERS[ch].parts.entries()) {
       raw.push({ key: `${li}-${pi}`, tile: p.tile, x: starts[li] + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
@@ -93,7 +104,7 @@ function layout() {
   const hang = stem.x + DRIP.x;
   // The ink's lower edge there, and how it slopes (the bowl curves up towards its right).
   const slope = (inkFoot(bowl, hang + 0.1) - inkFoot(bowl, hang - 0.1)) / 0.2;
-  return { width, parts, placed, nib: left + NIB.width / 2, drip: { tile: bowl.tile, x: hang, y: inkFoot(bowl, hang), slope, order: strokes.indexOf(bowl) } };
+  return { width, parts, placed, nib: left + NIB_LEAD, drip: { tile: bowl.tile, x: hang, y: inkFoot(bowl, hang), slope, order: strokes.indexOf(bowl) } };
 }
 
 /** How far down a placed stroke's ink reaches at `x` (its outline has a point about every 0.02 units). */
@@ -170,8 +181,8 @@ function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order
 }
 
 /**
- * The nib (see NIB), centred on `x`. It drops in first, then ink climbs its tip as if it had just
- * been dipped, and a bead of it swells at the point.
+ * The nib (see NIB), its middle at `x`. It drops in first, then ink climbs its tip as if it had
+ * just been dipped, and a bead of it swells at the point, hanging straight down.
  */
 function Nib({ x }: { x: number }) {
   const clip = useId();
@@ -182,26 +193,28 @@ function Nib({ x }: { x: number }) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', bounce: 0.2, duration: 0.7, delay: 0.1, opacity: { duration: 0.15, delay: 0.1 } }}
       >
-        <defs>
-          <clipPath id={clip}>
-            <path d={NIB_PATH} clipRule="evenodd" />
-          </clipPath>
-        </defs>
-        <path d={NIB_PATH} fillRule="evenodd" fill="var(--gold)" />
-        <g clipPath={`url(#${clip})`}>
-          <motion.path
-            d={NIB_INK}
-            fill={NIB.ink}
-            style={{ originY: 1 }}
-            initial={{ scaleY: 0 }}
-            animate={{ scaleY: 1 }}
-            transition={{ duration: 0.5, delay: 0.6, ease: 'easeOut' }}
-          />
+        <g transform={`rotate(${NIB.tilt} 0 1)`}>
+          <defs>
+            <clipPath id={clip}>
+              <path d={NIB_PATH} clipRule="evenodd" />
+            </clipPath>
+          </defs>
+          <path d={NIB_PATH} fillRule="evenodd" fill="var(--gold)" />
+          <g clipPath={`url(#${clip})`}>
+            <motion.path
+              d={NIB_INK}
+              className="nib-ink"
+              style={{ originY: 1 }}
+              initial={{ scaleY: 0 }}
+              animate={{ scaleY: 1 }}
+              transition={{ duration: 0.5, delay: 0.6, ease: 'easeOut' }}
+            />
+          </g>
         </g>
-        <g transform={`translate(0 ${2 + 1.2 * NIB.bead})`}>
+        <g transform={`translate(${NIB_TIP[0]} ${NIB_TIP[1] + 1.2 * NIB.bead})`}>
           <motion.path
             d={BEAD}
-            fill={NIB.ink}
+            className="nib-ink"
             // Swell about the bead's centre, three quarters of the way down its outline.
             style={{ originY: 0.75 }}
             initial={{ scale: 0 }}

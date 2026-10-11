@@ -724,6 +724,47 @@ select,
   overflow: visible;
 }
 
+/* The nib's ink (and the bead at its point): as it climbs the tip it runs through the strokes'
+   colours, settling on the D's purple. */
+.nib-ink {
+  fill: var(--t-C);
+  animation: nib-ink 1.6s linear 0.6s both;
+}
+
+@keyframes nib-ink {
+  0% {
+    fill: var(--t-LV);
+  }
+  12.5% {
+    fill: var(--t-H);
+  }
+  25% {
+    fill: var(--t-LD);
+  }
+  37.5% {
+    fill: var(--t-LB);
+  }
+  50% {
+    fill: var(--t-SB);
+  }
+  62.5% {
+    fill: var(--t-BV);
+  }
+  75% {
+    fill: var(--t-SC);
+  }
+  87.5% {
+    fill: var(--t-P);
+  }
+  100% {
+    fill: var(--t-C);
+  }
+}
+
+:root[data-motion='less'] .nib-ink {
+  animation: none;
+}
+
 /* The daily's number and date, under the wordmark. */
 .dateline {
   margin: -4px 0 0;
