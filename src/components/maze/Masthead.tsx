@@ -12,10 +12,9 @@ const BOLD = 1.2;
  * A gold pen nib before the D, a cap height tall: an arched top, rounded shoulders and sides
  * sweeping in to a fine point, with a breather hole and a slit cut through it. It leans `tilt`
  * degrees about its middle, its point towards the D, and sits `room` further from the D than the
- * letters' own spacing would put it. It's dipped in ink (see .nib-ink in styles.css), with a bead
- * of it of radius `bead` at its point.
+ * letters' own spacing would put it. It's dipped in ink (see .nib-ink in styles.css).
  */
-const NIB = { tilt: -20, room: 0.3, bead: 0.09 };
+const NIB = { tilt: -20, room: 0.3 };
 /** The nib's right side, from the middle of its top to its point: a quadratic, then two cubics. Its left side mirrors it. */
 const NIB_SIDE: Pt[][] = [
   [[0, 0], [0.22, -0.01], [0.42, 0.06]],
@@ -42,8 +41,6 @@ function tilted([x, y]: Pt): Pt {
   const t = (NIB.tilt * Math.PI) / 180;
   return [x * Math.cos(t) - (y - 1) * Math.sin(t), 1 + x * Math.sin(t) + (y - 1) * Math.cos(t)];
 }
-/** Where the leaning nib's point is. */
-const NIB_TIP = tilted([0, 2]);
 /** The leaning nib's outline as points, its middle at 0: what the name is spaced from. */
 const NIB_PROFILE = (() => {
   const side = NIB_SIDE.flatMap((seg) => Array.from({ length: 16 }, (_, i) => bezier(seg, (i + 1) / 16)));
@@ -146,7 +143,6 @@ function teardrop(r: number) {
   return symmetric(ys, (y) => (y <= -r / 3 ? (y + 3 * r) / Math.sqrt(8) : Math.sqrt(Math.max(0, r * r - y * y))));
 }
 const DROP = teardrop(DRIP.drop);
-const BEAD = teardrop(NIB.bead);
 /** Once the D has landed (`LANDED` after its bowl sets off), a bead of ink swells under it, then creeps down and stops. */
 const DRIP_RUN = { duration: 1.8, times: [0, 0.2, 1], ease: 'easeOut' as const };
 const LANDED = 0.8;
@@ -182,7 +178,7 @@ function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order
 
 /**
  * The nib (see NIB), its middle at `x`. It drops in first, then ink climbs its tip as if it had
- * just been dipped, and a bead of it swells at the point, hanging straight down.
+ * just been dipped.
  */
 function Nib({ x }: { x: number }) {
   const clip = useId();
@@ -210,17 +206,6 @@ function Nib({ x }: { x: number }) {
               transition={{ duration: 0.5, delay: 0.6, ease: 'easeOut' }}
             />
           </g>
-        </g>
-        <g transform={`translate(${NIB_TIP[0]} ${NIB_TIP[1] + 1.2 * NIB.bead})`}>
-          <motion.path
-            d={BEAD}
-            className="nib-ink"
-            // Swell about the bead's centre, three quarters of the way down its outline.
-            style={{ originY: 0.75 }}
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.4, delay: 1.05, ease: 'easeOut' }}
-          />
         </g>
       </motion.g>
     </g>

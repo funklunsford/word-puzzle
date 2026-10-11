@@ -794,6 +794,6 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The owner's calls:**
   - first: angle the nib slightly to face the D, make its ink the D's purple instead of green, and have the ink run through the colours before landing on purple;
   - then: a little more angle and more room from the D, a slower colour cycle, and a small shake, which was tried and taken out again.
-- **The lean:** the nib turns 20° about its middle (`NIB.tilt` in `src/components/maze/Masthead.tsx`), its point towards the D. The bead at its point hangs straight down. The name is spaced from the leaning outline and then set 0.3 further off (`NIB.room`), so the nib stands a little apart from the word.
+- **The lean:** the nib turns 20° about its middle (`NIB.tilt` in `src/components/maze/Masthead.tsx`), its point towards the D. The name is spaced from the leaning outline and then set 0.3 further off (`NIB.room`), so the nib stands a little apart from the word.
 - **The ink** (`.nib-ink` in `src/styles.css`) starts as the ink climbs the tip, 0.6 s in. Over 3 s it runs through the strokes' colours in tray order (long bar, bar, both slashes, tail, big chevron, small chevron, bowl) and settles on the arc's purple, the D's colour. It's a CSS animation, so it follows the light or dark palette; with less motion it's purple from the start.
-- **The bead** swells at the nib's point once the ink has climbed it, taking the ink's colour of the moment.
+- **No bead at the nib's point:** the drop that swelled there was taken out (the owner's call); the D's drip stays.
