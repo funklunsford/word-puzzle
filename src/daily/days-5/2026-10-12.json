@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-12",
+  "puzzle": {
+    "start": "CLUMP",
+    "goal": "PLAIN",
+    "best": 14,
+    "path": [
+      "CLUMP",
+      "CLUNK",
+      "CLINK",
+      "CLANK",
+      "PLANK",
+      "PLAIN"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "CLUMP",
+        "door": "CLIMB",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "CLUMP",
+        "door": "PLUMP",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.09
+  },
+  "inkPots": {
+    "pots": [
+      "PLUMP",
+      "BLINK",
+      "CHUNK"
+    ],
+    "best": 13,
+    "walk": [
+      "CLUMP",
+      "PLUMP",
+      "BLIMP",
+      "BLINK",
+      "BLANK",
+      "PLANK",
+      "PLAIN"
+    ]
+  },
+  "onRoute": {
+    "CLANK": 8,
+    "CLINK": 5,
+    "CLUMP": 0,
+    "CLUNK": 3,
+    "PLAIN": 14,
+    "PLANK": 11
+  }
+}
