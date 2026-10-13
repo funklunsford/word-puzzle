@@ -7,7 +7,7 @@
 import { LETTERS, TILE_IDS, TRAY_TURN, drawnScale, drawnWidth, type TileId } from './glyphs';
 import { inkOutline, inkSeed, opticalOffset } from './ink';
 import { scoreName } from './golf';
-import { NIB, NIB_INK, NIB_LEAD, NIB_PATH, afterNib } from './nib';
+import { CLUB, MARK_LEAD, NIB_INK, NIB_PATH, afterMark } from './nib';
 import { spaced } from './spacing';
 import { letterDiff } from './strokes';
 
@@ -67,12 +67,12 @@ const FONT = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI"
 
 /**
  * Draw a word in the game's own ink, `unit` px per letter unit, centred on cx, its top at y, its
- * letters optically spaced (see spacing.ts). With `nib`, the wordmark's pen nib goes before it.
+ * letters optically spaced (see spacing.ts). With `club`, the wordmark's club goes before it.
  */
-function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: number, unit: number, nib = false) {
-  const starts = nib ? afterNib(word) : spaced(word);
+function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: number, unit: number, club = false) {
+  const starts = club ? afterMark(word) : spaced(word);
   const left = cx - ((starts[starts.length - 1] + drawnWidth(word[word.length - 1])) * unit) / 2;
-  if (nib) drawNib(ctx, left + NIB_LEAD * unit, y, unit);
+  if (club) drawClub(ctx, left + MARK_LEAD * unit, y, unit);
   for (const [i, ch] of [...word].entries()) {
     const x = left + starts[i] * unit;
     const g = LETTERS[ch];
@@ -90,16 +90,43 @@ function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: nu
   }
 }
 
-/** The wordmark's gold nib (see nib.ts), its middle at x, its top at y, its tip dipped in the O's purple. */
-function drawNib(ctx: CanvasRenderingContext2D, x: number, y: number, unit: number) {
-  const nib = new Path2D(NIB_PATH);
+/**
+ * The wordmark's club (see nib.ts), the middle of its head at x, its top at y: a steel shaft and
+ * grip, a gold nib for its head with its point dipped in the O's purple, and a golf ball by its toe.
+ */
+function drawClub(ctx: CanvasRenderingContext2D, x: number, y: number, unit: number) {
+  const { shaft, ball } = CLUB;
+  const grip = [shaft.to[0] + (shaft.from[0] - shaft.to[0]) * shaft.grip, shaft.to[1] + (shaft.from[1] - shaft.to[1]) * shaft.grip];
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(unit, unit);
-  // Leaning about its middle, as in the header.
-  ctx.translate(0, 1);
-  ctx.rotate((NIB.tilt * Math.PI) / 180);
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = PAPER.muted;
+  ctx.lineWidth = shaft.width;
+  ctx.beginPath();
+  ctx.moveTo(...shaft.from);
+  ctx.lineTo(...shaft.to);
+  ctx.stroke();
+  ctx.strokeStyle = PAPER.ink;
+  ctx.lineWidth = shaft.gripWidth;
+  ctx.beginPath();
+  ctx.moveTo(...shaft.to);
+  ctx.lineTo(grip[0], grip[1]);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.strokeStyle = PAPER.muted;
+  ctx.lineWidth = 0.025;
+  ctx.stroke();
+  // The head: the upright nib, turned and scaled into place (as HEAD_TRANSFORM does in the header).
+  const { x: hx, y: hy, rot, scale } = CLUB.head;
+  ctx.translate(hx, hy);
+  ctx.rotate((rot * Math.PI) / 180);
+  ctx.scale(scale, scale);
   ctx.translate(0, -1);
+  const nib = new Path2D(NIB_PATH);
   ctx.fillStyle = PAPER.gold;
   ctx.fill(nib, 'evenodd');
   ctx.clip(nib, 'evenodd');

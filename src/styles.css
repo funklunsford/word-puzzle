@@ -724,6 +724,24 @@ select,
   overflow: visible;
 }
 
+/* The club before the name: a steel shaft and a grip, and a golf ball by its toe (its head is the
+   nib, below). */
+.club-shaft {
+  stroke: var(--muted);
+  stroke-linecap: round;
+}
+
+.club-grip {
+  stroke: var(--ink);
+  stroke-linecap: round;
+}
+
+.club-ball {
+  fill: #fdfcf8;
+  stroke: var(--muted);
+  stroke-width: 0.025;
+}
+
 /* The nib's ink: as it climbs the tip it runs slowly through the strokes' colours, settling on the
    arc's purple, the ink the O drips. */
 .nib-ink {

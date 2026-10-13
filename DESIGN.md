@@ -845,3 +845,14 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - "aces" in place of "perfect" in the record of dailies;
   - a line in How to play.
 - **Not renamed:** the daily runbook and the difficulty scripts still say a simulated player "makes par" when it reaches the lowest possible strokes. That's the analysis's own term, not the player's score.
+
+## The nib becomes a golf club (2026-10-13, branch `strokes-golf`)
+- **The owner's call:** with golf scoring, the mark before the name should be both a nib and a golf club. Of the sketches (a club with a nib for its head, the same with a ball, the upright nib with a ball, and a nib crossed with a club), the owner chose the club with a nib head and a ball.
+- **The mark** (`CLUB` in `src/nib.ts`):
+  - the gold nib, lying on its side as the club's head, its purple-inked point (the toe) towards the name;
+  - a steel shaft from its heel up to a grip;
+  - a golf ball by the toe.
+- **Weight:** the shaft (0.16) and grip (0.24) were thickened at the owner's ask, from 0.07 and 0.14, so the club flows with the letters, whose strokes are about 0.3 across.
+- **On load** the club drops in, ink climbs the head (running through the colours to purple, as before) and the ball rolls into place by the toe. With less motion it's all there at once.
+- **The name is spaced from the whole club,** ball included (`MARK_PROFILE`, `afterMark`).
+- **The link preview** (`drawClub` in `src/share.ts`) draws the same club. `public/og.png` was redrawn, and its tag asks for `og.png?v=golf`.

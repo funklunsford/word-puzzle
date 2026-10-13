@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { motion } from 'motion/react';
 import { LETTERS, TILES, TILE_IDS, drawnScale, drawnWidth, type TileId } from '../../glyphs';
 import { inkOutline, inkSeed } from '../../ink';
-import { NIB, NIB_INK, NIB_LEAD, NIB_PATH, afterNib } from '../../nib';
+import { CLUB, HEAD_TRANSFORM, MARK_LEAD, NIB_INK, NIB_PATH, afterMark } from '../../nib';
 import { TileStroke } from '../Glyph';
 
 const WORDMARK = 'STROKES';
@@ -32,11 +32,11 @@ interface Placed {
   from: { x: number; y: number; rot: number };
 }
 
-/** Lay out the wordmark (the nib, then the name) and the parts row, and work out where each stroke flies in from. */
+/** Lay out the wordmark (the club, then the name) and the parts row, and work out where each stroke flies in from. */
 function layout() {
   const raw: Omit<Placed, 'from'>[] = [];
-  // The letters after the nib, optically spaced, from the nib's left edge.
-  const starts = afterNib(WORDMARK, BOLD);
+  // The letters after the club, optically spaced, from the club's left edge.
+  const starts = afterMark(WORDMARK, BOLD);
   for (const [li, ch] of [...WORDMARK].entries()) {
     for (const [pi, p] of LETTERS[ch].parts.entries()) {
       raw.push({ key: `${li}-${pi}`, tile: p.tile, x: starts[li] + p.x * drawnScale(ch).place, y: p.y, rot: p.rot ?? 0, seed: inkSeed(p) });
@@ -58,7 +58,7 @@ function layout() {
   const hang = starts[DRIP.letter] + left + DRIP.x;
   // The ink's lower edge there, and how it slopes (the arc curves up towards its right).
   const slope = (inkFoot(bowl, hang + 0.1) - inkFoot(bowl, hang - 0.1)) / 0.2;
-  return { width, parts, placed, nib: left + NIB_LEAD, drip: { tile: bowl.tile, x: hang, y: inkFoot(bowl, hang), slope, order: strokes.indexOf(bowl) } };
+  return { width, parts, placed, club: left + MARK_LEAD, drip: { tile: bowl.tile, x: hang, y: inkFoot(bowl, hang), slope, order: strokes.indexOf(bowl) } };
 }
 
 /** How far down a placed stroke's ink reaches at `x` (its outline has a point about every 0.02 units). */
@@ -69,7 +69,7 @@ function inkFoot(s: Omit<Placed, 'from'>, x: number) {
   return s.y + foot;
 }
 
-const { width, parts, placed, nib, drip } = layout();
+const { width, parts, placed, club, drip } = layout();
 const PAD = 0.5;
 
 /**
@@ -134,19 +134,23 @@ function Drip({ x, y, tile, order }: { x: number; y: number; tile: TileId; order
 }
 
 /**
- * The nib (see NIB), its middle at `x`. It drops in first, then ink climbs its tip as if it had
- * just been dipped.
+ * The club (see CLUB in nib.ts), the middle of its head at `x`. It drops in first; then ink climbs
+ * the nib that is its head, as if it had just been dipped, and the ball rolls into place by its toe.
  */
-function Nib({ x }: { x: number }) {
+function Club({ x }: { x: number }) {
   const clip = useId();
+  const { shaft, ball } = CLUB;
+  const grip: [number, number] = [shaft.to[0] + (shaft.from[0] - shaft.to[0]) * shaft.grip, shaft.to[1] + (shaft.from[1] - shaft.to[1]) * shaft.grip];
   return (
-    <g className="nib" transform={`translate(${x} 0)`}>
+    <g className="club" transform={`translate(${x} 0)`}>
       <motion.g
         initial={{ y: -1.2, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', bounce: 0.2, duration: 0.7, delay: 0.1, opacity: { duration: 0.15, delay: 0.1 } }}
       >
-        <g transform={`rotate(${NIB.tilt} 0 1)`}>
+        <line className="club-shaft" x1={shaft.from[0]} y1={shaft.from[1]} x2={shaft.to[0]} y2={shaft.to[1]} strokeWidth={shaft.width} />
+        <line className="club-grip" x1={shaft.to[0]} y1={shaft.to[1]} x2={grip[0]} y2={grip[1]} strokeWidth={shaft.gripWidth} />
+        <g transform={HEAD_TRANSFORM}>
           <defs>
             <clipPath id={clip}>
               <path d={NIB_PATH} clipRule="evenodd" />
@@ -164,16 +168,25 @@ function Nib({ x }: { x: number }) {
             />
           </g>
         </g>
+        <motion.circle
+          className="club-ball"
+          cx={ball.x}
+          cy={ball.y}
+          r={ball.r}
+          initial={{ x: 0.5, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.9, ease: 'easeOut' }}
+        />
       </motion.g>
     </g>
   );
 }
 
 /**
- * The header graphic: the nine strokes as a parts row, and the wordmark: a pen nib and the name
- * built from the strokes. On load every stroke leaves its part tile, turns and snaps into its
- * letter, the way players build words. On phones (`compact`) only the wordmark is shown, its
- * strokes flying in from above, to leave the screen to the game.
+ * The header graphic: the nine strokes as a parts row, and the wordmark: a golf club with a pen nib
+ * for its head, and the name built from the strokes. On load every stroke leaves its part tile, turns
+ * and snaps into its letter, the way players build words. On phones (`compact`) only the wordmark is
+ * shown, its strokes flying in from above, to leave the screen to the game.
  */
 /** The wordmark, with an optional line under it (the daily's number and date), and buttons in its corner (the gear). */
 export function Masthead({ compact = false, dateline, actions }: { compact?: boolean; dateline?: string; actions?: React.ReactNode }) {
@@ -197,7 +210,7 @@ export function Masthead({ compact = false, dateline, actions }: { compact?: boo
             </g>
           </g>
         ))}
-        <Nib x={nib} />
+        <Club x={club} />
         <Drip x={drip.x} y={drip.y} tile={drip.tile} order={drip.order} />
         {placed.map((s, i) => (
           <g key={s.key} transform={`translate(${s.x} ${s.y})`}>
