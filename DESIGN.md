@@ -866,6 +866,11 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Gone with it:** the drip's shape and motion in `src/components/maze/Masthead.tsx` (`DRIP`, the neck and teardrop outlines, `Drip`).
 - **Unchanged:** the header's height (the room under the name predates the drip), and the link preview and share card, which never drew it.
 
+## Telling the Puzzle Playlist (2026-10-13, branch `playlist-done`)
+- **What:** the Puzzle Playlist (`~/Code/playlist`, to be at https://funklunsford.github.io/playlist/) opens each day's puzzles in turn and ticks each one when you come back. It can't see into other sites, but Strokes shares its origin, so Strokes says when it's done.
+- **How:** solving today's daily writes `puzzle-done:strokes:<local date>` = `{ at }` to localStorage, next to the result. An earlier day's (`?day=`) doesn't.
+- **Why a key of its own:** the playlist reads one key per game, so it doesn't depend on how Strokes keeps its results.
+
 ## Only the confetti for an Ace (2026-10-13, branch `confetti-only`)
 - **The owner's call:** remove the full-page display after an Ace (the goal word drawn over the whole page, with "Ace!" and the solve under it, until a tap) and keep the confetti.
 - **Now:** on an Ace the confetti pops out of the word on the board and falls away over the page as before, then it's gone (3.2 s).
