@@ -9,7 +9,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.." # this repo, wherever it's run from
 
-SITE="${STROKES_REPO:-funklunsford/diplets}"
+SITE="${STROKES_REPO:-funklunsford/strokes}"
 SOURCE="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 DIR="$(mktemp -d)"
 trap 'rm -rf "$DIR"' EXIT

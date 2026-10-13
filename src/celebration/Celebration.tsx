@@ -82,7 +82,7 @@ export function Celebration({ start, goal, load, perfect, from, strokes, best, h
       const [THREE, C, P, day] = await Promise.all([import('three'), import('./confetti'), import('./plain'), load ? load().catch(() => null) : null]);
       const el = host.current;
       if (disposed || !el) return;
-      setTitle(day?.theme.title ?? (perfect ? 'Perfect!' : null));
+      setTitle(day?.theme.title ?? (perfect ? 'Ace!' : null));
       const small = Math.min(window.innerWidth, window.innerHeight) < 600;
       const ratio = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2);
 
@@ -216,7 +216,7 @@ export function Celebration({ start, goal, load, perfect, from, strokes, best, h
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const label = perfect ? `Perfect! You reached ${goal} in the lowest possible strokes.` : `${title ?? 'Solved!'} You reached ${goal}.`;
+  const label = perfect ? `Ace! You reached ${goal} in the lowest possible strokes.` : `${title ?? 'Solved!'} You reached ${goal}.`;
   return (
     <div className={`celebration${leaving ? ' leaving' : ''}`} ref={host} onClick={carryOn} role="dialog" aria-modal="true" aria-label={label}>
       <div className={`celebration-text${shown ? ' shown' : ''}`}>

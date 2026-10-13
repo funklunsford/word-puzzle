@@ -826,3 +826,37 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Schedule:** 04:07 and 05:07 UTC. Routine schedules are in UTC, so the run an hour apart keeps one just after midnight Eastern in both daylight and standard time; the other finds the day already in and stops.
 - **No browser look** in the cloud: the daily tests check each puzzle against the word list and the pool's rules, and the build must pass. A failed check goes to a `daily/{date}` branch for the owner instead of `main`.
 - **The local task** (`daily-puzzle` in the Claude app) was removed, so only the cloud routine runs.
+
+## Back to Strokes, at /strokes/ (2026-10-13, branch `strokes-golf`)
+- **The owner's call:** the game is Strokes again, everywhere it said Diplets, and the site goes back to https://funklunsford.github.io/strokes/.
+- **What changed:**
+  - the wordmark (STROKES), page title, link-preview tags, share card, its title and saved file (`strokes-8.png`);
+  - the README (its opening is back to before the Diplet rename), the daily runbook, `/daily`, and what `scripts/deploy.sh` writes;
+  - the tab icon, the wordmark's S again (`scripts/favicon.ts`);
+  - the deploy target (`scripts/deploy.sh`, `scripts/setup-deploy-key.sh`) and every link, which point at `funklunsford/strokes` and /strokes/. The site's repo is renamed back with the merge. Links shared to /diplets/ in the last few days get a 404; the older /strokes/ links work again.
+- **The drip moves to the O.** The D it hung from is gone. Under the S it read as a cedilla (ŞTROKES), so it hangs from the O's right-hand arc instead: the same arc as the D's bowl, at the same spot. The nib's ink stays the purple of the letter that drips (`.nib-ink`, `drawNib`).
+
+## Golf scoring (2026-10-13, branch `strokes-golf`)
+- **The owner's call:** a solve is named like a golf score, by the strokes over the lowest possible: Ace (0 over), Albatross (+1), Eagle (+2), Birdie (+3), Par (+4), Bogey (+5 or 6), then "+7 over" and so on (`scoreName` in `src/golf.ts`).
+- **Where it shows:**
+  - the finish line ("TOWER in 17 strokes · Birdie", with ⭐ for an Ace);
+  - the celebration, which plays for an Ace as it did for a Perfect and now says "Ace!";
+  - the share card's badge (a gold "★ ACE", otherwise the name in grey);
+  - "aces" in place of "perfect" in the record of dailies;
+  - a line in How to play.
+- **Not renamed:** the daily runbook and the difficulty scripts still say a simulated player "makes par" when it reaches the lowest possible strokes. That's the analysis's own term, not the player's score.
+
+## The nib becomes a golf club (2026-10-13, branch `strokes-golf`)
+- **The owner's call:** with golf scoring, the mark before the name should be both a nib and a golf club. Of the sketches (a club with a nib for its head, the same with a ball, the upright nib with a ball, and a nib crossed with a club), the owner chose the club with a nib head and a ball.
+- **The mark** (`CLUB` in `src/nib.ts`):
+  - the gold nib, lying on its side as the club's head, its purple-inked point (the toe) towards the name;
+  - a steel shaft from its heel up to a grip;
+  - a golf ball by the toe.
+- **Weight:** the shaft (0.16) and grip (0.24) were thickened at the owner's ask, from 0.07 and 0.14, so the club flows with the letters, whose strokes are about 0.3 across.
+- **On load** the club drops in, ink climbs the head (running through the colours to purple, as before) and the ball rolls into place by the toe. With less motion it's all there at once.
+- **The name is spaced from the whole club,** ball included (`MARK_PROFILE`, `afterMark`).
+- **The link preview** (`drawClub` in `src/share.ts`) draws the same club. `public/og.png` was redrawn, and its tag asks for `og.png?v=golf`.
+
+## No mark before the name (2026-10-13, branch `strokes-golf`)
+- **The owner's call:** remove the graphic before the S (no nib, club or tee; a tee made from the nib was sketched and set aside). The header and the link preview show the name alone; the O keeps its drip.
+- **Gone with it:** `src/nib.ts`, the club's styles and the ink's colour cycle (`.nib-ink`), and the lead shape `spaced` took for it. `public/og.png` was redrawn without it.

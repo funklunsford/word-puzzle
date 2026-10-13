@@ -3,7 +3,7 @@ description: Add the next daily puzzle (5 letters) — choose it, check it, and 
 argument-hint: "[YYYY-MM-DD]"
 ---
 
-Add a daily puzzle to Diplets by following the runbook in `docs/daily-prompt.md` exactly, step by
+Add a daily puzzle to Strokes by following the runbook in `docs/daily-prompt.md` exactly, step by
 step: get ready, choose the puzzle, check it and hand it in (open the pull request, then merge it
 once every check has passed).
 

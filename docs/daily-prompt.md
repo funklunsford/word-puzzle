@@ -10,7 +10,7 @@ request.
 
 ---
 
-You're adding a day's puzzle to **Diplets**, a word puzzle. Players turn a start word into a goal
+You're adding a day's puzzle to **Strokes**, a word puzzle. Players turn a start word into a goal
 word one real 5-letter word at a time, redrawing letters stroke by stroke, in as few strokes as they
 can. Every device plays 5-letter words. (The 4-letter game is kept behind `?letters=4`, and gets no
 new days.)
@@ -69,7 +69,7 @@ new days.)
 
 ## On a schedule
 
-A Claude Code routine in Anthropic's cloud, "Diplets daily puzzle" (at claude.ai/code/routines), runs
+A Claude Code routine in Anthropic's cloud, "Strokes daily puzzle" (at claude.ai/code/routines), runs
 this runbook every night, so no one's machine has to be on. It's scheduled at 04:07 and 05:07 UTC,
 so one run lands just after midnight Eastern whether or not daylight saving is on; the other finds
 the day already in and stops. Each run:

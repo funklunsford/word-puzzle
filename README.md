@@ -1,13 +1,13 @@
-# Diplets
+# Strokes
 
-A word maze where every letter is built from pen strokes. The name is doublets (Lewis Carroll's word ladders, turning one word into another step by step) dipped in ink. Each word is a room: drag strokes in from the tray, tap a stroke to remove it, drag it somewhere else, or, where a chevron, arc or bowl could start a letter either way round, twist it by circling the cursor around its spot (up to 3 strokes per step) to turn the current word into another everyday word, and find the cheapest route from the day's start word to its goal. See [DESIGN.md](DESIGN.md) for the rules and design notes.
+A word maze where every letter is built from pen strokes. Each word is a room: drag strokes in from the tray, tap a stroke to remove it, drag it somewhere else, or, where a chevron, arc or bowl could start a letter either way round, twist it by circling the cursor around its spot (up to 3 strokes per step) to turn the current word into another everyday word, and find the cheapest route from the day's start word to its goal. See [DESIGN.md](DESIGN.md) for the rules and design notes.
 
 ```bash
 npm install
 npm run dev          # maze at http://localhost:5173, glyph gallery at /#gallery, old Smush prototype at /#smush
 npm test             # game-logic and celebration tests
 npm run daily        # candidates for the next daily puzzle (see below)
-npm run deploy       # publish the built site (only) to https://funklunsford.github.io/diplets/
+npm run deploy       # publish the built site (only) to https://funklunsford.github.io/strokes/
 ```
 
 There's a new 5-letter puzzle every day (`src/daily/days-5/`). To add the next one, run `/daily` in Claude Code, which follows [docs/daily-prompt.md](docs/daily-prompt.md): choose the puzzle, check it, and open a pull request. (The 4-letter game's days and their win celebrations are in `src/daily/days/`; it gets no new ones.)
