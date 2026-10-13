@@ -20,6 +20,3 @@ export function wordStrokes(word: string): { tile: TileId; pts: Pt[] }[] {
   // Centre it, with y pointing up (glyphs are drawn y-down, 0 to 2).
   return out.map((s) => ({ tile: s.tile, pts: s.pts.map(([px, py]): Pt => [px - width / 2, 1 - py]) }));
 }
-
-/** The width of a word laid out as above. */
-export const wordWidth = (word: string) => [...word].reduce((t, ch) => t + drawnWidth(ch), 0) + GAP * (word.length - 1);

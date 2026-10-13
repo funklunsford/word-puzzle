@@ -1,5 +1,6 @@
-// The contract between the celebration shell (Celebration.tsx) and a scene: each day's
-// celebration (src/daily/days/{DATE}.ts) and the Perfect encore (perfect.ts) are scenes.
+// The contract a celebration scene keeps. The 4-letter game's day scenes (src/daily/days/{DATE}.ts)
+// were written to it; they no longer play (2026-10-13), but are kept, with their tests. The confetti
+// (confetti.ts) shares its `Three` type.
 
 import type * as THREE_NS from 'three';
 

@@ -5,6 +5,10 @@
 > ([daily-prompt.md](daily-prompt.md)). This runbook is kept as the contract for the 4-letter
 > game's celebration scenes (`src/celebration/scenes.test.ts`), and its commands now need
 > `--letters 4`.
+>
+> **Its scenes no longer play** (2026-10-13). The full-page celebration is gone: an Ace gets the
+> confetti, and nothing else plays. The one scene made with this runbook
+> (`src/daily/days/2026-10-06.ts`) is kept, with its tests.
 
 This is the runbook Claude follows to add a daily puzzle. Run it with `/daily` (optionally
 `/daily 2026-10-09`) from a Claude Code session in this repo, on a Mac with the dev server
