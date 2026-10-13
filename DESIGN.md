@@ -860,3 +860,8 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 ## No mark before the name (2026-10-13, branch `strokes-golf`)
 - **The owner's call:** remove the graphic before the S (no nib, club or tee; a tee made from the nib was sketched and set aside). The header and the link preview show the name alone; the O keeps its drip.
 - **Gone with it:** `src/nib.ts`, the club's styles and the ink's colour cycle (`.nib-ink`), and the lead shape `spaced` took for it. `public/og.png` was redrawn without it.
+
+## No drip on the O (2026-10-13, branch `no-drip`)
+- **The owner's call:** take the drip off the O too. The header's name is now just the strokes that build it, like the words in play.
+- **Gone with it:** the drip's shape and motion in `src/components/maze/Masthead.tsx` (`DRIP`, the neck and teardrop outlines, `Drip`).
+- **Unchanged:** the header's height (the room under the name predates the drip), and the link preview and share card, which never drew it.
