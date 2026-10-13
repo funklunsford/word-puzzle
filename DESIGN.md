@@ -865,3 +865,9 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The owner's call:** take the drip off the O too. The header's name is now just the strokes that build it, like the words in play.
 - **Gone with it:** the drip's shape and motion in `src/components/maze/Masthead.tsx` (`DRIP`, the neck and teardrop outlines, `Drip`).
 - **Unchanged:** the header's height (the room under the name predates the drip), and the link preview and share card, which never drew it.
+
+## Telling the Puzzle Playlist (2026-10-13, branch `playlist-done`)
+- **What:** the Puzzle Playlist (`~/Code/playlist`, to be at https://funklunsford.github.io/playlist/) opens each day's puzzles in turn and ticks each one when you come back. It can't see into other sites, but Strokes shares its origin, so Strokes says when it's done.
+- **How:** solving today's daily writes `puzzle-done:strokes:<local date>` = `{ at }` to localStorage, next to the result. An earlier day's (`?day=`) doesn't.
+- **Why a key of its own:** the playlist reads one key per game, so it doesn't depend on how Strokes keeps its results.
+
