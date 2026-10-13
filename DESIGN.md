@@ -856,3 +856,7 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **On load** the club drops in, ink climbs the head (running through the colours to purple, as before) and the ball rolls into place by the toe. With less motion it's all there at once.
 - **The name is spaced from the whole club,** ball included (`MARK_PROFILE`, `afterMark`).
 - **The link preview** (`drawClub` in `src/share.ts`) draws the same club. `public/og.png` was redrawn, and its tag asks for `og.png?v=golf`.
+
+## No mark before the name (2026-10-13, branch `strokes-golf`)
+- **The owner's call:** remove the graphic before the S (no nib, club or tee; a tee made from the nib was sketched and set aside). The header and the link preview show the name alone; the O keeps its drip.
+- **Gone with it:** `src/nib.ts`, the club's styles and the ink's colour cycle (`.nib-ink`), and the lead shape `spaced` took for it. `public/og.png` was redrawn without it.

@@ -83,12 +83,9 @@ export function advance(a: Profile, b: Profile): number {
   return Math.max(WHITE - white, clear);
 }
 
-/**
- * Where each letter of `word` starts, drawn with pen `weight`. With a `lead` shape (the wordmark's
- * nib) the lead sits at 0 and the letters follow it.
- */
-export function spaced(word: string, weight = 1, lead?: Profile): number[] {
+/** Where each letter of `word` starts, drawn with pen `weight`. */
+export function spaced(word: string, weight = 1): number[] {
   const shapes = [...word].map((ch) => letterProfile(ch, weight));
-  let x = lead ? advance(lead, shapes[0]) : 0;
+  let x = 0;
   return shapes.map((p, i) => (i === 0 ? x : (x += advance(shapes[i - 1], p))));
 }
