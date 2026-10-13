@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-13",
+  "puzzle": {
+    "start": "HIKER",
+    "goal": "TOWER",
+    "best": 14,
+    "path": [
+      "HIKER",
+      "MITER",
+      "LITER",
+      "LIVER",
+      "LOVER",
+      "TOWER"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "HIKER",
+        "door": "TIMER",
+        "loses": 3,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.08
+  },
+  "inkPots": {
+    "pots": [
+      "LOWER",
+      "LIFER"
+    ],
+    "best": 13,
+    "walk": [
+      "HIKER",
+      "MITER",
+      "LITER",
+      "LIVER",
+      "LOVER",
+      "LOWER",
+      "TOWER"
+    ]
+  },
+  "onRoute": {
+    "HIKER": 0,
+    "LITER": 6,
+    "LIVER": 9,
+    "LOVER": 12,
+    "LOWER": 13,
+    "MITER": 3,
+    "TOWER": 14
+  }
+}
