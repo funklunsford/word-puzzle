@@ -359,6 +359,15 @@ export function MazeApp() {
     // A daily's result is kept, so coming back today shows it (the best one, if played again).
     const date = current?.date;
     if (!date) return;
+    // Today's daily solved: say so to the Puzzle Playlist (funklunsford.github.io/playlist/), which shares
+    // this origin and ticks Strokes when it sees this key (see its src/firstParty.ts). Not for an earlier day.
+    if (date === dayFor(localDate(), daysFor(letters))) {
+      try {
+        localStorage.setItem(`puzzle-done:strokes:${localDate()}`, JSON.stringify({ at: Date.now() }));
+      } catch {
+        // storage blocked: the playlist won't know
+      }
+    }
     const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail), seconds: Math.round(took) };
     const before = loadResult(date, letters);
     if (!before || result.strokes < before.strokes || (result.strokes === before.strokes && result.hints < before.hints)) {
