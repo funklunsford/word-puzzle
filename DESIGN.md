@@ -826,3 +826,22 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Schedule:** 04:07 and 05:07 UTC. Routine schedules are in UTC, so the run an hour apart keeps one just after midnight Eastern in both daylight and standard time; the other finds the day already in and stops.
 - **No browser look** in the cloud: the daily tests check each puzzle against the word list and the pool's rules, and the build must pass. A failed check goes to a `daily/{date}` branch for the owner instead of `main`.
 - **The local task** (`daily-puzzle` in the Claude app) was removed, so only the cloud routine runs.
+
+## Back to Strokes, at /strokes/ (2026-10-13, branch `strokes-golf`)
+- **The owner's call:** the game is Strokes again, everywhere it said Diplets, and the site goes back to https://funklunsford.github.io/strokes/.
+- **What changed:**
+  - the wordmark (STROKES), page title, link-preview tags, share card, its title and saved file (`strokes-8.png`);
+  - the README (its opening is back to before the Diplet rename), the daily runbook, `/daily`, and what `scripts/deploy.sh` writes;
+  - the tab icon, the wordmark's S again (`scripts/favicon.ts`);
+  - the deploy target (`scripts/deploy.sh`, `scripts/setup-deploy-key.sh`) and every link, which point at `funklunsford/strokes` and /strokes/. The site's repo is renamed back with the merge. Links shared to /diplets/ in the last few days get a 404; the older /strokes/ links work again.
+- **The drip moves to the O.** The D it hung from is gone. Under the S it read as a cedilla (ŞTROKES), so it hangs from the O's right-hand arc instead: the same arc as the D's bowl, at the same spot. The nib's ink stays the purple of the letter that drips (`.nib-ink`, `drawNib`).
+
+## Golf scoring (2026-10-13, branch `strokes-golf`)
+- **The owner's call:** a solve is named like a golf score, by the strokes over the lowest possible: Ace (0 over), Albatross (+1), Eagle (+2), Birdie (+3), Par (+4), Bogey (+5 or 6), then "+7 over" and so on (`scoreName` in `src/golf.ts`).
+- **Where it shows:**
+  - the finish line ("TOWER in 17 strokes · Birdie", with ⭐ for an Ace);
+  - the celebration, which plays for an Ace as it did for a Perfect and now says "Ace!";
+  - the share card's badge (a gold "★ ACE", otherwise the name in grey);
+  - "aces" in place of "perfect" in the record of dailies;
+  - a line in How to play.
+- **Not renamed:** the daily runbook and the difficulty scripts still say a simulated player "makes par" when it reaches the lowest possible strokes. That's the analysis's own term, not the player's score.

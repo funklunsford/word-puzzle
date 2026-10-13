@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Publish the built game to GitHub Pages: only the site files, never the source.
 #
-#   npm run deploy        # → https://funklunsford.github.io/diplets/
+#   npm run deploy        # → https://funklunsford.github.io/strokes/
 #
 # Builds, adds the licence notices the word list and definitions require on every copy, and
 # force-pushes the result as a single commit to the public repo below (creating it and turning
@@ -12,7 +12,7 @@
 # hand, it needs the GitHub CLI, logged in (`gh auth login`).
 set -euo pipefail
 
-REPO="${STROKES_REPO:-funklunsford/diplets}"
+REPO="${STROKES_REPO:-funklunsford/strokes}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
@@ -24,9 +24,9 @@ grep '^#' data/familiar-4.txt | sed -E 's/^# ?//' > dist/licenses/SCOWL.txt
 cp data/WORDNET-LICENSE.txt dist/licenses/WORDNET.txt
 touch dist/.nojekyll # serve files as they are
 cat > dist/README.md <<'MD'
-# Diplets
+# Strokes
 
-A word maze where every letter is built from pen strokes. Play it at https://funklunsford.github.io/diplets/
+A word maze where every letter is built from pen strokes. Play it at https://funklunsford.github.io/strokes/
 
 This repository holds only the built site, published from a private source project.
 
@@ -69,15 +69,15 @@ cd "$SITE"
 git init -q -b main
 git add -A
 if [ -n "${DEPLOY_KEY:-}" ]; then
-  git commit -q -m "Deploy Diplets (source ${SOURCE})"
+  git commit -q -m "Deploy Strokes (source ${SOURCE})"
 else
-  git commit -q -m "Deploy Diplets (source ${SOURCE})
+  git commit -q -m "Deploy Strokes (source ${SOURCE})
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 fi
 
 if [ "$EXISTS" != true ]; then
-  gh repo create "$REPO" --public --description "Diplets: a word maze where every letter is built from pen strokes"
+  gh repo create "$REPO" --public --description "Strokes: a word maze where every letter is built from pen strokes"
 fi
 git ${AUTH[@]+"${AUTH[@]}"} push -q --force "$REMOTE" main
 if [ -z "${DEPLOY_KEY:-}" ] && ! gh api "repos/${REPO}/pages" >/dev/null 2>&1; then

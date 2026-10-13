@@ -27,6 +27,7 @@ import { CELL_W, WordEditor } from './components/maze/WordEditor';
 import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
 import { dailyRecord, formatTime } from './stats';
+import { SCORE_KEY, scoreName } from './golf';
 import { AD_SLOTS, BANNER, RAIL_H, loadAdSense, railWidth } from './ads';
 import { AdSlot } from './components/AdSlot';
 
@@ -662,6 +663,7 @@ export function MazeApp() {
                       <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, swipe it as you place it.</li>
                     )}
                     <li>Going back to a word you've visited is free.</li>
+                    <li>Your score is named like golf: {SCORE_KEY}.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the next word's meaning, then the letters to change, then the word.</li>
                     <li>Want a challenge? Turn on Hardcore in Settings (it starts the puzzle over): only words on a lowest-stroke route count, and no hints.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
@@ -730,7 +732,11 @@ export function MazeApp() {
                 <strong>
                   {puzzle.goal} in {spent} {spent === 1 ? 'stroke' : 'strokes'}
                 </strong>
-                {spent <= best && <span className="nowrap"> · perfect ⭐</span>}
+                <span className="nowrap">
+                  {' '}
+                  · {scoreName(spent, best)}
+                  {spent <= best && ' ⭐'}
+                </span>
                 {hardcore && <span className="nowrap"> · hardcore</span>}
               </p>
               {/* This game's stats, then (for a daily) the player's record over them. */}
@@ -773,7 +779,7 @@ export function MazeApp() {
                       <dd>{record.solved}</dd>
                     </div>
                     <div>
-                      <dt>perfect</dt>
+                      <dt>aces</dt>
                       <dd>{record.perfect}</dd>
                     </div>
                     <div>

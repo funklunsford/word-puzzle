@@ -6,6 +6,7 @@
 
 import { LETTERS, TILE_IDS, TRAY_TURN, drawnScale, drawnWidth, type TileId } from './glyphs';
 import { inkOutline, inkSeed, opticalOffset } from './ink';
+import { scoreName } from './golf';
 import { NIB, NIB_INK, NIB_LEAD, NIB_PATH, afterNib } from './nib';
 import { spaced } from './spacing';
 import { letterDiff } from './strokes';
@@ -24,7 +25,7 @@ export interface ShareResult {
   steps: { from: string; to: string; cost: number }[];
 }
 
-export const SITE = 'https://funklunsford.github.io/diplets/';
+export const SITE = 'https://funklunsford.github.io/strokes/';
 
 /** Strokes a letter change takes (a stroke moved within the letter counts once). */
 function letterStrokes(a: string, b: string): number {
@@ -89,7 +90,7 @@ function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: nu
   }
 }
 
-/** The wordmark's gold nib (see nib.ts), its middle at x, its top at y, its tip dipped in the D's purple. */
+/** The wordmark's gold nib (see nib.ts), its middle at x, its top at y, its tip dipped in the O's purple. */
 function drawNib(ctx: CanvasRenderingContext2D, x: number, y: number, unit: number) {
   const nib = new Path2D(NIB_PATH);
   ctx.save();
@@ -168,7 +169,7 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
   cardBase(ctx, W, H, 48);
   const cx = W / 2;
 
-  drawWord(ctx, 'DIPLETS', cx, 104, 26);
+  drawWord(ctx, 'STROKES', cx, 104, 26);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = PAPER.muted;
@@ -198,9 +199,9 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
   ctx.font = `600 30px ${FONT}`;
   ctx.fillText(`lowest possible ${r.best}${r.hints ? ` · ${r.hints} ${r.hints === 1 ? 'hint' : 'hints'}` : ''}`, cx, 394);
 
-  // Badges.
-  const badges: [string, string][] = [];
-  if (perfect) badges.push(['★ PERFECT', PAPER.gold]);
+  // Badges: the score's golf name (an Ace in gold), and Hardcore.
+  const name = scoreName(r.strokes, r.best).toUpperCase();
+  const badges: [string, string][] = [perfect ? [`★ ${name}`, PAPER.gold] : [name, PAPER.muted]];
   if (r.hardcore) badges.push(['🔥 HARDCORE', PAPER.spicy]);
   if (badges.length) {
     ctx.font = `800 30px ${FONT}`;
@@ -299,7 +300,7 @@ export async function drawPreviewCard(canvas = document.createElement('canvas'))
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
   cardBase(ctx, W, H, 40);
-  drawWord(ctx, 'DIPLETS', W / 2, 96, 56, true);
+  drawWord(ctx, 'STROKES', W / 2, 96, 56, true);
   ctx.textAlign = 'center';
   ctx.fillStyle = PAPER.ink;
   ctx.font = `800 44px ${FONT}`;

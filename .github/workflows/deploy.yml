@@ -1,8 +1,8 @@
 # Every push to main (a merged pull request) is tested, built and published to the site,
-# https://funklunsford.github.io/diplets/ (GitHub Pages on the funklunsford/diplets repo).
+# https://funklunsford.github.io/strokes/ (GitHub Pages on the funklunsford/strokes repo).
 # Pull requests are tested and built, but not published.
 #
-# Publishing needs the STROKES_DEPLOY_KEY secret: an SSH key that can push to funklunsford/diplets.
+# Publishing needs the STROKES_DEPLOY_KEY secret: an SSH key that can push to funklunsford/strokes.
 # scripts/setup-deploy-key.sh adds it. Until then, runs on main pass with a warning instead.
 name: Test and deploy
 

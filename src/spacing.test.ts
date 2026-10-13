@@ -9,7 +9,7 @@ function closest(a: Profile, b: Profile, dx: number) {
 
 describe('optical spacing', () => {
   it('sets each letter after the last', () => {
-    const starts = spaced('DIPLETS', 1.2);
+    const starts = spaced('STROKES', 1.2);
     expect(starts[0]).toBe(0);
     starts.slice(1).forEach((x, i) => expect(x).toBeGreaterThan(starts[i]));
   });

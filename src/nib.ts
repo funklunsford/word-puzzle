@@ -1,15 +1,15 @@
 // The pen nib before the wordmark, in the header and on the link preview: a gold nib a cap height
 // tall, drawn rather than built from strokes. It has an arched top, rounded shoulders and sides
 // sweeping in to a fine point, with a breather hole and a slit cut through it, and its tip is
-// dipped in the D's purple ink (in the header the ink first runs through the strokes' colours: see
+// dipped in the purple ink the O drips (in the header the ink first runs through the strokes' colours: see
 // .nib-ink in styles.css). Its tip sits on the baseline, in letter units (cap height 2).
 
 import type { Pt } from './ink';
 import { profileOf, spaced } from './spacing';
 
 /**
- * It leans `tilt` degrees about its middle, its point towards the D, and sits `room` further from
- * the D than the letters' own spacing would put it.
+ * It leans `tilt` degrees about its middle, its point towards the name's first letter, and sits
+ * `room` further from it than the letters' own spacing would put it.
  */
 export const NIB = { tilt: -20, room: 0.3 };
 /** The nib's right side, from the middle of its top to its point: a quadratic, then two cubics. Its left side mirrors it. */
