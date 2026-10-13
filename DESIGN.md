@@ -865,3 +865,14 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **The owner's call:** take the drip off the O too. The header's name is now just the strokes that build it, like the words in play.
 - **Gone with it:** the drip's shape and motion in `src/components/maze/Masthead.tsx` (`DRIP`, the neck and teardrop outlines, `Drip`).
 - **Unchanged:** the header's height (the room under the name predates the drip), and the link preview and share card, which never drew it.
+
+## Only the confetti for an Ace (2026-10-13, branch `confetti-only`)
+- **The owner's call:** remove the full-page display after an Ace (the goal word drawn over the whole page, with "Ace!" and the solve under it, until a tap) and keep the confetti.
+- **Now:** on an Ace the confetti pops out of the word on the board and falls away over the page as before, then it's gone (3.2 s).
+  - The page shows through and stays in play throughout. The confetti's canvas takes no clicks or taps and is hidden from screen readers, and it no longer takes Enter or Space (`Celebration` in `src/celebration/Celebration.tsx`).
+  - Watch again replays it, from the start if it's still falling.
+- **With less motion** nothing plays, and Watch again is hidden. Before, it held the confetti still under the "Ace!" card.
+- **Gone:**
+  - the goal word's stage (`src/celebration/plain.ts`), the text card and its styles, and the confetti's hand-off to them;
+  - in development, `?celebrate` and Preview celebration. Preview Perfect is now Preview confetti, and `?perfect` still plays it.
+- **Kept, but no longer played:** the 4-letter game's one day scene (`src/daily/days/2026-10-06.ts`), with its contract (`src/celebration/scene.ts`), tests and runbook (`docs/daily-celebration-prompt.md`). Nothing loads it now that `celebrationFor` is gone.

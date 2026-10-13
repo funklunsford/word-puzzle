@@ -1,12 +1,10 @@
 // The daily puzzle: one a day, the same for everyone on that date in their own time zone.
 //
-// Each day is two files in src/daily/days, both loaded only when needed:
-// - {DATE}.json: the puzzle (written by `npm run daily`, see scripts/daily.ts);
-// - {DATE}.ts: its win celebration (a CelebrationModule, see src/celebration/scene.ts).
-// The desktop game's 5-letter days are in src/daily/days-5 (`npm run daily -- --letters 5`): a
-// puzzle file each, and no celebration of their own (a Perfect gets the confetti, then the goal word).
+// Each day is a puzzle file, {DATE}.json, loaded only when needed (written by `npm run daily`, see
+// scripts/daily.ts). The 5-letter game's days are in src/daily/days-5 (`npm run daily -- --letters 5`),
+// the 4-letter game's in src/daily/days. (Its one day scene, 2026-10-06.ts, no longer plays: an Ace
+// gets the confetti, and nothing else celebrates.)
 
-import type { CelebrationModule } from '../celebration/scene';
 import type { KeptDifficulty } from '../difficulty';
 import type { WordLength } from '../letters';
 import type { Need, Puzzle } from '../maze';
@@ -26,7 +24,6 @@ export interface DailyPuzzle {
 
 const puzzles = import.meta.glob<DailyPuzzle>('./days/*.json', { import: 'default' });
 const puzzles5 = import.meta.glob<DailyPuzzle>('./days-5/*.json', { import: 'default' });
-const scenes = import.meta.glob<CelebrationModule>('./days/*.ts');
 
 const dateOf = (path: string) => path.slice(path.lastIndexOf('/') + 1).replace(/\.\w+$/, '');
 
@@ -53,6 +50,3 @@ export function dayFor(today: string, days: readonly string[] = DAYS): string {
 export const dayNumber = (date: string) => Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${LAUNCH}T00:00:00Z`)) / 86_400_000) + 1;
 
 export const loadDaily = (date: string, letters: WordLength = 4) => (letters === 5 ? puzzles5[`./days-5/${date}.json`] : puzzles[`./days/${date}.json`])();
-
-/** The day's celebration, loaded when it plays (undefined if the day has none). */
-export const celebrationFor = (date: string): (() => Promise<CelebrationModule>) | undefined => scenes[`./days/${date}.ts`];

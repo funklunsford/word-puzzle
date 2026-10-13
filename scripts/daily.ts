@@ -180,7 +180,7 @@ if (!start) {
   writeFileSync(file, `${JSON.stringify(day, null, 2)}\n`);
   const { puzzle } = day;
   if (LETTERS !== 4) {
-    // 5-letter days have no scene of their own: a Perfect gets the confetti, then the goal word.
+    // 5-letter days have no scene of their own: an Ace gets the confetti.
     console.log(`Wrote ${FOLDER}${date}.json: No. ${dayNumber(date)}, ${puzzle.start} → ${puzzle.goal}, lowest strokes ${puzzle.best}. No celebration to build.`);
     process.exit(0);
   }

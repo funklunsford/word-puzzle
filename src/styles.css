@@ -2167,17 +2167,13 @@ select,
 }
 
 /* ---------- The win celebration (src/celebration) ---------- */
+/* The Ace confetti: a clear canvas over the whole page, which shows through and stays in play. */
 .celebration {
   position: fixed;
   inset: 0;
   z-index: 40;
-  cursor: pointer;
+  pointer-events: none;
   animation: celebration-in 0.4s ease-out;
-  transition: opacity 0.35s;
-}
-
-.celebration.leaving {
-  opacity: 0;
 }
 
 .celebration canvas {
@@ -2186,55 +2182,10 @@ select,
   height: 100%;
 }
 
-/* The Perfect confetti: a clear canvas over the stage (the board shows through until the stage fades in). */
-.celebration canvas.party {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
 @keyframes celebration-in {
   from {
     opacity: 0;
   }
-}
-
-.celebration-text {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: max(9vh, 48px);
-  text-align: center;
-  color: var(--ink);
-  opacity: 0;
-  transform: translateY(10px);
-  transition:
-    opacity 0.6s ease-out,
-    transform 0.6s ease-out;
-  pointer-events: none;
-}
-
-.celebration-text.shown {
-  opacity: 1;
-  transform: none;
-}
-
-.celebration-title {
-  margin: 0;
-  font-size: clamp(30px, 6vw, 46px);
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.celebration-line {
-  margin: 6px 0 0;
-  font-size: 16px;
-}
-
-.celebration-hint {
-  margin: 14px 0 0;
-  font-size: 13px;
-  color: var(--muted);
 }
 
 /* Hints: the letters a hint points at, and its line in the step panel. */

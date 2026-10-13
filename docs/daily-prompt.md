@@ -43,7 +43,7 @@ new days.)
     at more words.
 - Check it in with `npm run daily -- {DATE} {START} {GOAL}`. This writes
   `src/daily/days-5/{DATE}.json` and prints the day's number.
-- There's no celebration to build: a Perfect gets the confetti, then the goal word.
+- There's no celebration to build: an Ace gets the confetti.
 
 ## 2. Check it
 

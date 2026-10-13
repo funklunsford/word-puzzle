@@ -7,7 +7,6 @@ import { describe, expect, it } from 'vitest';
 import type { DailyPuzzle } from '../daily/daily';
 import type { Pt } from '../ink';
 import { CONFETTI, confettiScene, type BurstSource } from './confetti';
-import { plainScene } from './plain';
 import type { CelebrationModule, Scene } from './scene';
 import { wordStrokes } from './wordPoints';
 
@@ -274,7 +273,7 @@ describe('the Perfect confetti', () => {
   };
 
   it('draws the same frame for the same moment, in any order and from a fresh start', () => {
-    const times = [0, 0.1, 0.6, 1.3, CONFETTI.handoff, 2.5, CONFETTI.length + 1];
+    const times = [0, 0.1, 0.6, 1.3, 1.7, 2.5, CONFETTI.length + 1];
     for (const aspect of [1.6, 0.46]) {
       const a = asScene(make(aspect), aspect);
       const first = times.map((t) => (a.update(t), snapshot(a)));
@@ -314,16 +313,5 @@ describe('the Perfect confetti', () => {
     expect(big.instances).toBeLessThanOrEqual(BUDGET.instances);
     expect(small.instances).toBeLessThan(0.7 * big.instances);
     expect(disposesAll(asScene(make(1.6), 1.6))).toBe(true);
-  });
-});
-
-describe('the plain celebration (a puzzle with no scene of the day)', () => {
-  it('shows the goal word, still, and frees what it made', () => {
-    const s = plainScene(THREE, { word: 'TAME', cssColor });
-    for (const t of [0, 3, 10]) {
-      s.update();
-      expect(coverage(s, 'TAME'), `t = ${t}`).toBeGreaterThan(0.9);
-    }
-    expect(disposesAll(s)).toBe(true);
   });
 });

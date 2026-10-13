@@ -2,7 +2,7 @@
 // word on the board (the strokes the player just drew), in the strokes' colours, with a ring of light
 // as it bursts. Each piece is a scrap of paper turning in 3D: it narrows as it turns edge-on, and
 // catches the light as it flips (a glint, and a darker back). Nearer pieces are bigger and fly faster,
-// so the burst has depth. It flutters down as sparkles twinkle, and the day's own celebration fades in.
+// so the burst has depth. It flutters down as sparkles twinkle, and is gone.
 //
 // It's drawn over the whole screen on a clear canvas (the page shows through), so its coordinates
 // are the screen's: y from -1 (bottom) to 1 (top), x from -aspect to aspect. Like every celebration
@@ -13,8 +13,8 @@ import { seededRandom } from '../maze';
 import { clamp01, smooth } from './kit';
 import type { Three } from './scene';
 
-/** Seconds: the confetti has all fallen away by `length`; the day's celebration has faded in by `handoff`. */
-export const CONFETTI = { length: 3.2, handoff: 1.7 };
+/** Seconds: the confetti has all fallen away by `length`. */
+export const CONFETTI = { length: 3.2 };
 
 /** The air's drag on a piece, gravity, and how close to the screen's sides pieces may go (as a share). */
 const DRAG = 3.0;

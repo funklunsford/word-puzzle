@@ -22,7 +22,7 @@ import { ShareSheet } from './components/maze/ShareSheet';
 import type { ShareResult } from './share';
 import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
 import { Celebration, inkSources } from './celebration/Celebration';
-import { celebrationFor, dayFor, dayNumber, daysFor, loadDaily, localDate } from './daily/daily';
+import { dayFor, dayNumber, daysFor, loadDaily, localDate } from './daily/daily';
 import { CELL_W, WordEditor } from './components/maze/WordEditor';
 import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
@@ -344,16 +344,15 @@ export function MazeApp() {
   // (A path that started from this puzzle's start: while a new puzzle swaps in, the old word can
   // equal the new goal for a moment, which isn't a win.)
   const won = !!puzzle && room === puzzle.goal && trail[0]?.word === puzzle.start;
-  // Reaching the goal celebrates: confetti for a solve in the lowest possible strokes, then the
-  // daily's own scene. In development, ?celebrate opens it at once (?celebrate=2.2 holds it at 2.2
-  // seconds), and ?perfect adds the confetti (?perfect=1.2 holds the whole thing at 1.2 seconds).
-  // (The 5-letter days have no scenes of their own: a Perfect gets the confetti, then the goal word.)
-  const scene = current?.date && letters === 4 ? celebrationFor(current.date) : undefined;
+  // Reaching the goal in the lowest possible strokes (an Ace) celebrates: confetti pops out of the
+  // word. Each run is a fresh one, so Watch again starts it over even while it's still falling. In
+  // development, ?perfect plays it at once (?perfect=1.2 holds it at 1.2 seconds).
   const perfect = won && spent <= best;
-  const [celebrating, setCelebrating] = useState<{ perfect: boolean; freezeAt?: number } | null>(null);
+  const [celebrating, setCelebrating] = useState<{ run: number; freezeAt?: number } | null>(null);
+  const celebrate = (freezeAt?: number) => setCelebrating((c) => ({ run: (c?.run ?? 0) + 1, freezeAt }));
   useEffect(() => {
     if (!won) return;
-    if (scene || perfect) setCelebrating({ perfect });
+    if (perfect) celebrate();
     const took = startedAt.current ? (Date.now() - startedAt.current) / 1000 : 0;
     setSeconds(took);
     // A daily's result is kept, so coming back today shows it (the best one, if played again).
@@ -393,7 +392,7 @@ export function MazeApp() {
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     const at = (key: string) => (q.get(key) ? Number(q.get(key)) : undefined);
-    if (import.meta.env.DEV && (q.has('celebrate') || q.has('perfect'))) setCelebrating({ perfect: q.has('perfect'), freezeAt: at('celebrate') ?? at('perfect') });
+    if (import.meta.env.DEV && q.has('perfect')) celebrate(at('perfect'));
   }, []);
   const stepEdits = history.length;
   const locked = stepEdits >= STEP_LIMIT;
@@ -802,8 +801,8 @@ export function MazeApp() {
                 >
                   Share
                 </button>
-                {(scene || spent <= best) && (
-                  <button className="pill quiet" onClick={() => setCelebrating({ perfect: spent <= best })}>
+                {spent <= best && !reduce && (
+                  <button className="pill quiet" onClick={() => celebrate()}>
                     Watch again
                   </button>
                 )}
@@ -966,13 +965,8 @@ export function MazeApp() {
                   Play the daily ({daily.puzzle.start} → {daily.puzzle.goal})
                 </button>
               ) : null}
-              {scene && (
-                <button className="pill quiet" onClick={() => setCelebrating({ perfect: false })}>
-                  Preview celebration
-                </button>
-              )}
-              <button className="pill quiet" onClick={() => setCelebrating({ perfect: true })}>
-                Preview Perfect
+              <button className="pill quiet" onClick={() => celebrate()}>
+                Preview confetti
               </button>
               {(Object.keys(FLAGS) as Flag[]).map((f) => (
                 <label key={f} className="flag">
@@ -1011,18 +1005,7 @@ export function MazeApp() {
       <AnimatePresence>{sharing && <ShareSheet result={sharing} onClose={closeShare} />}</AnimatePresence>
       {inkFlights}
       {celebrating && (
-        <Celebration
-          start={puzzle.start}
-          goal={puzzle.goal}
-          load={scene}
-          perfect={celebrating.perfect}
-          from={wordInk}
-          strokes={won ? spent : celebrating.perfect ? best : best + 1}
-          hints={won ? hintsUsed : 0}
-          best={best}
-          freezeAt={celebrating.freezeAt}
-          onClose={() => setCelebrating(null)}
-        />
+        <Celebration key={celebrating.run} from={wordInk} freezeAt={celebrating.freezeAt} onClose={() => setCelebrating(null)} />
       )}
     </MotionConfig>
     </PrefsContext.Provider>
