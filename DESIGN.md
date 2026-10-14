@@ -881,3 +881,16 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - the goal word's stage (`src/celebration/plain.ts`), the text card and its styles, and the confetti's hand-off to them;
   - in development, `?celebrate` and Preview celebration. Preview Perfect is now Preview confetti, and `?perfect` still plays it.
 - **Kept, but no longer played:** the 4-letter game's one day scene (`src/daily/days/2026-10-06.ts`), with its contract (`src/celebration/scene.ts`), tests and runbook (`docs/daily-celebration-prompt.md`). Nothing loads it now that `celebrationFor` is gone.
+
+## Difficulty at random, not by the day of the week (2026-10-13, branch `random-difficulty`)
+- **The owner's call:** keep drawing from the easiest, middle and hardest thirds of the pool, but pick each day's third at random instead of by a weekly rhythm.
+  - The rhythm was: Monday and Tuesday the easiest third; Wednesday, Thursday and Sunday the middle; Friday and Saturday the hardest.
+  - Drawing every day from the hardest third was considered first and set aside: it would use up that third in about four months.
+- **How:** `scripts/daily.ts` picks the third with the date's seeded random, the same generator that then shuffles the candidates. So the same date and history still list the same candidates.
+  - Over 50 years of dates the picks are fair: a third each, the same as the day before a third of the time, and no pattern by weekday.
+  - Streaks still happen, as with any fair draw. The fortnight from October 14 has three easy days, then four hard ones, and only one middle day.
+- **Supply:** the thirds now run down together. The 396 unused puzzles (134 easiest, 134 middle, 128 hardest) last about 13 months at one a day. Under the rhythm the middle third, drawn three days a week, would have run out first, in about ten months.
+- **The pool, not the word list, is the limit:**
+  - It holds 420 puzzles (`POOL` in `scripts/mazes.ts`), chosen from 9,791 candidates over the same words.
+  - When the day's third runs low, the script says to regenerate the pool with a new seed (`scripts/mazes.ts --letters 5`).
+  - The nightly routine only adds day files, so regenerating is for the owner, or a session asked to.

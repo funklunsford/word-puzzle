@@ -11,12 +11,11 @@
 // Candidates come from the puzzle pool (public/mazes.json, see scripts/mazes.ts), so every one is
 // tricky, starts and ends on everyday words, and fits the pool's rules (at 5 letters, holding out
 // against working back from the goal; at 4, a pocket beside the route). The script cycles through
-// it: never a pair already used (either way round), no start or goal word from the last 30 days, the
-// day's difficulty from a weekly rhythm (the easiest third of the pool early in the week, the
-// hardest by the weekend, by how often a simulated player makes par and how many words a search
-// from both ends must look at: see src/difficulty.ts), and the kind of route (see classifyNeed in
-// src/maze.ts) the last week has had least of. The same date and history always give the same
-// candidates.
+// it: never a pair already used (either way round), no start or goal word from the last 30 days, a
+// third of the pool by difficulty picked at random for the day (by how often a simulated player
+// makes par and how many words a search from both ends must look at: see src/difficulty.ts), and
+// the kind of route (see classifyNeed in src/maze.ts) the last week has had least of. The same date
+// and history always give the same candidates.
 //
 // Checking in writes src/daily/days-5/{DATE}.json (with --letters 4, src/daily/days/{DATE}.json and
 // what the celebration prompt needs: docs/daily-celebration-prompt.md). The history is the day files
@@ -40,9 +39,9 @@ const LOG = new URL('../src/daily/LOG.md', import.meta.url);
 const CANDIDATES = 10;
 /** Start and goal words rest this long before they come back. */
 const REST_DAYS = 30;
-/** How hard each weekday's puzzle is, Sunday first: easier early in the week, hardest by the weekend. */
+/** The pool's thirds by difficulty: each day's puzzle comes from one picked at random. */
 type Band = 'easy' | 'middle' | 'hard';
-const RHYTHM: Band[] = ['middle', 'easy', 'easy', 'middle', 'middle', 'hard', 'hard'];
+const BANDS: Band[] = ['easy', 'middle', 'hard'];
 const THIRD: Record<Band, string> = { easy: 'easiest third', middle: 'middle third', hard: 'hardest third' };
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const NEED_TEXT: Record<Need, string> = {
@@ -114,7 +113,10 @@ const resting = new Set(before.filter((d) => d.date >= addDays(date, -REST_DAYS)
 
 if (!start) {
   // ---------- Candidates ----------
-  const band = RHYTHM[weekday(date)];
+  // The day's third, at random (seeded by the date, so a rerun lists the same candidates), then the
+  // same generator shuffles them.
+  const random = seededRandom(hash(date));
+  const band = BANDS[Math.floor(random() * BANDS.length)];
   const inBand = (p: PoolEntry) => bandOf.get(pairKey(p.puzzle)) === band;
   // The kind of route the last week has had least of, against the pool's mix.
   const week = before.filter((d) => d.date >= addDays(date, -7));
@@ -122,7 +124,6 @@ if (!start) {
   const owed = (n: Need) => MIX[n] * (week.length + 1) - week.filter((d) => d.need === n).length;
   const need = needs.reduce((a, b) => (owed(b) > owed(a) ? b : a));
   const fresh = data.puzzles.filter((p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal));
-  const random = seededRandom(hash(date));
   const shuffled = (xs: PoolEntry[]) => xs.map((x) => ({ x, r: random() })).sort((a, b) => a.r - b.r).map((o) => o.x);
   // The day's band and kind first; then the day's band of other kinds; then anything fresh.
   const picks = [
@@ -133,7 +134,7 @@ if (!start) {
 
   const range = ranked.filter((p) => bandOf.get(pairKey(p.puzzle)) === band).map((p) => p.difficulty!.parChance);
   console.log(
-    `Daily #${dayNumber(date)}${LETTERS === 4 ? '' : ` (${LETTERS} letters)`}, ${WEEKDAYS[weekday(date)]} ${date}: a puzzle from the ${THIRD[band]} of the pool (made at par ${percent(Math.min(...range))}–${percent(Math.max(...range))} of the time), preferably one that ${NEED_TEXT[need]}.`,
+    `Daily #${dayNumber(date)}${LETTERS === 4 ? '' : ` (${LETTERS} letters)`}, ${WEEKDAYS[weekday(date)]} ${date}: a puzzle from the ${THIRD[band]} of the pool, picked at random (made at par ${percent(Math.min(...range))}–${percent(Math.max(...range))} of the time), preferably one that ${NEED_TEXT[need]}.`,
   );
   console.log(`${fresh.filter(inBand).length} unused puzzles in the pool in that third.\n`);
   picks.forEach((p, i) => {

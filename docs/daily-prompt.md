@@ -30,8 +30,7 @@ new days.)
   ends looks at). The script has already cycled through the puzzle pool for you:
   - no pair is used twice (either way round);
   - no start or goal word comes back within 30 days;
-  - difficulty follows the week: the easiest third of the pool early in the week, the hardest by
-    the weekend;
+  - each day's difficulty is picked at random: the easiest, middle or hardest third of the pool;
   - the kind of route varies from day to day.
 - **Choose the one whose two words make the clearest picture of change.** The best pairs are vivid
   or concrete, like MINER → CHEER or POUCH → BATCH.
