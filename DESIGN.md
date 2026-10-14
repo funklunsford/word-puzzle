@@ -916,3 +916,13 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - They read the pools as text (`?raw`), so type-checking stays fast however big a pool gets.
   - The checks over every puzzle take up to 4.4 s each, and each has a minute's limit.
   - Rebuilding at 420 from seed 7 gives the old 420-puzzle pool exactly, so the generator's changes don't change what it builds.
+
+## The tab icon: four stroke tiles (2026-10-14, branch `tile-icon`)
+- **The owner's call:** an icon more like the game, made from its own strokes. Of the sketches (an R built from three strokes, four stroke tiles, and all nine strokes in a 3×3), the owner chose the four tiles.
+- **The icon** (`scripts/favicon.ts` → `public/favicon.svg`):
+  - four tray tiles in a 2×2: the long bar, the rising slash, the big arc and the big chevron;
+  - each stroke drawn by the game's ink renderer in its dark-theme colour, read from `src/styles.css` so the icon follows the palette;
+  - on the dark board colour, with a ledge like the cells'.
+- **For 16 px:** the tiles are tinted a little more than the header's parts (16% of their colour, not 12%), and the strokes are drawn with a broader pen.
+- **Size:** 15 KB (4 KB compressed), with the outlines rounded to two decimals.
+- **The link** asks for `favicon.svg?v=tiles`, so browsers that kept the old S fetch the new one.
