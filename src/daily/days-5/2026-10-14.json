@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-14",
+  "puzzle": {
+    "start": "BRINK",
+    "goal": "TRAIL",
+    "best": 14,
+    "path": [
+      "BRINK",
+      "DRINK",
+      "DRANK",
+      "DRAIN",
+      "TRAIN",
+      "TRAIL"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "BRINK",
+        "door": "PRIMP",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "BRINK",
+        "door": "PRINT",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "DRANK",
+        "door": "FRANK",
+        "loses": 6,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.04
+  },
+  "inkPots": {
+    "pots": [
+      "TRAIT",
+      "CRANK"
+    ],
+    "best": 14,
+    "walk": [
+      "BRINK",
+      "DRINK",
+      "DRANK",
+      "DRAIN",
+      "TRAIN",
+      "TRAIL"
+    ]
+  },
+  "onRoute": {
+    "BRINK": 0,
+    "DRAIN": 9,
+    "DRANK": 6,
+    "DRINK": 3,
+    "TRAIL": 14,
+    "TRAIN": 11
+  }
+}
