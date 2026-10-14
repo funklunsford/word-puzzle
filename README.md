@@ -26,8 +26,8 @@ curl -o scowl-50.txt "http://app.aspell.net/create?max_size=50&spelling=US&max_v
 curl -o scowl-35.txt "http://app.aspell.net/create?max_size=35&spelling=US&max_variant=0&diacritic=strip&download=wordlist&encoding=utf-8&format=inline"
 npx vite-node scripts/familiar.ts scowl-40.txt scowl-50.txt scowl-35.txt   # → data/familiar-4.txt, data/everyday-4.txt
 npx vite-node scripts/familiar.ts scowl-40.txt scowl-50.txt scowl-35.txt --letters 5   # → data/familiar-5.txt, data/everyday-5.txt
-npx vite-node scripts/mazes.ts                   # → public/mazes.json
-npx vite-node scripts/mazes.ts --letters 5       # → public/mazes-5.json (the desktop game)
+npx vite-node scripts/mazes.ts                   # → public/mazes.json, and its pool in public/pool.json
+npx vite-node scripts/mazes.ts --letters 5       # → public/mazes-5.json, and the dailies' pool in public/pool-5.json
 ```
 
 Definitions (`public/definitions.json`) are built from WordNet 3.0 plus hand-written ones in `data/definitions-extra.tsv`:

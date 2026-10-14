@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
 import maze5Json from '../public/mazes-5.json';
+import poolText from '../public/pool.json?raw';
+import pool5Text from '../public/pool-5.json?raw';
 import { ONE_STROKE, POOL_MIX, PUZZLE_SHAPE, PUZZLE_SHAPES, buildGraph, classifyNeed, hubStep, isObvious, randomPuzzle, solve, steppingStone, type Need } from './maze';
 import { STEP_LIMIT, wordDistance } from './strokes';
 
@@ -74,6 +76,10 @@ describe('maze graph', () => {
 });
 
 type PoolJson = { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] }; puzzles: { puzzle: { start: string; goal: string; best: number; path: string[] }; need: Need; tricky: boolean }[] };
+// The pools (scripts/mazes.ts) come in as text: they're big, and type-checking them as JSON would be slow.
+const withPool = (m: unknown, text: string): PoolJson => ({ ...(m as Omit<PoolJson, 'puzzles'>), puzzles: (JSON.parse(text) as Pick<PoolJson, 'puzzles'>).puzzles });
+const maze4 = withPool(mazeJson, poolText);
+const maze5 = withPool(maze5Json, pool5Text);
 
 describe('the puzzle pool', () => {
   it('treats C, I and V, the one-stroke letters, as the hubs', () => {
@@ -81,7 +87,7 @@ describe('the puzzle pool', () => {
   });
 
   it('mixes what puzzles need from C, I and V as planned, so not every maze needs them', () => {
-    const pool = (mazeJson as unknown as PoolJson).puzzles;
+    const pool = maze4.puzzles;
     for (const need of ['none', 'letter', 'stone'] as Need[]) {
       expect(pool.filter((x) => x.need === need).length / pool.length, need).toBeCloseTo(POOL_MIX.need[need], 2);
     }
@@ -89,8 +95,8 @@ describe('the puzzle pool', () => {
 });
 
 describe.each([
-  { letters: 4, json: mazeJson as unknown as PoolJson },
-  { letters: 5, json: maze5Json as unknown as PoolJson },
+  { letters: 4, json: maze4 },
+  { letters: 5, json: maze5 },
 ])('the $letters-letter puzzle pool', ({ letters, json }) => {
   const pool = json.puzzles;
   const poolWords = json.words;
@@ -124,7 +130,7 @@ describe.each([
       expect(tricky, `${p.start} → ${p.goal}`).toBe(true);
       expect(isObvious(poolWords, poolAdj, p.start, p.goal, p.best), `${p.start} → ${p.goal}`).toBe(false);
     }
-  });
+  }, 60_000);
 
   it('solves its reference puzzle the same way the script did', () => {
     expect(solve(poolWords, poolAdj, json.puzzle.start, json.puzzle.goal)).toEqual(json.puzzle);

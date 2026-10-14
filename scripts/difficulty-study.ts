@@ -4,7 +4,7 @@
 //   npx vite-node scripts/difficulty-study.ts pool [--letters 4|5] [--pool FILE] [--games 400]
 //   npx vite-node scripts/difficulty-study.ts stream [--best 12-15] [--candidates 3000] [--games 200]
 //
-// `pool` scores every puzzle of a pool (public/mazes-5.json by default, or one rebuilt with
+// `pool` scores every puzzle of a pool (public/pool-5.json by default, or one rebuilt with
 // scripts/mazes.ts --out) and the dailies; `stream` draws candidates the way scripts/mazes.ts does and
 // scores every one, kept or not, to compare selection rules. Both print the doc's tables in markdown.
 // Everything is seeded, so the same files give the same numbers.
@@ -35,7 +35,11 @@ const option = (name: string) => {
 const LETTERS = Number(option('--letters') ?? 5);
 const suffix = LETTERS === 4 ? '' : `-${LETTERS}`;
 const root = new URL('../', import.meta.url);
-const maze = JSON.parse(readFileSync(option('--pool') ?? new URL(`public/mazes${suffix}.json`, root), 'utf8'));
+// The maze is the same for any pool from these words; the pool is the shipped one or --pool's.
+const maze = {
+  ...JSON.parse(readFileSync(new URL(`public/mazes${suffix}.json`, root), 'utf8')),
+  puzzles: JSON.parse(readFileSync(option('--pool') ?? new URL(`public/pool${suffix}.json`, root), 'utf8')).puzzles,
+};
 const words: string[] = maze.words;
 const adj: Graph = (maze.doors as number[][]).map((flat) => Array.from({ length: flat.length / 2 }, (_, k) => ({ to: flat[2 * k], cost: flat[2 * k + 1] })));
 const index = new Map(words.map((w, i) => [w, i]));

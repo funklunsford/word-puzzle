@@ -894,3 +894,25 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - It holds 420 puzzles (`POOL` in `scripts/mazes.ts`), chosen from 9,791 candidates over the same words.
   - When the day's third runs low, the script says to regenerate the pool with a new seed (`scripts/mazes.ts --letters 5`).
   - The nightly routine only adds day files, so regenerating is for the owner, or a session asked to.
+
+## The pool in a file of its own, and nearly three times bigger (2026-10-13, branch `pool-file`)
+- **The owner's call:** grow the pool so the dailies don't run out, and stop every visit from downloading it.
+- **A file of its own:**
+  - `scripts/mazes.ts` writes the pool to `public/pool-5.json` (`pool.json` at 4 letters), beside the maze.
+  - The game loads the maze on every visit, and the pool only for the freshPuzzle flag or dev's New start & goal (`loadPool` in `src/MazeApp.tsx`).
+  - A visit's 5-letter maze download drops from 79 KB to 43 KB gzipped (374 KB to 136 KB raw).
+  - The maze files are otherwise unchanged. The 4-letter pool was moved as it was, not rebuilt.
+- **1,200 puzzles, up from 420,** with the same rules and seed (7):
+  - 300 at each of 12–15 strokes (13.5 on average), all tricky and holding out against working back from the goal;
+  - from 65,957 candidates in 7 minutes;
+  - par chance median 2% (0–25%); every puzzle has a trap, 111 into a pocket;
+  - 666 different start and goal words.
+- **Supply:** 1,196 are unused (four of the seven days so far are in it, and are skipped as used). At one a day that's about three and a quarter years, into early 2030.
+- **Why not bigger:** 12-stroke puzzles set the limit: few keep the rules, and they dry up fast.
+  - A pool of 2,000 (500 at each stroke count) gave up after 200,000 candidates with 361 at 12 strokes. The first 105 had come within about 10,000.
+  - So a new `--seed` will bring fresh 13- to 15-stroke puzzles, but mostly the same 12-stroke ones. Once those are used up, the even split by strokes may have to give.
+- **Options:** `--size` (1,200 at 5 letters, 420 at 4) and `--seed` (7). The daily script's low-pool warning names the next seed.
+- **Tests:**
+  - They read the pools as text (`?raw`), so type-checking stays fast however big a pool gets.
+  - The checks over every puzzle take up to 4.4 s each, and each has a minute's limit.
+  - Rebuilding at 420 from seed 7 gives the old 420-puzzle pool exactly, so the generator's changes don't change what it builds.

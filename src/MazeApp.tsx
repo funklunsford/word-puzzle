@@ -58,14 +58,29 @@ interface MazeData extends Pick {
   words: string[];
   /** Each word's doors, as [to, cost, to, cost, ...] by word index (see scripts/mazes.ts). */
   doors?: number[][];
-  /** The pool a puzzle is picked from on each load (see scripts/mazes.ts). */
-  puzzles: Pick[];
 }
 
-/** A random puzzle from the pool, other than the one being played (WILD → TAME if there's no pool). */
-function pickPuzzle(data: MazeData, current?: Puzzle): Pick {
-  const pool = data.puzzles?.length ? data.puzzles : [{ puzzle: data.puzzle, inkPots: data.inkPots, onRoute: data.onRoute }];
-  const options = pool.length > 1 ? pool.filter((p) => p.puzzle.start !== current?.start || p.puzzle.goal !== current?.goal) : pool;
+/**
+ * The pool of puzzles the dailies are chosen from (see scripts/mazes.ts), fetched the first time it's
+ * needed: only the freshPuzzle flag and dev's New start & goal play from it, so a visit doesn't load it.
+ */
+const pools = new Map<WordLength, Promise<Pick[]>>();
+function loadPool(letters: WordLength): Promise<Pick[]> {
+  if (!pools.has(letters))
+    pools.set(
+      letters,
+      fetch(dataUrl(letters === 5 ? 'pool-5.json' : 'pool.json'))
+        .then((r) => r.json() as Promise<{ puzzles: Pick[] }>)
+        .then((p) => p.puzzles)
+        .catch(() => []),
+    );
+  return pools.get(letters)!;
+}
+
+/** A random puzzle from the pool, other than the one being played (the maze's own puzzle if there's no pool). */
+function pickPuzzle(pool: Pick[], data: MazeData, current?: Puzzle): Pick {
+  const from = pool.length ? pool : [{ puzzle: data.puzzle, inkPots: data.inkPots, onRoute: data.onRoute }];
+  const options = from.length > 1 ? from.filter((p) => p.puzzle.start !== current?.start || p.puzzle.goal !== current?.goal) : from;
   return options[Math.floor(Math.random() * options.length)];
 }
 
@@ -252,12 +267,12 @@ export function MazeApp() {
     const days = daysFor(letters);
     const date = asked && days.includes(asked) && (import.meta.env.DEV || asked <= today) ? asked : dayFor(today, days);
     const maze = letters === 5 ? 'mazes-5.json' : 'mazes.json';
-    Promise.all([fetch(dataUrl(maze)).then((r) => r.json() as Promise<MazeData>), loadDaily(date, letters)]).then(([d, day]) => {
+    Promise.all([fetch(dataUrl(maze)).then((r) => r.json() as Promise<MazeData>), loadDaily(date, letters), flags.freshPuzzle ? loadPool(letters) : null]).then(([d, day, pool]) => {
       if (!live) return;
       const pick: Pick = { puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date, onRoute: day.onRoute };
       setData(d);
       setDaily(pick);
-      setCurrent(flags.freshPuzzle ? pickPuzzle(d) : pick);
+      setCurrent(pool ? pickPuzzle(pool, d) : pick);
     });
     // Definitions are a nicety: the game plays without them if they don't load.
     fetch(dataUrl(letters === 5 ? 'definitions-5.json' : 'definitions.json'))
@@ -290,7 +305,10 @@ export function MazeApp() {
       return;
     }
     setFlags(next); // the puzzle restarts, so ink and the best score never mix across settings
-    if (flag === 'freshPuzzle' && data) setCurrent(next.freshPuzzle ? pickPuzzle(data, puzzle) : daily);
+    if (flag === 'freshPuzzle' && data) {
+      if (next.freshPuzzle) loadPool(letters).then((pool) => setCurrent(pickPuzzle(pool, data, puzzle)));
+      else setCurrent(daily);
+    }
   };
 
   const restart = useCallback(() => {
@@ -966,7 +984,7 @@ export function MazeApp() {
                   This maze: {current.tricky ? 'tricky' : 'obvious'}, {NEEDS[current.need]}
                 </span>
               )}
-              <button className="pill quiet" onClick={() => setCurrent(pickPuzzle(data, puzzle))}>
+              <button className="pill quiet" onClick={() => loadPool(letters).then((pool) => setCurrent(pickPuzzle(pool, data, puzzle)))}>
                 New start & goal
               </button>
               {daily && current !== daily ? (
