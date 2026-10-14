@@ -1,9 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { LETTERS, drawnScale, drawnWidth } from '../../glyphs';
+import { inkOutline, inkSeed, type Pt } from '../../ink';
 import { CELL_W_COMPACT, CELL_W_COMPACT_5, MAX_DRAWN_COMPACT, MAX_DRAWN_COMPACT_5, drawnSqueeze, pointing } from './WordEditor';
 
 /** How wide a formed letter is drawn in phone cells with this cap. */
 const drawn = (ch: string, cap: number) => LETTERS[ch].width * drawnSqueeze(ch, cap) * (LETTERS[ch].spread ?? 1);
+
+/** How wide a formed letter's ink is in phone cells with this cap: its strokes' outlines, edge to edge. */
+function inkWidth(ch: string, cap: number) {
+  const squeeze = drawnSqueeze(ch, cap);
+  const xs = LETTERS[ch].parts.flatMap((p) => {
+    const at: Pt = [p.x * squeeze, p.y];
+    const nums = inkOutline(p.tile, p.rot ?? 0, inkSeed(p), 0, squeeze, p.look, at).match(/-?\d*\.?\d+/g)!.map(Number);
+    return nums.filter((_, i) => i % 2 === 0).map((x) => x + at[0]);
+  });
+  return Math.max(...xs) - Math.min(...xs);
+}
 
 describe('letters in phone cells', () => {
   it('draws no formed letter wider than the cap, and leaves narrower ones as they are', () => {
@@ -15,13 +27,16 @@ describe('letters in phone cells', () => {
     }
   });
 
-  it("keeps an O as clear of a five-letter cell's sides as of a four-letter one's", () => {
-    // Cells share the row, so a unit is a row's width over (letters × cell width): compare the
-    // room either side of the O as a share of the row.
-    const room = (letters: number, cellW: number, cap: number) => (cellW - drawn('O', cap)) / 2 / (letters * cellW);
-    expect(room(5, CELL_W_COMPACT_5, MAX_DRAWN_COMPACT_5)).toBeGreaterThanOrEqual(room(4, CELL_W_COMPACT, MAX_DRAWN_COMPACT));
-    // Before, with the cap at 2, the O filled the five-letter cell to within 0.2 units each side.
-    expect(room(5, CELL_W_COMPACT_5, 2)).toBeLessThan(room(4, CELL_W_COMPACT, MAX_DRAWN_COMPACT));
+  it("draws an O nearly round in a five-letter cell, its ink still clear of the cell's sides", () => {
+    // At 1.7 units (85% of its width) it looked thin; it's drawn at least 90% as wide as it is tall.
+    expect(drawn('O', MAX_DRAWN_COMPACT_5)).toBeGreaterThanOrEqual(0.9 * LETTERS.O.width);
+    // The ink, thickest at the back of the curves, keeps at least a tenth of a unit from each side
+    // (about 3 px on a phone); drawn at its full 2 units it would come within a few hundredths.
+    expect((CELL_W_COMPACT_5 - inkWidth('O', MAX_DRAWN_COMPACT_5)) / 2).toBeGreaterThan(0.1);
+    expect((CELL_W_COMPACT_5 - inkWidth('O', 2)) / 2).toBeLessThan(0.1);
+    // Four-letter cells have more room: there it's drawn at its full width.
+    expect(drawn('O', MAX_DRAWN_COMPACT)).toBe(LETTERS.O.width);
+    expect((CELL_W_COMPACT - inkWidth('O', MAX_DRAWN_COMPACT)) / 2).toBeGreaterThan(0.1);
   });
 });
 

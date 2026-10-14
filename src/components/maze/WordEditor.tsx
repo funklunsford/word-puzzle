@@ -23,12 +23,13 @@ export const MAX_DRAWN_COMPACT = 2.2;
 /**
  * Five letters on a phone share the row in narrower cells still, so each is drawn bigger than a
  * 2.6-unit cell would make it. The widest letters (A, M, O, Q, V and Y, 2 units; W) are drawn at
- * most 1.7 units wide there, a little narrower, so an O's ink (thickest at the back of its curves)
- * keeps as clear of the cell's sides as it does in four-letter cells. Narrowing those few letters
- * keeps every letter as tall as before; widening the cell for the same room would shrink them all.
+ * most 1.85 units wide there, a little narrower, so an O's ink (thickest at the back of its curves)
+ * stays clear of the cell's sides. (At 1.7, as clear as in four-letter cells, the O looked thin.)
+ * Narrowing those few letters keeps every letter as tall as before; widening the cell for the same
+ * room would shrink them all.
  */
 export const CELL_W_COMPACT_5 = 2.4;
-export const MAX_DRAWN_COMPACT_5 = 1.7;
+export const MAX_DRAWN_COMPACT_5 = 1.85;
 export const CELL_TOP = -0.7;
 const CELL_H = 3.6;
 /** A press that moves less than this many pixels is a tap (remove), not a drag. Fingers wobble more. */
