@@ -1192,7 +1192,15 @@ select,
   display: block;
 }
 
+/* One line, as wide as the cell and cut short when it's longer (a lone bar can become 15 letters).
+   Its width comes from the cell, never from its text, so a long line can't widen the cell. */
 .cell-letter {
+  align-self: stretch;
+  contain: inline-size;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11px;
   font-weight: 600;
   color: var(--muted);
@@ -2038,10 +2046,6 @@ select,
 }
 
 .maze.compact .board .cell-letter {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: 10px;
 }
 

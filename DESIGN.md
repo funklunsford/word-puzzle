@@ -926,3 +926,15 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **For 16 px:** the tiles are tinted a little more than the header's parts (16% of their colour, not 12%), and the strokes are drawn with a broader pen.
 - **Size:** 15 KB (4 KB compressed), with the outlines rounded to two decimals.
 - **The link** asks for `favicon.svg?v=tiles`, so browsers that kept the old S fetch the new one.
+
+## The letter line fits its cell, and a rounder O on phones (2026-10-14, branch `cell-fixes`)
+- **The owner's report:** on desktop, holding the long bar over an empty cell, its line of possible letters ran out of the tile; on phones, a formed O looked a little thin.
+- **The line under a cell** (`.cell-letter`):
+  - A long bar in an empty cell can become 15 letters ("→ B D E F H I J K L M N P R T U"). In a 140 px desktop cell the line wrapped onto a second line that hung below the tile. Every other stroke offers four letters at most.
+  - It's one line now on every screen, as wide as the cell and cut short with an ellipsis when it's longer ("→ B D E F H I J K L M N…"), as phones already did.
+  - Its width comes from the cell, never its text (`contain: inline-size`, stretched to the cell). On one line, the long list would otherwise have widened the held cell to 159 px and shifted the row mid-drag.
+- **The O on phones:** five letters share a phone's row, so the widest letters are capped. The cap goes from 1.7 units to 1.85 (`MAX_DRAWN_COMPACT_5`).
+  - At 1.7 (85% of its width) the O's ink was 0.87 as wide as tall, a tall oval. At 1.85 it's 0.94: nearly round.
+  - Its ink stays clear of the cell's sides: about 5–6 px on a 375 px phone (8 before), and 5 px on a 320 px one.
+  - A, M, Q, V, Y and W, capped the same way, come out a little wider too.
+  - The test that held the O as clear of the sides as in four-letter cells now checks that it's drawn at least 90% of its width, with its ink (from the ink renderer) at least a tenth of a unit from each side.
