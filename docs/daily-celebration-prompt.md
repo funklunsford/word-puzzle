@@ -40,8 +40,8 @@ four seconds, then it holds until they tap.
   through the puzzle pool for you:
   - no pair is used twice (either way round);
   - no start or goal word comes back within 30 days;
-  - difficulty follows the week: the easiest third of the pool early in the week, the hardest by
-    the weekend;
+  - each day's difficulty is picked at random: the easiest, middle or hardest third of the pool
+    (since 2026-10-13; it used to follow the week);
   - the kind of route varies from day to day.
 - **Choose the one whose two words make the clearest picture of change.** The best pairs are vivid
   or concrete, and the change between them can be shown without words, like WILD → TAME or
