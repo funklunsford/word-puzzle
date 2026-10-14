@@ -349,7 +349,7 @@ more at 14–17, which agree at 14 and 15 to within a few points):
 
 ## 6. Rebuilt pools
 
-Rebuilt into a scratch folder with `scripts/mazes.ts --letters 5 --rule meet [--best 13-16] --out FILE`
+Rebuilt into a scratch folder with `scripts/mazes.ts --letters 5 --size 420 --rule meet [--best 13-16] --out FILE`
 and scored like the shipped one. The meet walker is left out: the rule is built from it, so its drop is
 by construction.
 
@@ -452,8 +452,8 @@ npx vite-node scripts/difficulty-study.ts pool                      # the shippe
 npx vite-node scripts/difficulty-study.ts pool --letters 4          # the 4-letter pool, for contrast
 npx vite-node scripts/difficulty-study.ts stream                    # 3,000 candidates, lowest strokes 12–15 (about 5 min)
 npx vite-node scripts/difficulty-study.ts stream --best 14-17 --candidates 1500
-npx vite-node scripts/mazes.ts --letters 5 --rule meet --best 13-16 --out /tmp/mazes-5-meet.json
-npx vite-node scripts/difficulty-study.ts pool --pool /tmp/mazes-5-meet.json
+npx vite-node scripts/mazes.ts --letters 5 --size 420 --rule meet --best 13-16 --out /tmp/pool-5-meet.json
+npx vite-node scripts/difficulty-study.ts pool --pool /tmp/pool-5-meet.json
 ```
 
 Everything is seeded, so the same files give the same numbers. The new measures have tests in

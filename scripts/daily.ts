@@ -8,7 +8,7 @@
 // The game is 5 letters on every device, so that's the default (src/daily/days-5); /daily follows
 // docs/daily-prompt.md.
 //
-// Candidates come from the puzzle pool (public/mazes.json, see scripts/mazes.ts), so every one is
+// Candidates come from the puzzle pool (public/pool-5.json, see scripts/mazes.ts), so every one is
 // tricky, starts and ends on everyday words, and fits the pool's rules (at 5 letters, holding out
 // against working back from the goal; at 4, a pocket beside the route). The script cycles through
 // it: never a pair already used (either way round), no start or goal word from the last 30 days, a
@@ -51,14 +51,16 @@ const NEED_TEXT: Record<Need, string> = {
 };
 
 type PoolEntry = Omit<DailyPuzzle, 'date'>;
-const data: { words: string[]; doors: number[][]; puzzle: Puzzle; inkPots: DailyPuzzle['inkPots']; onRoute: DailyPuzzle['onRoute']; puzzles: PoolEntry[] } = JSON.parse(
+const data: { words: string[]; doors: number[][]; puzzle: Puzzle; inkPots: DailyPuzzle['inkPots']; onRoute: DailyPuzzle['onRoute'] } = JSON.parse(
   readFileSync(new URL(`../public/mazes${suffix}.json`, import.meta.url), 'utf8'),
 );
+/** The pool the candidates come from, and the seed it was built with (see scripts/mazes.ts). */
+const { seed, puzzles }: { seed: number; puzzles: PoolEntry[] } = JSON.parse(readFileSync(new URL(`../public/pool${suffix}.json`, import.meta.url), 'utf8'));
 const definitions: Record<string, [string, string]> = JSON.parse(readFileSync(new URL(`../public/definitions${suffix}.json`, import.meta.url), 'utf8'));
 /** The kinds of route to rotate through: the pool's set mix, or (5 letters, unset) its own. */
 const MIX: Record<Need, number> =
   POOL_MIXES[LETTERS]?.need ??
-  (Object.fromEntries((['none', 'letter', 'stone'] as Need[]).map((n) => [n, data.puzzles.filter((p) => p.need === n).length / data.puzzles.length])) as Record<Need, number>);
+  (Object.fromEntries((['none', 'letter', 'stone'] as Need[]).map((n) => [n, puzzles.filter((p) => p.need === n).length / puzzles.length])) as Record<Need, number>);
 
 const days: DailyPuzzle[] = (existsSync(DAYS) ? readdirSync(DAYS) : [])
   .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
@@ -74,7 +76,7 @@ const percent = (x: number) => `${Math.round(100 * x)}%`;
 
 /** The maze's doors, as shipped with it. */
 const adj: Graph = data.doors.map((flat) => Array.from({ length: flat.length / 2 }, (_, k) => ({ to: flat[2 * k], cost: flat[2 * k + 1] })));
-const pool = data.puzzles.filter((p) => p.difficulty).sort((a, b) => pairKey(a.puzzle).localeCompare(pairKey(b.puzzle)));
+const pool = puzzles.filter((p) => p.difficulty).sort((a, b) => pairKey(a.puzzle).localeCompare(pairKey(b.puzzle)));
 /** How many words a search from both ends must look at before it's sure of par (searchEffort). */
 const effort = new Map(pool.map((p) => [p, searchEffort(data.words, adj, p.puzzle)]));
 /** Each puzzle's place in the pool by one measure, hardest first. */
@@ -123,7 +125,7 @@ if (!start) {
   const needs = Object.keys(MIX) as Need[];
   const owed = (n: Need) => MIX[n] * (week.length + 1) - week.filter((d) => d.need === n).length;
   const need = needs.reduce((a, b) => (owed(b) > owed(a) ? b : a));
-  const fresh = data.puzzles.filter((p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal));
+  const fresh = puzzles.filter((p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal));
   const shuffled = (xs: PoolEntry[]) => xs.map((x) => ({ x, r: random() })).sort((a, b) => a.r - b.r).map((o) => o.x);
   // The day's band and kind first; then the day's band of other kinds; then anything fresh.
   const picks = [
@@ -146,7 +148,7 @@ if (!start) {
     console.log(`    ${g}: ${define(g)}\n`);
   });
   if (fresh.filter(inBand).length < 30)
-    console.log(`The pool is running low: regenerate it with a new seed (scripts/mazes.ts${LETTERS === 4 ? '' : ` --letters ${LETTERS}`}), then rerun this.\n`);
+    console.log(`The pool is running low: regenerate it with a new seed (scripts/mazes.ts${LETTERS === 4 ? '' : ` --letters ${LETTERS}`} --seed ${seed + 1}), then rerun this.\n`);
   console.log(`Check one in with: npm run daily -- ${LETTERS === 4 ? '' : `--letters ${LETTERS} `}${date} START GOAL`);
 } else {
   // ---------- Check in ----------
@@ -158,7 +160,7 @@ if (!start) {
   const file = new URL(`${date}.json`, DAYS);
   if (existsSync(file) && !flags.includes('--replace')) throw new Error(`${date} already has a puzzle (pass --replace to change it)`);
 
-  let entry: PoolEntry | undefined = data.puzzles.find((p) => p.puzzle.start === S && p.puzzle.goal === G);
+  let entry: PoolEntry | undefined = puzzles.find((p) => p.puzzle.start === S && p.puzzle.goal === G);
   if (!entry && S === data.puzzle.start && G === data.puzzle.goal) {
     // The original puzzle (WILD → TAME), kept with its route and ink pots as the game has always had them.
     const { need, tricky, difficulty } = needOf(data.words, buildGraph(data.words), data.puzzle);

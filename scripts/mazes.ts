@@ -1,15 +1,25 @@
-// Build the stroke maze over familiar 4-letter words: a pool of puzzles the game picks from on each
-// load, plus the original fixed puzzle (WILD → TAME), kept as a reference and for tests. With
-// --letters 5, the desktop game's maze over 5-letter words (public/mazes-5.json; SHARP → BLUNT).
+// Build the stroke maze over familiar 4-letter words, with the original fixed puzzle (WILD → TAME),
+// kept as a reference and for tests, and the pool of puzzles the dailies are chosen from (see
+// scripts/daily.ts). With --letters 5, the 5-letter game's maze over 5-letter words (SHARP → BLUNT).
 //
-//   npx vite-node scripts/mazes.ts [--letters 5]
+//   npx vite-node scripts/mazes.ts [--letters 5] [--size 1200] [--seed 7]
+//
+// It writes the maze to public/mazes.json (mazes-5.json at 5 letters) and the pool beside it, in
+// public/pool.json (pool-5.json). The game loads the maze on every visit, but the pool only for the
+// freshPuzzle flag, so players don't download it. --size is how many puzzles the pool holds (1,200 at
+// 5 letters, over three years of dailies; 420 at 4), and --seed which ones: another seed gives another
+// pool from the same words, for when the dailies have used up most of this one. At 5 letters 12-stroke
+// puzzles set the limit: few keep the rules, and they dry up fast. Building 2,000 (a quarter at each of
+// 12 to 15 strokes) gave up after 200,000 candidates with 361 of its 500 at 12 strokes, having found the
+// first 105 in about 10,000. A new seed will mostly find the same ones.
 //
 // Rooms are the words in data/familiar-4.txt (see scripts/familiar.ts); a door joins two words
 // that are at most STEP_LIMIT stroke edits apart (see src/maze.ts). The puzzle's `best` is the
 // cheapest route from START to GOAL in total strokes (Dijkstra).
 //
 // For comparing pools (docs/difficulty-5-letters.md), without touching the shipped one:
-//   --out FILE     write the maze there instead of public/
+//   --out FILE     write the pool there instead (the maze is the same for any pool from these words,
+//                  so it's left alone)
 //   --rule meet    pick puzzles that are tricky and defeat working back from the goal (meetDepth
 //                  of 2 or more), with no pocket needed: the 5-letter default
 //   --rule pocket  pick puzzles that are tricky with a pocket beside the route: the 4-letter default
@@ -27,7 +37,7 @@ const option = (name: string) => {
   return i >= 0 ? process.argv[i + 1] : undefined;
 };
 const LETTERS = Number(option('--letters') ?? 4);
-if (![4, 5].includes(LETTERS)) throw new Error('usage: vite-node scripts/mazes.ts [--letters 5] [--out FILE] [--rule meet] [--best 13-16] [--steps 4-5]');
+if (![4, 5].includes(LETTERS)) throw new Error('usage: vite-node scripts/mazes.ts [--letters 5] [--size 1200] [--seed 7] [--out FILE] [--rule meet] [--best 13-16] [--steps 4-5]');
 const suffix = LETTERS === 4 ? '' : `-${LETTERS}`;
 const OUT = option('--out');
 const RULE = option('--rule') ?? (LETTERS === 5 ? 'meet' : 'pocket');
@@ -73,7 +83,8 @@ const inkPots = { pots, best: ink.best, walk: ink.walk };
 // docs/difficulty-5-letters.md). Its mix is set by quota (POOL_MIXES in src/maze.ts), evenly across
 // the best totals (9, 10 and 11; 12 to 15 for 5-letter words, whose pool is balanced by best total
 // alone).
-const POOL = 420;
+const POOL = Number(option('--size') ?? (LETTERS === 5 ? 1200 : 420));
+const SEED = Number(option('--seed') ?? 7);
 const SHAPE = { ...PUZZLE_SHAPES[LETTERS], ...(BEST && { best: BEST }), ...(STEPS && { steps: STEPS }) };
 const MIX = POOL_MIXES[LETTERS];
 const everyday = new Set(parseWordList(readFileSync(new URL(`../data/everyday-${LETTERS}.txt`, import.meta.url), 'utf8')));
@@ -90,7 +101,7 @@ for (const b of bests) {
   else for (const need of Object.keys(MIX.need) as Need[]) quota.set(`${b}|${need}`, Math.round((POOL / bests.length) * MIX.need[need]));
 }
 const target = [...quota.values()].reduce((t, n) => t + n, 0);
-const random = seededRandom(7);
+const random = seededRandom(SEED);
 const seen = new Set<string>();
 const puzzles = [];
 const tries = new Map<string, number>();
@@ -139,4 +150,5 @@ console.log(`e.g. ${puzzles.slice(0, 8).map((x) => `${x.puzzle.start} → ${x.pu
 // The graph itself goes along too: each word's doors as [to, cost, to, cost, ...] (word indexes),
 // so the game never has to search a step's cost (hints, words within reach, hardcore).
 const doors = adj.map((a) => a.flatMap((e) => [e.to, e.cost]));
-writeFileSync(OUT ?? new URL(`../public/mazes${suffix}.json`, import.meta.url), JSON.stringify({ words, doors, puzzle, inkPots, onRoute: routeWords(words, adj, START, GOAL), puzzles }));
+if (!OUT) writeFileSync(new URL(`../public/mazes${suffix}.json`, import.meta.url), JSON.stringify({ words, doors, puzzle, inkPots, onRoute: routeWords(words, adj, START, GOAL) }));
+writeFileSync(OUT ?? new URL(`../public/pool${suffix}.json`, import.meta.url), JSON.stringify({ seed: SEED, puzzles }));

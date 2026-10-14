@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
 import maze5Json from '../public/mazes-5.json';
+import poolText from '../public/pool.json?raw';
+import pool5Text from '../public/pool-5.json?raw';
 import {
   STRATEGIES,
   distancesFrom,
@@ -25,7 +27,10 @@ import { strokeDiff, wordDistance } from './strokes';
 type MazeJson = { words: string[]; doors: number[][]; puzzles: { puzzle: Puzzle; need: Need; tricky: boolean; difficulty: KeptDifficulty }[] };
 // The maze's own doors, as shipped (scripts/mazes.ts builds them).
 const doorsOf = (m: MazeJson): Graph => m.doors.map((flat) => Array.from({ length: flat.length / 2 }, (_, k) => ({ to: flat[2 * k], cost: flat[2 * k + 1] })));
-const maze = mazeJson as unknown as MazeJson;
+// The pools (scripts/mazes.ts) come in as text: they're big, and type-checking them as JSON would be slow.
+const withPool = (m: unknown, text: string): MazeJson => ({ ...(m as Omit<MazeJson, 'puzzles'>), puzzles: (JSON.parse(text) as Pick<MazeJson, 'puzzles'>).puzzles });
+const maze = withPool(mazeJson, poolText);
+const maze5 = withPool(maze5Json, pool5Text);
 const { words } = maze;
 const adj = doorsOf(maze);
 const pockets = findPockets(adj);
@@ -163,7 +168,6 @@ describe('searchEffort', () => {
 });
 
 describe('walkChance', () => {
-  const maze5 = maze5Json as unknown as MazeJson;
   const adj5 = doorsOf(maze5);
   it('is parChance’s walker: the same par rate, puzzle by puzzle, and near misses never change it', () => {
     for (const [m, a] of [
@@ -198,7 +202,7 @@ describe('a puzzle the straightforward way solves', () => {
 // against working back from the goal (meet depth 2 or more).
 describe.each([
   { letters: 4, maze, words, adj, pockets, rule: 'pocket' },
-  { letters: 5, maze: maze5Json as unknown as MazeJson, words: (maze5Json as unknown as MazeJson).words, adj: doorsOf(maze5Json as unknown as MazeJson), pockets: findPockets(doorsOf(maze5Json as unknown as MazeJson)), rule: 'meet' },
+  { letters: 5, maze: maze5, words: maze5.words, adj: doorsOf(maze5), pockets: findPockets(doorsOf(maze5)), rule: 'meet' },
 ])('the $letters-letter puzzle pool', ({ maze, words, adj, pockets, rule }) => {
   it(`is all tricky, and every puzzle keeps the pool's rule (${rule})`, () => {
     for (const { puzzle } of maze.puzzles) {
@@ -229,7 +233,7 @@ describe.each([
         if (t.pocket) expect(pockets.pocketOf[door], label).toBeGreaterThanOrEqual(0);
       }
     }
-  });
+  }, 60_000);
 
   it('scores the same puzzle the same every time, between never and always', () => {
     const { puzzle } = maze.puzzles[0];

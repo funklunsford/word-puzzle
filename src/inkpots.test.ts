@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
 import everydayText from '../data/everyday-4.txt?raw';
+import poolText from '../public/pool.json?raw';
 import definitionsJson from '../public/definitions.json';
 import { payStep, placePots, potRoute, potValues, scoreWalk } from './inkpots';
 import { buildGraph, randomPuzzle, seededRandom } from './maze';
@@ -71,7 +72,8 @@ describe('ink pot solver', () => {
 });
 
 describe('puzzle pool (one is picked on each load)', () => {
-  const { puzzles } = mazeJson as unknown as {
+  // The pool (scripts/mazes.ts) comes in as text: it's big, and type-checking it as JSON would be slow.
+  const { puzzles } = JSON.parse(poolText) as {
     puzzles: { puzzle: { start: string; goal: string; best: number; path: string[] }; inkPots: { pots: string[]; best: number; walk: string[] } }[];
   };
   const everyday = new Set(parseWordList(everydayText));

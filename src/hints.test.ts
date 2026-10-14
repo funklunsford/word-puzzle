@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
 import maze5Json from '../public/mazes-5.json';
+import poolText from '../public/pool.json?raw';
 import defs4 from '../public/definitions.json';
 import defs5 from '../public/definitions-5.json';
 import type { Def } from './components/maze/Definition';
@@ -8,7 +9,9 @@ import { clue, hintSays, nextHintLevel, nextStep, type Doors, type NextStep } fr
 import { buildGraph, solve } from './maze';
 import { wordDistance } from './strokes';
 
-const { words, puzzles } = mazeJson as unknown as { words: string[]; puzzles: { puzzle: { start: string; goal: string; best: number } }[] };
+const { words } = mazeJson as { words: string[] };
+// The pool (scripts/mazes.ts) comes in as text: it's big, and type-checking it as JSON would be slow.
+const { puzzles } = JSON.parse(poolText) as { puzzles: { puzzle: { start: string; goal: string; best: number } }[] };
 const adj = buildGraph(words);
 const doorsOf: Doors = (w) => adj[words.indexOf(w)].map((e): [string, number] => [words[e.to], e.cost]);
 const best = (a: string, b: string) => (a === b ? 0 : solve(words, adj, a, b)!.best);
