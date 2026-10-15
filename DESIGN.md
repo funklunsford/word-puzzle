@@ -1002,3 +1002,17 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - Both repos keep publishing as before. The Playlist's repo still publishes to GitHub Pages, and its changes show on strokes.fun at once.
 - **Only `/playlist` runs the function** (`public/_routes.json`). Everything else is Strokes' static files, with its `_headers`. Those don't apply to the function's responses, so the Playlist keeps GitHub's headers: no Strokes security policy, which suits a page that opens other sites.
 - **Mountweazel** stays at funklunsford.github.io/mountweazel/. On another origin it can't share its "done" mark, so the Playlist (in its own repo) ticks it like any other game.
+
+## Puzzles two days ahead (2026-10-15, branch `days-ahead`)
+- **Why:** each player gets the puzzle for their own date at their own midnight, but the nightly run added today's puzzle just after midnight Eastern.
+  - Players ahead of New York got yesterday's puzzle again until then: about 5 hours in London, 13 in Tokyo, and up to 18 at UTC+14.
+  - It was seen on the 15th: the game played No. 9 on a browser already past midnight.
+- **Now:** the nightly run adds every missing day through two days after today (Eastern).
+  - UTC+14 starts each date ten hours before UTC, so the next day must already be published at Eastern midnight. The second day is spare, so one failed night does no harm.
+  - The routine's prompt says so (step 2, `date -d '+2 days'`), as does `docs/daily-prompt.md` ("On a schedule").
+  - The first run after the change adds three days at once (16 to 18 October).
+- **The game needed nothing:**
+  - `dayFor` plays the latest puzzle up to the player's date, so the ones ahead wait unseen. A new test pins that down.
+  - The record of dailies stops at the day being played.
+  - `?day=` refuses future dates on the live site.
+  - Future puzzles are in the published code, as they always were for the day's own puzzle. Without leaderboards or prizes, that's acceptable.

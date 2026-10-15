@@ -74,7 +74,10 @@ so one run lands just after midnight Eastern whether or not daylight saving is o
 the day already in and stops. Each run:
 
 - clones this repository and adds every missing day, from the day after the latest file in
-  `src/daily/days-5/` up to and including today in Eastern time;
+  `src/daily/days-5/` up to and including **two days after today** in Eastern time. Puzzles go in two
+  days ahead because each player gets theirs at their own midnight, and the furthest-ahead time
+  zone (UTC+14) starts each date ten hours before UTC does. The game only plays a puzzle on its own
+  date, so the ones ahead wait unseen, and a failed night does no harm;
 - runs `npx tsc --noEmit -p .`, `npx vitest run` and `npm run build` (there's no browser in the cloud,
   so the look in step 2 is skipped);
 - if they all pass, commits the new days and pushes straight to `main`, which deploys the site.

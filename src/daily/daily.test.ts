@@ -30,6 +30,13 @@ describe('picking the day', () => {
     expect(dayFor('2026-10-05', list)).toBe('2026-10-06');
   });
 
+  it('keeps puzzles added ahead for their own dates (the nightly run stays two days ahead)', () => {
+    const list = ['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17'];
+    expect(dayFor('2026-10-15', list)).toBe('2026-10-15');
+    expect(dayFor('2026-10-16', list)).toBe('2026-10-16');
+    expect(dayFor('2026-10-17', list)).toBe('2026-10-17');
+  });
+
   it('numbers the days from the first, through daylight-saving changes', () => {
     expect(dayNumber(LAUNCH)).toBe(1);
     expect(dayNumber('2026-10-07')).toBe(2);
