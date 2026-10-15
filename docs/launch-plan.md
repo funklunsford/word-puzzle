@@ -23,7 +23,7 @@ Each with Claude's recommendation.
 - [ ] **Ads at launch.** Recommended: not yet.
   - AdSense needs your own domain, a privacy policy, Google's consent message for EU and UK players, an `ads.txt` file and a review.
   - The slots are ready, so adding them later is the flag plus the IDs.
-- [x] **The Puzzle Playlist moves to strokes.fun**, as strokes.fun/playlist/, so it shares Strokes' browser storage and still sees its "done" mark (`puzzle-done:strokes:{date}`). **Mountweazel stays on github.io**, so the Playlist ticks it like any other game.
+- [x] **The Puzzle Playlist stays at funklunsford.github.io/playlist/** (owner's call, 2026-10-15): there's no strokes.fun/playlist. On another origin it can't see Strokes' "done" mark, so it ticks Strokes when you come back. funklunsford.com/puzzleplaylist forwards to it.
 - [x] **Existing players' saves: start fresh.** No redirect from the old address, and nothing carried over.
 - [ ] **Public or private source.** See Security below.
 
@@ -51,7 +51,7 @@ Each with Claude's recommendation.
    - [x] Cloudflare is the only publish. GitHub Pages' `scripts/deploy.sh` and its deploy-key script are gone. Pull requests get preview copies.
    - [x] The content security policy is enforced, after a report-only publish with nothing reported, and a check that no built script builds code from strings.
    - [x] The old GitHub Pages site (`funklunsford/strokes`) is switched off, and its deploy key and `STROKES_DEPLOY_KEY` secret are deleted (owner's call, 2026-10-15).
-   - [x] The Playlist at strokes.fun/playlist/: `functions/playlist/[[path]].js` forwards it from its GitHub Pages site, so neither repo's publishing changes. Only `/playlist` paths run the function (`public/_routes.json`). The Playlist's own repo points Strokes, its bookmarklet and its links at strokes.fun.
+   - [x] No Playlist at strokes.fun/playlist/ (owner's call, 2026-10-15). The forwarding function (`functions/playlist/`) and `public/_routes.json` were removed.
 6. [ ] **Owner, with values from Claude: the domain's security settings** (see Security below).
 
 ## 2. Ready for players everywhere

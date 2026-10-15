@@ -1,6 +1,6 @@
 # Strokes
 
-Play it at **https://strokes.fun**. The Puzzle Playlist (its own repo, funklunsford/playlist) is at https://strokes.fun/playlist/.
+Play it at **https://strokes.fun**. The Puzzle Playlist (its own repo, funklunsford/playlist) is at https://funklunsford.github.io/playlist/, also reached from https://funklunsford.com/puzzleplaylist.
 
 A word maze where every letter is built from pen strokes. Each word is a room: drag strokes in from the tray, tap a stroke to remove it, drag it somewhere else, or, where a chevron, arc or bowl could start a letter either way round, twist it by circling the cursor around its spot (up to 3 strokes per step) to turn the current word into another everyday word, and find the cheapest route from the day's start word to its goal. See [DESIGN.md](DESIGN.md) for the rules and design notes.
 
