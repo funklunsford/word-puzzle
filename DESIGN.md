@@ -985,3 +985,20 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - No built script, three.js included, builds code from strings (`eval`, `new Function`).
   - It's checked on a pull request's preview before it reaches strokes.fun.
 - **The Playlist (next):** strokes.fun/playlist/ will forward to its GitHub Pages site through a Pages Function, so it shares Strokes' origin and both repos keep publishing as they do. Strokes' comment on the "done" mark now names strokes.fun/playlist/.
+
+## Analytics, and the Puzzle Playlist at strokes.fun/playlist/ (2026-10-15, branch `playlist-on-strokes-fun`)
+- **The owner's calls:**
+  - Allow Cloudflare Web Analytics.
+  - Move the Puzzle Playlist to strokes.fun.
+  - Leave Mountweazel on github.io.
+- **Analytics:**
+  - Cloudflare adds its Web Analytics script to strokes.fun's pages. The enforced security policy blocked it on the first live load (a console error; the game was unaffected).
+  - The policy now allows the script (`static.cloudflareinsights.com`) and its reports. Those go to strokes.fun/cdn-cgi/rum (`'self'`), or to `cloudflareinsights.com`, the other address Cloudflare documents.
+  - It sets no cookies.
+- **The Playlist on Strokes' origin:**
+  - `functions/playlist/[[path]].js`, a Pages Function, forwards strokes.fun/playlist/… to the Playlist's GitHub Pages site. It handles GET and HEAD only.
+  - It rewrites GitHub's redirect from `/playlist` to `/playlist/` so players stay on strokes.fun, and adds nosniff and a referrer policy.
+  - In the browser it's strokes.fun, so it shares Strokes' localStorage and sees the "done" mark Strokes writes (`puzzle-done:strokes:{date}`).
+  - Both repos keep publishing as before. The Playlist's repo still publishes to GitHub Pages, and its changes show on strokes.fun at once.
+- **Only `/playlist` runs the function** (`public/_routes.json`). Everything else is Strokes' static files, with its `_headers`. Those don't apply to the function's responses, so the Playlist keeps GitHub's headers: no Strokes security policy, which suits a page that opens other sites.
+- **Mountweazel** stays at funklunsford.github.io/mountweazel/. On another origin it can't share its "done" mark, so the Playlist (in its own repo) ticks it like any other game.
