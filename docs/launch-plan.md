@@ -19,11 +19,11 @@ Each with Claude's recommendation.
 - [x] **Hosting:** Cloudflare Pages, which is free.
   - It gives unlimited traffic, caching and security headers you control, a preview link for every branch, and free analytics.
   - Staying on GitHub Pages with the domain is less work. But its caching is fixed, and GitHub's terms aren't meant for commercial sites, which matters if ads come.
-- [ ] **Analytics.** Recommended: Cloudflare Web Analytics. It sets no cookies, so it needs no consent banner.
+- [x] **Analytics: Cloudflare Web Analytics.** Cloudflare adds its script to strokes.fun's pages; it sets no cookies, so it needs no consent banner. The security policy allows it (`public/_headers`).
 - [ ] **Ads at launch.** Recommended: not yet.
   - AdSense needs your own domain, a privacy policy, Google's consent message for EU and UK players, an `ads.txt` file and a review.
   - The slots are ready, so adding them later is the flag plus the IDs.
-- [x] **The Puzzle Playlist moves to strokes.fun**, as strokes.fun/playlist/, so it shares Strokes' browser storage and still sees its "done" mark (`puzzle-done:strokes:{date}`). Mountweazel's mark needs it on the same domain too (open).
+- [x] **The Puzzle Playlist moves to strokes.fun**, as strokes.fun/playlist/, so it shares Strokes' browser storage and still sees its "done" mark (`puzzle-done:strokes:{date}`). **Mountweazel stays on github.io**, so the Playlist ticks it like any other game.
 - [x] **Existing players' saves: start fresh.** No redirect from the old address, and nothing carried over.
 - [ ] **Public or private source.** See Security below.
 
@@ -50,8 +50,8 @@ Each with Claude's recommendation.
    - [x] `VITE_SITE_URL` is https://strokes.fun/: link previews, share text and cards, the canonical link, and `robots.txt`.
    - [x] Cloudflare is the only publish. GitHub Pages' `scripts/deploy.sh` and its deploy-key script are gone. Pull requests get preview copies.
    - [x] The content security policy is enforced, after a report-only publish with nothing reported, and a check that no built script builds code from strings.
-   - [ ] **Owner's call:** switch off the old GitHub Pages site (`funklunsford/strokes`) and remove its deploy key and `STROKES_DEPLOY_KEY` secret. Left up, it would show an old puzzle forever.
-   - [ ] The Playlist at strokes.fun/playlist/, forwarded to its GitHub Pages site by a Pages Function, so neither repo's publishing changes.
+   - [x] The old GitHub Pages site (`funklunsford/strokes`) is switched off, and its deploy key and `STROKES_DEPLOY_KEY` secret are deleted (owner's call, 2026-10-15).
+   - [x] The Playlist at strokes.fun/playlist/: `functions/playlist/[[path]].js` forwards it from its GitHub Pages site, so neither repo's publishing changes. Only `/playlist` paths run the function (`public/_routes.json`). The Playlist's own repo points Strokes, its bookmarklet and its links at strokes.fun.
 6. [ ] **Owner, with values from Claude: the domain's security settings** (see Security below).
 
 ## 2. Ready for players everywhere
