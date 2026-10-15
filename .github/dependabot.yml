@@ -1,0 +1,21 @@
+# Dependabot: security fixes as soon as they're published (turned on in the repo's settings), and a
+# weekly look for new versions, grouped so they don't pile up. Its pull requests run the tests
+# (.github/workflows/deploy.yml) but never merge themselves. It keeps the pinned Actions' commits
+# (and the version in their comments) up to date too.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

@@ -938,3 +938,14 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - Its ink stays clear of the cell's sides: about 5–6 px on a 375 px phone (8 before), and 5 px on a 320 px one.
   - A, M, Q, V, Y and W, capped the same way, come out a little wider too.
   - The test that held the O as clear of the sides as in four-letter cells now checks that it's drawn at least 90% of its width, with its ink (from the ink renderer) at least a tenth of a unit from each side.
+
+## Hardening the nightly run and the deploy (2026-10-14, branch `security-hardening`)
+- **The owner's call:** before a public launch, close the ways something other than the owner could change the live site. The plan, and what's left, is in `docs/launch-plan.md` (Security).
+- **Done:**
+  - a ruleset protecting `main`: no force-pushes, no deleting it;
+  - the nightly run's web tools removed (WebFetch, WebSearch);
+  - `scripts/check-nightly.sh` in the deploy workflow: Claude's own pushes to `main` may only add day files. If one does more, nothing publishes until the owner publishes by hand;
+  - vitest 4.1.11 (fixing two critical advisories and a moderate one), with vite-node 6 as its own dev dependency for the scripts;
+  - Dependabot alerts, and weekly grouped update pull requests;
+  - Actions pinned to commits.
+- **Installed with npm 11:** npm 10.9.2 crashed resolving vitest 4 (an internal error in its installer), so the lockfile was written with npm 11, the version CI's Node 24 uses.

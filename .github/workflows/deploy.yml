@@ -4,6 +4,12 @@
 #
 # Publishing needs the STROKES_DEPLOY_KEY secret: an SSH key that can push to funklunsford/strokes.
 # scripts/setup-deploy-key.sh adds it. Until then, runs on main pass with a warning instead.
+#
+# The nightly run pushes its day files straight to main, so a push is only published if every
+# commit Claude pushed since the last publish just adds day files (scripts/check-nightly.sh). If
+# one did more, look, then publish by hand: Actions > Test and deploy > Run workflow.
+#
+# Actions are pinned to a commit (the version in the comment), so a moved tag can't change what runs.
 name: Test and deploy
 
 on:
@@ -19,14 +25,24 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read # to find the last publish (scripts/check-nightly.sh)
 
 jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0 # the nightly check reads every commit since the last publish
+      - name: Nightly commits only add days
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BEFORE: ${{ github.event.before }}
+        run: bash scripts/check-nightly.sh
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 24
           cache: npm
