@@ -1,5 +1,7 @@
 # Strokes
 
+Play it at **https://strokes.fun**.
+
 A word maze where every letter is built from pen strokes. Each word is a room: drag strokes in from the tray, tap a stroke to remove it, drag it somewhere else, or, where a chevron, arc or bowl could start a letter either way round, twist it by circling the cursor around its spot (up to 3 strokes per step) to turn the current word into another everyday word, and find the cheapest route from the day's start word to its goal. See [DESIGN.md](DESIGN.md) for the rules and design notes.
 
 ```bash
@@ -7,20 +9,15 @@ npm install
 npm run dev          # maze at http://localhost:5173, glyph gallery at /#gallery, old Smush prototype at /#smush
 npm test             # game-logic and celebration tests
 npm run daily        # candidates for the next daily puzzle (see below)
-npm run deploy       # publish the built site (only) to https://funklunsford.github.io/strokes/
 ```
 
 There's a new 5-letter puzzle every day (`src/daily/days-5/`). To add the next one, run `/daily` in Claude Code, which follows [docs/daily-prompt.md](docs/daily-prompt.md): choose the puzzle, check it, and open a pull request. (The 4-letter game's days are in `src/daily/days/`; it gets no new ones, and its one day scene no longer plays.)
 
 Going public on its own domain, with the security checklist: [docs/launch-plan.md](docs/launch-plan.md).
 
-Every merge to `main` deploys the site through GitHub Actions (`.github/workflows/deploy.yml`): to GitHub Pages, and to Cloudflare Pages, which will serve https://strokes.fun. The site's address is one setting, `VITE_SITE_URL` in `.env`. One-time setup, to let it publish to GitHub Pages:
+Every merge to `main` publishes the site to https://strokes.fun through GitHub Actions (`.github/workflows/deploy.yml`), as the Cloudflare Pages project "strokes" (`scripts/deploy-cloudflare.sh`). A pull request gets a preview copy at `<branch>.strokes-f1a.pages.dev`. To publish by hand: Actions > Test and deploy > Run workflow. The site's address is one setting, `VITE_SITE_URL` in `.env`.
 
-```bash
-bash scripts/setup-deploy-key.sh
-```
-
-And to Cloudflare: a Cloudflare API token with Account > Cloudflare Pages > Edit, and the account's ID, as repository secrets (each command asks for the value):
+One-time setup: a Cloudflare API token with Account > Cloudflare Pages > Edit, and the account's ID, as repository secrets (each command asks for the value):
 
 ```bash
 gh secret set CLOUDFLARE_API_TOKEN --repo funklunsford/word-puzzle

@@ -1,0 +1,3 @@
+# Anything may be indexed. The game's one address is https://strokes.fun/ (the canonical link in index.html).
+User-agent: *
+Allow: /
