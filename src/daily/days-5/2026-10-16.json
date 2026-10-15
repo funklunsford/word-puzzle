@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-16",
+  "puzzle": {
+    "start": "CRUMB",
+    "goal": "SLINK",
+    "best": 13,
+    "path": [
+      "CRUMB",
+      "GRUMP",
+      "CLUMP",
+      "CLUNK",
+      "CLINK",
+      "SLINK"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "CLUMP",
+        "door": "CLIMB",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "CRUMB",
+        "door": "CRIMP",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.06
+  },
+  "inkPots": {
+    "pots": [
+      "SLUNK",
+      "BLIMP",
+      "CHUNK"
+    ],
+    "best": 12,
+    "walk": [
+      "CRUMB",
+      "GRUMP",
+      "CLUMP",
+      "CLUNK",
+      "SLUNK",
+      "SLINK"
+    ]
+  },
+  "onRoute": {
+    "CLINK": 10,
+    "CLUMP": 5,
+    "CLUNK": 8,
+    "CRUMB": 0,
+    "GRUMP": 2,
+    "SLINK": 13,
+    "SLUMP": 8,
+    "SLUNK": 11
+  }
+}

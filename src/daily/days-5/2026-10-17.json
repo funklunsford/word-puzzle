@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-17",
+  "puzzle": {
+    "start": "CRATE",
+    "goal": "SPADE",
+    "best": 12,
+    "path": [
+      "CRATE",
+      "IRATE",
+      "PLATE",
+      "SLATE",
+      "SPATE",
+      "SPADE"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "IRATE",
+        "door": "DRAPE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "IRATE",
+        "door": "FRAIL",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "IRATE",
+        "door": "GRATE",
+        "loses": 6,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "BRACE",
+      "STATE",
+      "GRACE"
+    ],
+    "best": 12,
+    "walk": [
+      "CRATE",
+      "IRATE",
+      "PLATE",
+      "SLATE",
+      "SPATE",
+      "SPADE"
+    ]
+  },
+  "onRoute": {
+    "CRATE": 0,
+    "IRATE": 2,
+    "PLATE": 5,
+    "SLATE": 8,
+    "SPADE": 12,
+    "SPATE": 10
+  }
+}
