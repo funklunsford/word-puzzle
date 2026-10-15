@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-15",
+  "puzzle": {
+    "start": "PUPPY",
+    "goal": "JETTY",
+    "best": 13,
+    "path": [
+      "PUPPY",
+      "PULPY",
+      "BULLY",
+      "BILLY",
+      "BELLY",
+      "JELLY",
+      "JETTY"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "BULLY",
+        "door": "PUTTY",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "PULPY",
+        "door": "PUTTY",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.04
+  },
+  "inkPots": {
+    "pots": [
+      "PETTY",
+      "BULKY"
+    ],
+    "best": 12,
+    "walk": [
+      "PUPPY",
+      "PULPY",
+      "BULLY",
+      "BILLY",
+      "BELLY",
+      "PETTY",
+      "JETTY"
+    ]
+  },
+  "onRoute": {
+    "BELLY": 9,
+    "BILLY": 6,
+    "BULLY": 4,
+    "JELLY": 11,
+    "JETTY": 13,
+    "PETTY": 12,
+    "PULPY": 2,
+    "PUPPY": 0
+  }
+}
