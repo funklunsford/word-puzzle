@@ -12,6 +12,8 @@ npm run deploy       # publish the built site (only) to https://funklunsford.git
 
 There's a new 5-letter puzzle every day (`src/daily/days-5/`). To add the next one, run `/daily` in Claude Code, which follows [docs/daily-prompt.md](docs/daily-prompt.md): choose the puzzle, check it, and open a pull request. (The 4-letter game's days are in `src/daily/days/`; it gets no new ones, and its one day scene no longer plays.)
 
+Going public on its own domain, with the security checklist: [docs/launch-plan.md](docs/launch-plan.md).
+
 Every merge to `main` deploys the site through GitHub Actions (`.github/workflows/deploy.yml`). One-time setup, to let it publish:
 
 ```bash

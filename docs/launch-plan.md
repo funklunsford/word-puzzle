@@ -1,0 +1,122 @@
+# Launch plan
+
+Putting Strokes on its own domain and opening it to the public. A checklist: each step says who
+does it (**Owner**, or **Claude** in a session in this repo), and ticks when it's done.
+
+**Where things stand (2026-10-14):**
+- Every push to `main` is tested and published (`.github/workflows/deploy.yml`).
+- A Claude Code routine in Anthropic's cloud adds each day's puzzle (`docs/daily-prompt.md`).
+- Link previews and result cards work.
+- The word-list and WordNet licence notices ship with the site.
+- Ad slots are built in, behind the `ads` flag (`src/ads.ts`).
+- The site is at https://funklunsford.github.io/strokes/.
+
+## Decisions first (Owner)
+
+Each with Claude's recommendation.
+
+- [ ] **Name and domain.**
+  - A quick trademark and app-store search that "Strokes" is free for a word game.
+  - Then a domain, such as strokes.game or playstrokes.com: typically $10–40 a year.
+- [ ] **Hosting.** Recommended: Cloudflare Pages, which is free.
+  - It gives unlimited traffic, caching and security headers you control, a preview link for every branch, and free analytics.
+  - Staying on GitHub Pages with the domain is less work. But its caching is fixed, and GitHub's terms aren't meant for commercial sites, which matters if ads come.
+- [ ] **Analytics.** Recommended: Cloudflare Web Analytics. It sets no cookies, so it needs no consent banner.
+- [ ] **Ads at launch.** Recommended: not yet.
+  - AdSense needs your own domain, a privacy policy, Google's consent message for EU and UK players, an `ads.txt` file and a review.
+  - The slots are ready, so adding them later is the flag plus the IDs.
+- [ ] **The Puzzle Playlist.** It reads Strokes' "done" mark through the shared github.io address (`puzzle-done:strokes:{date}`), which a new domain breaks. Either it moves to the same domain, or the two talk another way.
+- [ ] **Existing players' saves.** Results and settings live in each browser, tied to the address. Either start fresh, or keep a page at the old address that carries saves over.
+- [ ] **Public or private source.** See Security below.
+
+## 1. Domain and hosting
+
+- [ ] **Owner:** register the domain. Create the Cloudflare account and a Pages project, and add a Cloudflare API token to GitHub as a secret, limited to Pages.
+- [ ] **Claude:** publish to Cloudflare from the deploy workflow:
+  - code files cached for a year (their names change when they do);
+  - the page and data always fresh;
+  - the security headers below.
+- [ ] **Claude:** make the site's address one setting. It's written into the link-preview tags (`index.html`) and the share text (`SITE` in `src/share.ts`).
+- [ ] **Claude:** turn the old address into a redirect, carrying saves over if wanted.
+
+## 2. Ready for players everywhere
+
+- [ ] **Claude: puzzles two days ahead.** The nightly run adds today's puzzle just after midnight Eastern, but each player gets theirs at their own midnight.
+  - In London the new puzzle comes about 5 hours late, in Tokyo about 13. Until then they get yesterday's again.
+  - Keeping two days ahead fixes that, and one failed night does no harm.
+  - Needs the runbook and the routine's prompt updated.
+- [ ] **Claude: an alert when puzzles run low.** A daily GitHub check that fails, and emails the owner, if tomorrow's puzzle isn't in.
+- [ ] **Claude: home-screen install.** A web app manifest and PNG icons (180, 192 and 512 px) from the tab icon.
+- [ ] **Claude: a privacy and credits page.**
+  - what's stored (only on the player's device);
+  - analytics, if any;
+  - a contact address;
+  - the SCOWL, ENABLE and WordNet credits.
+- [ ] **Claude: the basics.** `robots.txt`, a canonical address and the analytics snippet.
+- [ ] **Optional: error reporting** (Sentry's free tier), so crashes on other people's devices show up. Owner makes the account; Claude wires it in.
+
+## 3. Security
+
+Strokes is static files: no server, database, login or personal data, and React escapes all the
+text it shows. The risks are around what can change the live site. Every push to `main` goes to
+players, and three things can push: the owner, the nightly run, and anyone who gets into the owner's
+GitHub account.
+
+**Done (2026-10-14)**
+- [x] **`main` can't be rewritten.** A ruleset ("Protect main") blocks force-pushes and deleting the branch. Normal pushes, including the nightly run's, still work.
+- [x] **The nightly run has no web tools.** WebFetch and WebSearch are disallowed, so it never reads web pages, where injected instructions usually come from.
+- [x] **Only day files go live from the nightly run** (`scripts/check-nightly.sh`, in the deploy workflow).
+  - Before publishing, every commit Claude pushed straight to `main` since the last publish may only add `src/daily/days-5/{DATE}.json`.
+  - If one did more, nothing is published, then or later, until the owner has looked: revert it or keep it, then publish by hand (Actions > Test and deploy > Run workflow).
+  - Commits merged from a pull request aren't checked, since a person merged them.
+  - It goes by the commit's author, so it catches mistakes and simple tricks, not a determined forger. The other safeguards back it up.
+- [x] **Dev tools updated.**
+  - vitest 3.2.7 had two critical advisories and one moderate one, all fixed in 4.1.11. vite-node 6 is now its own dev dependency, so `npm run daily` keeps working.
+  - `npm audit` finds nothing. These tools never ship to players, but they run on the owner's machine and in CI.
+- [x] **Dependabot alerts on**, plus weekly grouped update pull requests for npm and the Actions (`.github/dependabot.yml`).
+- [x] **Actions pinned to commits** (checkout v5.1.0, setup-node v5.0.0), so a moved tag can't change what runs. Dependabot keeps them current.
+- [x] The deploy key can write to the site repo only.
+
+**To do**
+- [ ] **Claude:** turn on Dependabot's security-fix pull requests (after the vitest update is on `main`, so it doesn't open a duplicate).
+- [ ] **Owner: public or private source.** `funklunsford/word-puzzle` is public. That shows the whole puzzle pool (`public/pool-5.json`), the runbook and design notes, and your commit email address. With puzzles made two days ahead, it would also show tomorrow's puzzle. Anyone could copy the game wholesale. Making it private hides all that, with two catches:
+  - On a free personal account, rulesets don't apply to private repos, so "Protect main" would stop working (GitHub Pro keeps it).
+  - The nightly run's GitHub access must cover private repos.
+
+  Actions minutes are no issue: deploys use a small part of the free allowance.
+- [ ] **Owner: email for failed runs.** In GitHub's notification settings, keep email on for failed Actions runs. That's how the nightly check (and the planned low-puzzle alert) reach you.
+- [ ] **Owner: two-factor sign-in, ideally passkeys,** on GitHub, the domain registrar, Cloudflare and the Claude account (the nightly run acts through it).
+- [ ] **Owner: the domain's settings.**
+  - registrar lock and auto-renew (a lapsed domain can be bought by anyone and serve anything to your players);
+  - DNSSEC;
+  - CAA records naming the certificate authority;
+  - HTTPS only.
+  - If no email is sent from the domain, SPF and DMARC records set to reject all mail, so no one can send email that claims to be from it.
+- [ ] **Claude: security headers**, once hosting is decided. These are:
+  - a content security policy allowing only the site's own scripts and the ones chosen (the inline theme script in `index.html` by its hash);
+  - no framing by other sites;
+  - `nosniff`, a referrer policy;
+  - no camera, microphone or location access.
+- [ ] **Both: third-party scripts.** Analytics, ads and error reporting can each do anything on the page. Add only what's needed, and list each in the security policy and on the privacy page.
+- [ ] **Privacy.** Nothing personal is collected: everything stays in the player's browser. Ads would change that, and need consent in the EU and UK.
+
+Moving off funklunsford.github.io also isolates players' saves. Every site published at that
+address shares Strokes' browser storage, so any of them could read or change it.
+
+**Not a worry yet**
+- Cheating: future puzzles in the code don't matter without leaderboards or prizes. If those come, results must be checked on a server.
+- Floods of traffic: the CDN absorbs those.
+
+## 4. Test before launch
+
+- [ ] **Owner:** play on a real iPhone and an Android phone. The five-letter game hasn't been tried on one yet (DESIGN.md). Check dragging, double-tap to turn, sharing and Add to Home Screen.
+- [ ] **Claude:** a speed and accessibility pass. A first visit is about 290 KB compressed: the code is 143 KB, definitions 95 and the maze 42.
+- [ ] **Both:** a soft launch, a week with a handful of friends, watching the analytics and feedback.
+
+## 5. Launch, then grow
+
+- [ ] Share the link. The link preview and result cards are ready.
+- [ ] Later: ads; offline play; accounts, if players want their streaks on every device.
+
+**Costs:** the domain. Hosting, analytics and error reporting are free at this size, and the
+nightly run uses the owner's Claude plan.

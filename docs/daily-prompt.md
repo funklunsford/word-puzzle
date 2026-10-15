@@ -80,3 +80,14 @@ the day already in and stops. Each run:
 - if they all pass, commits the new days and pushes straight to `main`, which deploys the site.
   There's no pull request; the commit message says why each pair was chosen;
 - if a check fails, pushes to a `daily/{date}` branch instead and leaves it for the owner.
+
+What keeps it to adding days:
+
+- **Only day files go live.** Before anything is published, `scripts/check-nightly.sh` (in the
+  deploy workflow) checks every commit Claude pushed straight to `main` since the last publish. Each
+  may only add `src/daily/days-5/{DATE}.json`. If one did more, nothing is published, then or on
+  later pushes, until the owner has looked: revert it or keep it, then publish by hand (GitHub >
+  Actions > Test and deploy > Run workflow), which skips the check.
+- **No web tools.** The routine can't fetch or search the web (WebFetch and WebSearch are
+  disallowed), so it never reads web pages, where injected instructions usually come from.
+- **`main` can't be rewritten.** A ruleset blocks force-pushes and deleting the branch.
