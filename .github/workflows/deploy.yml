@@ -1,5 +1,7 @@
 # Every push to main (a merged pull request) is tested, built and published to the site,
-# https://funklunsford.github.io/strokes/ (GitHub Pages on the funklunsford/strokes repo).
+# https://funklunsford.github.io/strokes/ (GitHub Pages on the funklunsford/strokes repo), and to
+# Cloudflare Pages, which will serve https://strokes.fun (scripts/deploy-cloudflare.sh; it waits for
+# the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets).
 # Pull requests are tested and built, but not published.
 #
 # Publishing needs the STROKES_DEPLOY_KEY secret: an SSH key that can push to funklunsford/strokes.
@@ -62,3 +64,9 @@ jobs:
             exit 0
           fi
           bash scripts/deploy.sh
+      - name: Publish to Cloudflare Pages
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bash scripts/deploy-cloudflare.sh

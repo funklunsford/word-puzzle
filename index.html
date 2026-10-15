@@ -12,30 +12,14 @@
     <meta property="og:site_name" content="Strokes" />
     <meta property="og:title" content="Strokes: a daily word puzzle" />
     <meta property="og:description" content="Turn one word into another, stroke by stroke. A new puzzle every day." />
-    <meta property="og:url" content="https://funklunsford.github.io/strokes/" />
-    <meta property="og:image" content="https://funklunsford.github.io/strokes/og.png?v=golf" />
+    <meta property="og:url" content="%VITE_SITE_URL%" />
+    <meta property="og:image" content="%VITE_SITE_URL%og.png?v=golf" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Strokes, written in coloured strokes, over the tray of strokes the game is played with" />
     <meta name="twitter:card" content="summary_large_image" />
-    <!-- The theme (light or dark) and motion before anything is drawn: the player's choice, else the device's (see src/theme.ts, src/prefs.ts). -->
-    <script>
-      (function () {
-        var choice = 'system';
-        try {
-          choice = localStorage.getItem('strokes:theme') || 'system';
-        } catch (e) {}
-        var dark = choice === 'dark' || (choice !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-        // Less motion, likewise (see src/prefs.ts).
-        var motion = 'system';
-        try {
-          motion = JSON.parse(localStorage.getItem('strokes:prefs') || '{}').motion || 'system';
-        } catch (e) {}
-        var less = motion === 'less' || (motion !== 'full' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-        document.documentElement.dataset.motion = less ? 'less' : 'full';
-      })();
-    </script>
+    <!-- The theme (light or dark) and motion before anything is drawn (public/boot.js). -->
+    <script src="./boot.js"></script>
   </head>
   <body>
     <div id="root"></div>
