@@ -56,10 +56,9 @@ Each with Claude's recommendation.
 
 ## 2. Ready for players everywhere
 
-- [ ] **Claude: puzzles two days ahead.** The nightly run adds today's puzzle just after midnight Eastern, but each player gets theirs at their own midnight.
-  - In London the new puzzle comes about 5 hours late, in Tokyo about 13. Until then they get yesterday's again.
-  - Keeping two days ahead fixes that, and one failed night does no harm.
-  - Needs the runbook and the routine's prompt updated.
+- [x] **Claude: puzzles two days ahead** (2026-10-15). The nightly run used to add today's puzzle just after midnight Eastern, but each player gets theirs at their own midnight.
+  - In London the new puzzle came about 5 hours late, in Tokyo about 13, and until then they got yesterday's again.
+  - The routine's prompt and the runbook now add days through two days after today (Eastern). The game plays a puzzle only on its own date, so the ones ahead wait unseen (tested), and one failed night does no harm.
 - [ ] **Claude: an alert when puzzles run low.** A daily GitHub check that fails, and emails the owner, if tomorrow's puzzle isn't in.
 - [ ] **Claude: home-screen install.** A web app manifest and PNG icons (180, 192 and 512 px) from the tab icon.
 - [ ] **Claude: a privacy and credits page.**
