@@ -9,7 +9,7 @@ does it (**Owner**, or **Claude** in a session in this repo), and ticks when it'
 - Link previews and result cards work.
 - The word-list and WordNet licence notices ship with the site.
 - Ad slots are built in, behind the `ads` flag (`src/ads.ts`).
-- The site is at https://funklunsford.github.io/strokes/.
+- The game lives at https://strokes.fun (Cloudflare Pages). The old address, funklunsford.github.io/strokes/, is no longer published to and isn't redirected: no one uses it.
 
 ## Decisions first (Owner)
 
@@ -23,8 +23,8 @@ Each with Claude's recommendation.
 - [ ] **Ads at launch.** Recommended: not yet.
   - AdSense needs your own domain, a privacy policy, Google's consent message for EU and UK players, an `ads.txt` file and a review.
   - The slots are ready, so adding them later is the flag plus the IDs.
-- [ ] **The Puzzle Playlist.** It reads Strokes' "done" mark through the shared github.io address (`puzzle-done:strokes:{date}`), which a new domain breaks. Either it moves to the same domain, or the two talk another way.
-- [ ] **Existing players' saves.** Results and settings live in each browser, tied to the address. Either start fresh, or keep a page at the old address that carries saves over.
+- [x] **The Puzzle Playlist moves to strokes.fun**, as strokes.fun/playlist/, so it shares Strokes' browser storage and still sees its "done" mark (`puzzle-done:strokes:{date}`). Mountweazel's mark needs it on the same domain too (open).
+- [x] **Existing players' saves: start fresh.** No redirect from the old address, and nothing carried over.
 - [ ] **Public or private source.** See Security below.
 
 ## 1. Domain and hosting: moving to Cloudflare Pages
@@ -45,10 +45,13 @@ Each with Claude's recommendation.
      - no framing;
      - the content security policy, report-only until checked.
    - The site's address is one setting: `VITE_SITE_URL` in `.env`, used by the link-preview tags and the share text.
-4. [ ] **Owner: attach the domain.** In the Pages project's Custom domains, add `strokes.fun` and `www.strokes.fun`.
+4. [x] **Owner: attach the domain.** `strokes.fun` is attached and serving. `www.strokes.fun` is still to add, with a rule sending it to strokes.fun.
 5. [ ] **Claude: make strokes.fun the address.**
-   - Set `VITE_SITE_URL`, and check the live site, its headers and the policy's console reports.
-   - Then enforce the policy, and turn the old address into a redirect (carrying saves over, if wanted).
+   - [x] `VITE_SITE_URL` is https://strokes.fun/: link previews, share text and cards, the canonical link, and `robots.txt`.
+   - [x] Cloudflare is the only publish. GitHub Pages' `scripts/deploy.sh` and its deploy-key script are gone. Pull requests get preview copies.
+   - [x] The content security policy is enforced, after a report-only publish with nothing reported, and a check that no built script builds code from strings.
+   - [ ] **Owner's call:** switch off the old GitHub Pages site (`funklunsford/strokes`) and remove its deploy key and `STROKES_DEPLOY_KEY` secret. Left up, it would show an old puzzle forever.
+   - [ ] The Playlist at strokes.fun/playlist/, forwarded to its GitHub Pages site by a Pages Function, so neither repo's publishing changes.
 6. [ ] **Owner, with values from Claude: the domain's security settings** (see Security below).
 
 ## 2. Ready for players everywhere
@@ -87,7 +90,7 @@ GitHub account.
   - `npm audit` finds nothing. These tools never ship to players, but they run on the owner's machine and in CI.
 - [x] **Dependabot alerts on**, plus weekly grouped update pull requests for npm and the Actions (`.github/dependabot.yml`).
 - [x] **Actions pinned to commits** (checkout v5.1.0, setup-node v5.0.0), so a moved tag can't change what runs. Dependabot keeps them current.
-- [x] The deploy key can write to the site repo only.
+- [x] The deploy key can write to the old site repo only, and is no longer used (removal is listed in step 5).
 
 **To do**
 - [ ] **Claude:** turn on Dependabot's security-fix pull requests (after the vitest update is on `main`, so it doesn't open a duplicate).

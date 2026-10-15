@@ -965,3 +965,23 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - nosniff, a referrer policy, and no camera, microphone, location, payment or USB access;
   - no framing (`X-Frame-Options: DENY`);
   - the content security policy, report-only until it's been checked on the live site.
+
+## strokes.fun is the game's only home (2026-10-14, branch `strokes-fun`)
+- **The owner's calls:**
+  - The game lives at https://strokes.fun from now on.
+  - The old address, funklunsford.github.io/strokes/, isn't redirected, because no one uses it, and saves aren't carried over.
+  - The Puzzle Playlist moves to strokes.fun too.
+- **The address:** `VITE_SITE_URL` in `.env` is https://strokes.fun/. That covers:
+  - the link-preview tags and a new canonical link (`index.html`);
+  - the share text and the share card (`src/share.ts`);
+  - a `robots.txt`, which lets everything be indexed.
+- **One publish:**
+  - Cloudflare Pages only (`scripts/deploy-cloudflare.sh`). GitHub Pages' `scripts/deploy.sh`, `scripts/setup-deploy-key.sh` and `npm run deploy` are gone.
+  - The workflow builds on every run, and publishes from main to strokes.fun.
+  - A pull request from this repo is published as a preview at `<branch>.strokes-f1a.pages.dev`. Dependabot's get no secrets, so they're tested and built only.
+  - The deploy message is plain ASCII and at most 100 characters ("→" becomes "->"). Some Cloudflare API failures (code 8000000) have been reported for long messages with characters like it.
+- **The content security policy is enforced:**
+  - It first ran report-only on the live site, and nothing was reported.
+  - No built script, three.js included, builds code from strings (`eval`, `new Function`).
+  - It's checked on a pull request's preview before it reaches strokes.fun.
+- **The Playlist (next):** strokes.fun/playlist/ will forward to its GitHub Pages site through a Pages Function, so it shares Strokes' origin and both repos keep publishing as they do. Strokes' comment on the "done" mark now names strokes.fun/playlist/.

@@ -1,11 +1,8 @@
-# Every push to main (a merged pull request) is tested, built and published to the site,
-# https://funklunsford.github.io/strokes/ (GitHub Pages on the funklunsford/strokes repo), and to
-# Cloudflare Pages, which will serve https://strokes.fun (scripts/deploy-cloudflare.sh; it waits for
-# the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets).
-# Pull requests are tested and built, but not published.
-#
-# Publishing needs the STROKES_DEPLOY_KEY secret: an SSH key that can push to funklunsford/strokes.
-# scripts/setup-deploy-key.sh adds it. Until then, runs on main pass with a warning instead.
+# Every push to main (a merged pull request) is tested, built and published to https://strokes.fun,
+# the Cloudflare Pages project "strokes" (scripts/deploy-cloudflare.sh, with the CLOUDFLARE_API_TOKEN
+# and CLOUDFLARE_ACCOUNT_ID secrets). A pull request from this repo is tested, built and published as
+# a preview, at <branch>.strokes-f1a.pages.dev, never to strokes.fun. Dependabot's get no secrets, so
+# they're only tested and built.
 #
 # The nightly run pushes its day files straight to main, so a push is only published if every
 # commit Claude pushed since the last publish just adds day files (scripts/check-nightly.sh). If
@@ -51,21 +48,10 @@ jobs:
       - run: npm ci
       - run: npm test
       - name: Build
-        if: github.ref != 'refs/heads/main'
         run: npm run build
-      - name: Publish to the site
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        env:
-          DEPLOY_KEY: ${{ secrets.STROKES_DEPLOY_KEY }}
-        run: |
-          if [ -z "$DEPLOY_KEY" ]; then
-            echo "::warning::Not published: the STROKES_DEPLOY_KEY secret isn't set yet (run scripts/setup-deploy-key.sh)."
-            npm run build
-            exit 0
-          fi
-          bash scripts/deploy.sh
       - name: Publish to Cloudflare Pages
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        # The live site from main, a preview from a pull request. Pull requests from forks get no secrets.
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
