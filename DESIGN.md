@@ -1016,3 +1016,9 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - The record of dailies stops at the day being played.
   - `?day=` refuses future dates on the live site.
   - Future puzzles are in the published code, as they always were for the day's own puzzle. Without leaderboards or prizes, that's acceptable.
+
+## No Puzzle Playlist at strokes.fun (2026-10-15, branch `no-playlist-route`)
+- **The owner's call:** strokes.fun/playlist shouldn't exist. The Puzzle Playlist's home is its own GitHub Pages site, https://funklunsford.github.io/playlist/. The owner's new domain, funklunsford.com, forwards /puzzleplaylist there and /strokes here.
+- **Removed:** the forwarding Pages Function (`functions/playlist/`), `public/_routes.json`, and the `_headers` note about them. strokes.fun is Strokes' static files only.
+- **Strokes' "done" mark** (`puzzle-done:strokes:{date}`) is still written, but the playlist is on another origin and can't read it, so it ticks Strokes when you come back.
+- **Don't put the forward back:** this replaces "Analytics, and the Puzzle Playlist at strokes.fun/playlist/" above, for the playlist. The analytics part stands.

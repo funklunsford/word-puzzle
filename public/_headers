@@ -14,7 +14,6 @@
 #    the page (static.cloudflareinsights.com), reporting to strokes.fun/cdn-cgi/rum or
 #    cloudflareinsights.com. It ran report-only on the first publish, and nothing was reported. A
 #    page or script it doesn't allow is blocked, and shows in the browser's console.
-# (strokes.fun/playlist/ is the Puzzle Playlist, forwarded by functions/playlist; these don't apply to it.)
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
