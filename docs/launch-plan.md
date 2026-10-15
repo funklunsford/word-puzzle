@@ -15,10 +15,8 @@ does it (**Owner**, or **Claude** in a session in this repo), and ticks when it'
 
 Each with Claude's recommendation.
 
-- [ ] **Name and domain.**
-  - A quick trademark and app-store search that "Strokes" is free for a word game.
-  - Then a domain, such as strokes.game or playstrokes.com: typically $10–40 a year.
-- [ ] **Hosting.** Recommended: Cloudflare Pages, which is free.
+- [x] **Name and domain:** strokes.fun (bought 2026-10-14).
+- [x] **Hosting:** Cloudflare Pages, which is free.
   - It gives unlimited traffic, caching and security headers you control, a preview link for every branch, and free analytics.
   - Staying on GitHub Pages with the domain is less work. But its caching is fixed, and GitHub's terms aren't meant for commercial sites, which matters if ads come.
 - [ ] **Analytics.** Recommended: Cloudflare Web Analytics. It sets no cookies, so it needs no consent banner.
@@ -29,15 +27,29 @@ Each with Claude's recommendation.
 - [ ] **Existing players' saves.** Results and settings live in each browser, tied to the address. Either start fresh, or keep a page at the old address that carries saves over.
 - [ ] **Public or private source.** See Security below.
 
-## 1. Domain and hosting
+## 1. Domain and hosting: moving to Cloudflare Pages
 
-- [ ] **Owner:** register the domain. Create the Cloudflare account and a Pages project, and add a Cloudflare API token to GitHub as a secret, limited to Pages.
-- [ ] **Claude:** publish to Cloudflare from the deploy workflow:
-  - code files cached for a year (their names change when they do);
-  - the page and data always fresh;
-  - the security headers below.
-- [ ] **Claude:** make the site's address one setting. It's written into the link-preview tags (`index.html`) and the share text (`SITE` in `src/share.ts`).
-- [ ] **Claude:** turn the old address into a redirect, carrying saves over if wanted.
+1. [ ] **Owner: put strokes.fun on Cloudflare.**
+   - A free account at dash.cloudflare.com, with two-factor sign-in.
+   - Add a domain, `strokes.fun`, on the Free plan.
+   - If it was bought elsewhere, set the registrar's nameservers to the two Cloudflare shows. At the registrar, also turn on auto-renew and the transfer lock, and turn off any parking page.
+2. [ ] **Owner: let GitHub publish to Cloudflare.**
+   - An API token with Account > Cloudflare Pages > Edit, and the account's ID.
+   - Add them as the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (`gh secret set …`, see README.md).
+3. [x] **Claude: publish to Cloudflare too** (`scripts/deploy-cloudflare.sh`, after the GitHub Pages publish). It makes the Pages project "strokes" on its first run, and waits, with a warning, until the secrets exist.
+   - The licence notices ship in every build (`public/licenses`).
+   - The theme set-up moved from inline to `public/boot.js`, so the security policy allows only the site's own scripts.
+   - `public/_headers`:
+     - code cached for a year;
+     - nosniff, a referrer policy, and no camera, microphone or location;
+     - no framing;
+     - the content security policy, report-only until checked.
+   - The site's address is one setting: `VITE_SITE_URL` in `.env`, used by the link-preview tags and the share text.
+4. [ ] **Owner: attach the domain.** In the Pages project's Custom domains, add `strokes.fun` and `www.strokes.fun`.
+5. [ ] **Claude: make strokes.fun the address.**
+   - Set `VITE_SITE_URL`, and check the live site, its headers and the policy's console reports.
+   - Then enforce the policy, and turn the old address into a redirect (carrying saves over, if wanted).
+6. [ ] **Owner, with values from Claude: the domain's security settings** (see Security below).
 
 ## 2. Ready for players everywhere
 

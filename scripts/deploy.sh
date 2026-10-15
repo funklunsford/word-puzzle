@@ -3,9 +3,8 @@
 #
 #   npm run deploy        # → https://funklunsford.github.io/strokes/
 #
-# Builds, adds the licence notices the word list and definitions require on every copy, and
-# force-pushes the result as a single commit to the public repo below (creating it and turning
-# on Pages the first time).
+# Builds, and force-pushes the result as a single commit to the public repo below (creating it
+# and turning on Pages the first time).
 #
 # Every push to main runs this in GitHub Actions (.github/workflows/deploy.yml), with DEPLOY_KEY
 # set to an SSH key that can push to that repo (scripts/setup-deploy-key.sh adds one). Run by
@@ -18,24 +17,21 @@ cd "$ROOT"
 
 npm run build
 
-# Licences: SCOWL's notice (from the word list's header) and WordNet's licence.
-mkdir -p dist/licenses
-grep '^#' data/familiar-4.txt | sed -E 's/^# ?//' > dist/licenses/SCOWL.txt
-cp data/WORDNET-LICENSE.txt dist/licenses/WORDNET.txt
-touch dist/.nojekyll # serve files as they are
-cat > dist/README.md <<'MD'
-# Strokes
-
-A word maze where every letter is built from pen strokes. Play it at https://funklunsford.github.io/strokes/
-
+# The built site, plus what only GitHub Pages needs: no Jekyll, and a README for its repo. (The
+# licence notices the word list and definitions require ship in every build: public/licenses.)
+SITE_URL="$(sed -n 's/^VITE_SITE_URL=//p' .env)"
+SITE="$(mktemp -d)"
+cp -R dist/. "$SITE"
+touch "$SITE/.nojekyll" # serve files as they are
+{
+  printf '# Strokes\n\nA word maze where every letter is built from pen strokes. Play it at %s\n\n' "$SITE_URL"
+  cat <<'MD'
 This repository holds only the built site, published from a separate source project.
 
 - Word list derived from [SCOWL](https://wordlist.aspell.net) by Kevin Atkinson (notice in `licenses/SCOWL.txt`) and ENABLE (public domain).
 - Definitions from [WordNet](https://wordnet.princeton.edu) 3.0, Copyright 2006 by Princeton University (licence in `licenses/WORDNET.txt`), with hand-written additions.
 MD
-
-SITE="$(mktemp -d)"
-cp -R dist/. "$SITE"
+} > "$SITE/README.md"
 if [ -n "${DEPLOY_KEY:-}" ]; then
   # In CI: git pushes over SSH with the deploy key, and commits as the GitHub Actions bot.
   KEY="$(mktemp)"

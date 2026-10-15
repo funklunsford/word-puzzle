@@ -14,10 +14,20 @@ There's a new 5-letter puzzle every day (`src/daily/days-5/`). To add the next o
 
 Going public on its own domain, with the security checklist: [docs/launch-plan.md](docs/launch-plan.md).
 
-Every merge to `main` deploys the site through GitHub Actions (`.github/workflows/deploy.yml`). One-time setup, to let it publish:
+Every merge to `main` deploys the site through GitHub Actions (`.github/workflows/deploy.yml`): to GitHub Pages, and to Cloudflare Pages, which will serve https://strokes.fun. The site's address is one setting, `VITE_SITE_URL` in `.env`. One-time setup, to let it publish to GitHub Pages:
 
 ```bash
 bash scripts/setup-deploy-key.sh
+```
+
+And to Cloudflare: a Cloudflare API token with Account > Cloudflare Pages > Edit, and the account's ID, as repository secrets (each command asks for the value):
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN --repo funklunsford/word-puzzle
+```
+
+```bash
+gh secret set CLOUDFLARE_ACCOUNT_ID --repo funklunsford/word-puzzle
 ```
 
 Regenerating the words and the maze:

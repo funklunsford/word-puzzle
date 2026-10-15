@@ -24,7 +24,8 @@ export interface ShareResult {
   steps: { from: string; to: string; cost: number }[];
 }
 
-export const SITE = 'https://funklunsford.github.io/strokes/';
+/** The site's public address, with a trailing slash (VITE_SITE_URL in .env). */
+export const SITE: string = import.meta.env.VITE_SITE_URL;
 
 /** Strokes a letter change takes (a stroke moved within the letter counts once). */
 function letterStrokes(a: string, b: string): number {

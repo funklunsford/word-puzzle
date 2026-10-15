@@ -1,0 +1,20 @@
+# Response headers for Cloudflare Pages (other hosts serve this as a plain file and ignore it).
+
+# Code and styles: their names change whenever they do, so browsers may keep them a year.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Every response.
+#  - nosniff: files are only ever what their type says.
+#  - The referrer: other sites see only "strokes.fun", never a page's address.
+#  - No camera, microphone, location, payment or USB access.
+#  - No other site may show the game in a frame (X-Frame-Options, and frame-ancestors below).
+#  - The content security policy: only the site's own scripts, data and images (plus data: and
+#    blob: images, for the share card). Report-only for now, so a mistake shows in the browser's
+#    console instead of breaking the game; it's enforced once checked on the live site.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  X-Frame-Options: DENY
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'

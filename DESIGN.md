@@ -949,3 +949,19 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - Dependabot alerts, and weekly grouped update pull requests;
   - Actions pinned to commits.
 - **Installed with npm 11:** npm 10.9.2 crashed resolving vitest 4 (an internal error in its installer), so the lockfile was written with npm 11, the version CI's Node 24 uses.
+
+## Publishing to Cloudflare Pages, for strokes.fun (2026-10-14, branch `cloudflare-pages`)
+- **The owner's call:** the game moves to its own domain, strokes.fun, served by Cloudflare Pages. The steps are in `docs/launch-plan.md` ("Domain and hosting").
+- **Publishing:**
+  - The deploy workflow publishes to Cloudflare after GitHub Pages, both on during the switch (`scripts/deploy-cloudflare.sh`, Wrangler 4.151.0, fetched only there).
+  - It makes the Pages project "strokes" on its first run, and waits, with a warning, until the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets exist.
+  - It deploys `dist/` as built, after the nightly check like every publish. Cloudflare's own builds from git would publish every push and skip that check.
+- **One address setting:** `VITE_SITE_URL` in `.env`. Vite fills it into the link-preview tags (`%VITE_SITE_URL%` in `index.html`), and `SITE` in `src/share.ts` reads it for the share text and card. It stays the github.io address until strokes.fun is live.
+- **What's in every build:**
+  - the licence notices (`public/licenses/`, which `scripts/deploy.sh` used to add only for GitHub Pages);
+  - `public/boot.js`, the theme and motion set-up that was inline in `index.html`. As its own file, the content security policy can allow only the site's own scripts, with no hashes to keep in step. Vite warns that it isn't bundled; it isn't meant to be, since it must run before the page draws.
+- **Headers** (`public/_headers`, which only Cloudflare reads):
+  - code files cached for a year;
+  - nosniff, a referrer policy, and no camera, microphone, location, payment or USB access;
+  - no framing (`X-Frame-Options: DENY`);
+  - the content security policy, report-only until it's been checked on the live site.
