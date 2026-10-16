@@ -45,14 +45,14 @@ Each with Claude's recommendation.
      - no framing;
      - the content security policy, report-only until checked.
    - The site's address is one setting: `VITE_SITE_URL` in `.env`, used by the link-preview tags and the share text.
-4. [x] **Owner: attach the domain.** `strokes.fun` is attached and serving. `www.strokes.fun` is still to add, with a rule sending it to strokes.fun.
-5. [ ] **Claude: make strokes.fun the address.**
+4. [x] **Owner: attach the domain.** `strokes.fun` is attached and serving. `www.strokes.fun` redirects to it, over HTTP and HTTPS, keeping the path and query (2026-10-16). That's a proxied `www` record (192.0.2.1), the "Redirect from WWW to root" rule, and Always Use HTTPS.
+5. [x] **Claude: make strokes.fun the address.**
    - [x] `VITE_SITE_URL` is https://strokes.fun/: link previews, share text and cards, the canonical link, and `robots.txt`.
    - [x] Cloudflare is the only publish. GitHub Pages' `scripts/deploy.sh` and its deploy-key script are gone. Pull requests get preview copies.
    - [x] The content security policy is enforced, after a report-only publish with nothing reported, and a check that no built script builds code from strings.
    - [x] The old GitHub Pages site (`funklunsford/strokes`) is switched off, and its deploy key and `STROKES_DEPLOY_KEY` secret are deleted (owner's call, 2026-10-15).
    - [x] No Playlist at strokes.fun/playlist/ (owner's call, 2026-10-15). The forwarding function (`functions/playlist/`) and `public/_routes.json` were removed.
-6. [ ] **Owner, with values from Claude: the domain's security settings** (see Security below).
+6. [x] **Owner, with values from Claude: the domain's security settings** (2026-10-16; see Security below). Each was checked from outside.
 
 ## 2. Ready for players everywhere
 
@@ -66,7 +66,7 @@ Each with Claude's recommendation.
   - analytics, if any;
   - a contact address;
   - the SCOWL, ENABLE and WordNet credits.
-- [ ] **Claude: the basics.** `robots.txt`, a canonical address and the analytics snippet.
+- [x] **Claude: the basics.** `robots.txt` and the canonical address (step 5), and Cloudflare Web Analytics, which Cloudflare adds to the page and the security policy allows.
 - [ ] **Optional: error reporting** (Sentry's free tier), so crashes on other people's devices show up. Owner makes the account; Claude wires it in.
 
 ## 3. Security
@@ -92,7 +92,7 @@ GitHub account.
 - [x] The deploy key can write to the old site repo only, and is no longer used (removal is listed in step 5).
 
 **To do**
-- [ ] **Claude:** turn on Dependabot's security-fix pull requests (after the vitest update is on `main`, so it doesn't open a duplicate).
+- [x] **Claude:** Dependabot's security-fix pull requests are on (2026-10-15, after the vitest update reached `main`).
 - [ ] **Owner: public or private source.** `funklunsford/word-puzzle` is public. That shows the whole puzzle pool (`public/pool-5.json`), the runbook and design notes, and your commit email address. With puzzles made two days ahead, it would also show tomorrow's puzzle. Anyone could copy the game wholesale. Making it private hides all that, with two catches:
   - On a free personal account, rulesets don't apply to private repos, so "Protect main" would stop working (GitHub Pro keeps it).
   - The nightly run's GitHub access must cover private repos.
@@ -100,14 +100,18 @@ GitHub account.
   Actions minutes are no issue: deploys use a small part of the free allowance.
 - [ ] **Owner: email for failed runs.** In GitHub's notification settings, keep email on for failed Actions runs. That's how the nightly check (and the planned low-puzzle alert) reach you.
 - [ ] **Owner: two-factor sign-in, ideally passkeys,** on GitHub, the domain registrar, Cloudflare and the Claude account (the nightly run acts through it).
-- [ ] **Owner: the domain's settings.**
-  - registrar lock and auto-renew (a lapsed domain can be bought by anyone and serve anything to your players);
-  - DNSSEC;
-  - CAA records naming the certificate authority;
-  - HTTPS only.
-  - If no email is sent from the domain, SPF and DMARC records set to reject all mail, so no one can send email that claims to be from it.
-- [ ] **Claude: security headers**, once hosting is decided. These are:
-  - a content security policy allowing only the site's own scripts and the ones chosen (the inline theme script in `index.html` by its hash);
+- [x] **Owner: the domain's settings** (2026-10-16, each checked from outside):
+  - registrar lock: on (Cloudflare Registrar's `clientTransferProhibited`). The domain expires on 2027-10-15.
+  - [ ] **auto-renew:** owner to confirm in Domain Registration (a lapsed domain can be bought by anyone, who could then serve anything to your players);
+  - DNSSEC: signed, and published at the `.fun` registry. Cloudflare's, Google's and Quad9's resolvers validate it;
+  - CAA: `letsencrypt.org`, plus the certificate authorities Cloudflare adds for its own certificates (Google Trust Services, DigiCert, Sectigo, SSL.com);
+  - HTTPS only:
+    - Always Use HTTPS;
+    - TLS 1.2 at least (1.1 is refused);
+    - HSTS for six months, including subdomains, not preloaded.
+  - No email is sent from the domain, so SPF `v=spf1 -all`, DMARC `p=reject` and an empty DKIM key stop anyone sending email that claims to be from it.
+- [x] **Claude: security headers** (`public/_headers`, 2026-10-15):
+  - an enforced content security policy allowing only the site's own scripts, plus Cloudflare Web Analytics. There's no inline script left: the theme set-up is `public/boot.js`;
   - no framing by other sites;
   - `nosniff`, a referrer policy;
   - no camera, microphone or location access.
