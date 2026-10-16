@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-18",
+  "puzzle": {
+    "start": "STOVE",
+    "goal": "SHADE",
+    "best": 13,
+    "path": [
+      "STOVE",
+      "STOLE",
+      "STILE",
+      "STALE",
+      "SHALE",
+      "SHADE"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "STILE",
+        "door": "SLIDE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "STILE",
+        "door": "SIDLE",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "STOVE",
+        "door": "SHOVE",
+        "loses": 4,
+        "pocket": true
+      }
+    ],
+    "pocketTrap": true,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "STATE",
+      "STOKE"
+    ],
+    "best": 13,
+    "walk": [
+      "STOVE",
+      "STOLE",
+      "STILE",
+      "STALE",
+      "SHALE",
+      "SHADE"
+    ]
+  },
+  "onRoute": {
+    "SHADE": 13,
+    "SHALE": 11,
+    "STALE": 9,
+    "STILE": 6,
+    "STOLE": 3,
+    "STOVE": 0
+  }
+}
