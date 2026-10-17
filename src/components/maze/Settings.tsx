@@ -1,7 +1,11 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import type { ThemeChoice } from '../../theme';
 import type { MotionChoice, Prefs } from '../../prefs';
+import { PALETTES } from '../../palettes';
+import { TILES, TILE_IDS, TRAY_TURN } from '../../glyphs';
+import { opticalOffset } from '../../ink';
+import { TileStroke, minHalfWidthAt } from '../Glyph';
 
 const THEMES: { choice: ThemeChoice; label: string }[] = [
   { choice: 'system', label: 'System' },
@@ -14,8 +18,8 @@ const MOTIONS: { choice: MotionChoice; label: string }[] = [
   { choice: 'full', label: 'Full' },
 ];
 
-/** One of a few choices, as a row of buttons (a radio group). */
-function Segmented<T extends string>({ label, options, value, onChange, note }: { label: string; options: { choice: T; label: string }[]; value: T; onChange: (v: T) => void; note: string }) {
+/** One of a few choices, as a row of buttons (a radio group), and anything to show with it (`children`) above its note. */
+function Segmented<T extends string>({ label, options, value, onChange, note, children }: { label: string; options: { choice: T; label: string }[]; value: T; onChange: (v: T) => void; note: string; children?: ReactNode }) {
   const id = useId();
   return (
     <div className="setting">
@@ -29,7 +33,28 @@ function Segmented<T extends string>({ label, options, value, onChange, note }: 
           </button>
         ))}
       </div>
+      {children}
       <p className="setting-note">{note}</p>
+    </div>
+  );
+}
+
+/** The tray's nine strokes in the page's stroke colours, so a palette shows as it's chosen. */
+function StrokeColours() {
+  // A tile here is at most 34 px across its 2.4 units.
+  const minHalf = minHalfWidthAt(34 / 2.4);
+  return (
+    <div className="stroke-colours" aria-hidden="true">
+      {TILE_IDS.map((t) => (
+        <span key={t} className="stroke-colour" style={{ ['--tile' as string]: `var(--t-${t})` }} title={TILES[t].name}>
+          <svg viewBox="-1.2 -1.2 2.4 2.4">
+            {/* Centred by eye, as in the tray (see opticalOffset). */}
+            <g transform={`translate(${opticalOffset(t, TRAY_TURN[t], minHalf).join(' ')})`}>
+              <TileStroke tile={t} rot={TRAY_TURN[t]} minHalfWidth={minHalf} />
+            </g>
+          </svg>
+        </span>
+      ))}
     </div>
   );
 }
@@ -102,6 +127,15 @@ export function Settings({ theme, onTheme, prefs, onPrefs, hardcore, onHardcore,
           </button>
         </div>
         <Segmented label="Appearance" options={THEMES} value={theme} onChange={onTheme} note="System follows your device's light or dark mode." />
+        <Segmented
+          label="Stroke colours"
+          options={PALETTES}
+          value={prefs.palette}
+          onChange={(palette) => onPrefs({ palette })}
+          note="Clear keeps every stroke easy to tell apart with colour blindness. Your result card uses these colours too."
+        >
+          <StrokeColours />
+        </Segmented>
         <Segmented
           label="Motion"
           options={MOTIONS}

@@ -24,6 +24,15 @@ describe('settings', () => {
     expect(loadPrefs().letters).toBe(false);
   });
 
+  it('ships with Earth stroke colours, and keeps a palette saved, but not one it doesn\'t know', () => {
+    storage();
+    expect(loadPrefs().palette).toBe('earth');
+    storage({ palette: 'clear' });
+    expect(loadPrefs().palette).toBe('clear');
+    storage({ palette: 'neon', motion: 'less' });
+    expect(loadPrefs()).toMatchObject({ palette: 'earth', motion: 'less' });
+  });
+
   it('falls back to the defaults when storage is blocked', () => {
     vi.stubGlobal('localStorage', {
       getItem: () => {
