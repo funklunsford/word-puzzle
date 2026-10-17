@@ -16,6 +16,10 @@ export default defineConfig({
   // Relative asset and data paths, so the built site works from any folder (e.g. GitHub Pages' /strokes/).
   base: './',
   define: { __DATA_VERSION__: JSON.stringify(dataVersion.digest('hex').slice(0, 10)) },
-  // Agents' worktrees live under .claude/worktrees: their copies of the tests aren't this checkout's.
-  test: { exclude: [...configDefaults.exclude, '.claude/**'] },
+  test: {
+    // Agents' worktrees live under .claude/worktrees: their copies of the tests aren't this checkout's.
+    exclude: [...configDefaults.exclude, '.claude/**'],
+    // Tests get empty style sheets unless they're named here: palettes.test.ts reads the stroke colours from this one.
+    css: { include: [/src\/styles\.css/] },
+  },
 });

@@ -1,14 +1,18 @@
-// The player's settings (the gear), beyond light or dark (see theme.ts): motion, the letter guide,
-// definitions, and colour-blind squares. Kept in this browser. (Swipe to turn was one until
-// 2026-10-08: a mouse always swipes now, a finger never does; a saved choice is ignored.)
+// The player's settings (the gear), beyond light or dark (see theme.ts): the stroke colours,
+// motion, the letter guide, definitions, and colour-blind squares. Kept in this browser. (Swipe to
+// turn was one until 2026-10-08: a mouse always swipes now, a finger never does; a saved choice is
+// ignored.)
 
 import { createContext, useContext } from 'react';
 import { useMedia } from './useMedia';
+import { isPalette, type PaletteChoice } from './palettes';
 
 /** Motion: the device's setting, or less (no springs, slides or celebration animation) or full whatever it says. */
 export type MotionChoice = 'system' | 'less' | 'full';
 
 export interface Prefs {
+  /** The strokes' colours (see palettes.ts). */
+  palette: PaletteChoice;
   motion: MotionChoice;
   /** The A to Z under the word, lighting the letters a stroke is in. */
   letters: boolean;
@@ -20,7 +24,7 @@ export interface Prefs {
 
 // The letter guide ships off (since 2026-10-09). Saving any setting stores them all, so a player
 // who changed one before then keeps the guide as it was (on), whether or not they chose it.
-export const DEFAULT_PREFS: Prefs = { motion: 'system', letters: false, definitions: true, colorBlind: false };
+export const DEFAULT_PREFS: Prefs = { palette: 'earth', motion: 'system', letters: false, definitions: true, colorBlind: false };
 
 const KEY = 'strokes:prefs';
 const REDUCE = '(prefers-reduced-motion: reduce)';
@@ -29,6 +33,7 @@ export function loadPrefs(): Prefs {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? '{}');
     const p = { ...DEFAULT_PREFS };
+    if (isPalette(saved.palette)) p.palette = saved.palette;
     if (['system', 'less', 'full'].includes(saved.motion)) p.motion = saved.motion;
     for (const k of ['letters', 'definitions', 'colorBlind'] as const) if (typeof saved[k] === 'boolean') p[k] = saved[k];
     return p;
@@ -43,7 +48,13 @@ export function savePrefs(p: Prefs) {
   } catch {
     // storage blocked: this visit only
   }
+  applyPalette(p.palette);
   applyMotion(p.motion);
+}
+
+/** The stroke colours, as the page's CSS sees them: <html data-palette> (public/boot.js sets it before the first paint). */
+export function applyPalette(choice: PaletteChoice) {
+  document.documentElement.dataset.palette = choice;
 }
 
 /** Less motion, as the page's CSS sees it: <html data-motion="less"> (index.html sets it before the first paint). */

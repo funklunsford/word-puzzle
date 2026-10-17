@@ -1022,3 +1022,34 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Removed:** the forwarding Pages Function (`functions/playlist/`), `public/_routes.json`, and the `_headers` note about them. strokes.fun is Strokes' static files only.
 - **Strokes' "done" mark** (`puzzle-done:strokes:{date}`) is still written, but the playlist is on another origin and can't read it, so it ticks Strokes when you come back.
 - **Don't put the forward back:** this replaces "Analytics, and the Puzzle Playlist at strokes.fun/playlist/" above, for the playlist. The analytics part stands.
+
+## Stroke colours (2026-10-16, branch `stroke-palette`)
+- **A setting:** Settings > Stroke colours: Earth (the game's own, and the default), Bright, Ocean or Clear. Under the choice, the tray's nine strokes show the palette as it's picked.
+  - It's saved with the other settings (`strokes:prefs`).
+  - `public/boot.js` puts it on the page (`<html data-palette>`) before the first paint, so there's no flash of Earth. The game sets it again as it starts, in case a browser kept an older `boot.js`.
+- **Where the colours live:**
+  - `src/styles.css` has Earth in the themes' own rules, and the others by `data-palette`.
+  - `src/palettes.ts` has them all again, for the result card, which is drawn without the page's CSS.
+  - `src/palettes.test.ts` checks the two agree, and that every colour is at least 4.5:1 against a letter's cell in its theme.
+- **The result card is in the player's palette,** in its light colours since the card is on paper. The link preview (`og.png`) and the tab icon stay Earth: they're the site's.
+- **The palettes:**
+  - Bright: Earth's hues, as vivid as they go.
+  - Ocean: blues, teals, greens and violets.
+  - Clear: for colour blindness. Red-green colour blindness (about 1 man in 12) loses red against green but keeps lightness, and blue against yellow. So Clear is blues, near-neutrals and yellows, each at three lightnesses.
+  - Clear and Ocean were each given to the strokes by trying every assignment and keeping the one that sets alike shapes farthest apart. Clear keeps Earth's roles where it could: the long bar blue, the bar orange, the small chevron wine.
+  - There's no one-colour palette: a stroke's colour is how a letter shows which strokes built it.
+- **Measured.**
+  - Method:
+    - Differences are CIEDE2000; about 2 is just noticeable side by side.
+    - Colour blindness is simulated as protanopia, deuteranopia and tritanopia (Machado, Oliveira and Fernandes, 2009), in light and dark.
+    - "Alike shapes" are the pairs most easily mistaken: the long bar and the bar, the three slashes, the two chevrons, the arc and the bowl, the long bar and each long slash, and the bar and the tail.
+  - Results:
+
+| | Contrast with the cell (light; dark) | Closest two strokes, most eyes (light; dark) | Closest alike shapes, colour-blind | Closest any two, colour-blind |
+|---|---|---|---|---|
+| Earth | 5.9–8.1; 5.3–8.1 | 7.6; 10.9 | 7.1 | 0.5 |
+| Bright | 4.7–7.7; 5.6–11.0 | 14.7; 16.3 | 7.1 | 0.3 |
+| Ocean | 4.6–10.3; 5.1–12.5 | 11.7; 12.1 | 9.4 | 1.7 |
+| Clear | 4.5–11.3; 5.5–12.8 | 11.2; 14.4 | 15.6 | 5.7 |
+
+  - Only Clear keeps every pair apart with colour blindness. In each of the others, some strokes of different shapes take the same colour.

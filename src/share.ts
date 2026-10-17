@@ -9,6 +9,7 @@ import { inkOutline, inkSeed, opticalOffset } from './ink';
 import { scoreName } from './golf';
 import { spaced } from './spacing';
 import { letterDiff } from './strokes';
+import { palette, type PaletteChoice } from './palettes';
 
 export interface ShareResult {
   /** The daily's number and date, if it's a daily. */
@@ -45,7 +46,7 @@ export const stepSquares = (from: string, to: string) => [...to].map((ch, i) => 
 
 // ---------- The picture card ----------
 
-/** The light page's colours (the card is always on paper, whatever the player's theme). */
+/** The light page's colours (the card is always on paper, whatever the player's theme; its strokes are in the player's palette, light). */
 const PAPER = {
   bg: '#f7f4ee',
   surface: '#ffffff',
@@ -60,16 +61,15 @@ const PAPER = {
   /** Colour-blind: yellow, blue, red (light, middle, dark to red-green colour blindness too). */
   squaresCB: ['#efeae0', '#f2c65a', '#3f7fd6', '#b8402a'],
   squareLedgesCB: ['#ddd6c8', '#d6a63a', '#2f63ad', '#8f2f1e'],
-  tiles: { LV: '#395a7b', H: '#a84409', LD: '#3e580c', LB: '#4b6c2f', SB: '#0a6b5d', BV: '#7f5608', SC: '#934974', C: '#6f5899', P: '#a53c42' } as Record<string, string>,
 };
 
 const FONT = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif';
 
 /**
- * Draw a word in the game's own ink, `unit` px per letter unit, centred on cx, its top at y, its
- * letters optically spaced (see spacing.ts).
+ * Draw a word in the game's own ink, in the stroke colours `tiles`, `unit` px per letter unit,
+ * centred on cx, its top at y, its letters optically spaced (see spacing.ts).
  */
-function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: number, unit: number) {
+function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: number, unit: number, tiles: Record<TileId, string>) {
   const starts = spaced(word);
   const left = cx - ((starts[starts.length - 1] + drawnWidth(word[word.length - 1])) * unit) / 2;
   for (const [i, ch] of [...word].entries()) {
@@ -82,7 +82,7 @@ function drawWord(ctx: CanvasRenderingContext2D, word: string, cx: number, y: nu
       ctx.save();
       ctx.translate(x + px * unit, y + p.y * unit);
       ctx.scale(unit, unit);
-      ctx.fillStyle = PAPER.tiles[p.tile];
+      ctx.fillStyle = tiles[p.tile];
       ctx.fill(new Path2D(d));
       ctx.restore();
     }
@@ -140,8 +140,9 @@ function square(ctx: CanvasRenderingContext2D, x: number, y: number, size: numbe
  * word in ink, a row of squares per step under the letters it changed, the goal word in ink), and
  * the link.
  */
-export async function drawResultCard(r: ShareResult, colorBlind = false, canvas = document.createElement('canvas')): Promise<HTMLCanvasElement> {
+export async function drawResultCard(r: ShareResult, colorBlind = false, strokes: PaletteChoice = 'earth', canvas = document.createElement('canvas')): Promise<HTMLCanvasElement> {
   await document.fonts?.ready;
+  const tiles = palette(strokes).light;
   const W = 1080;
   const H = 1350;
   canvas.width = W;
@@ -150,7 +151,7 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
   cardBase(ctx, W, H, 48);
   const cx = W / 2;
 
-  drawWord(ctx, 'STROKES', cx, 104, 26);
+  drawWord(ctx, 'STROKES', cx, 104, 26, tiles);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = PAPER.muted;
@@ -207,7 +208,7 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, canvas 
   const x0 = cx - (rowW + tag) / 2 + tag / 2 - size * 0.3;
   const col = (k: number) => x0 + k * (size + gap);
   const rowY = (i: number) => y0 + i * (size + gap);
-  const word = (w: string, i: number) => [...w].forEach((ch, k) => drawWord(ctx, ch, col(k) + size / 2, rowY(i) + size * 0.1, size * 0.4));
+  const word = (w: string, i: number) => [...w].forEach((ch, k) => drawWord(ctx, ch, col(k) + size / 2, rowY(i) + size * 0.1, size * 0.4, tiles));
   word(r.start, 0);
   r.steps.forEach((s, i) => {
     const y = rowY(i + 1);
@@ -245,9 +246,8 @@ function mixHex(a: string, b: string, k: number) {
   return `rgb(${[0, 1, 2].map((i) => Math.round(ch(a, i) * k + ch(b, i) * (1 - k))).join(' ')})`;
 }
 
-/** A stroke's tile from the tray, `size` px square, centred on cx, cy: as the game draws it (see .tray-tile). */
-function trayTile(ctx: CanvasRenderingContext2D, tile: TileId, cx: number, cy: number, size: number) {
-  const color = PAPER.tiles[tile];
+/** A stroke's tile from the tray, `size` px square, centred on cx, cy: as the game draws it (see .tray-tile), in the colour `color`. */
+function trayTile(ctx: CanvasRenderingContext2D, tile: TileId, color: string, cx: number, cy: number, size: number) {
   const k = size / 56; // the game's tile is 56 px at most
   const [x, y, r] = [cx - size / 2, cy - size / 2, 14 * k];
   roundRect(ctx, x, y + 4 * k, size, size, r);
@@ -281,7 +281,9 @@ export async function drawPreviewCard(canvas = document.createElement('canvas'))
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
   cardBase(ctx, W, H, 40);
-  drawWord(ctx, 'STROKES', W / 2, 96, 56);
+  // The site's own picture, so in Earth's colours, whatever the player's.
+  const tiles = palette('earth').light;
+  drawWord(ctx, 'STROKES', W / 2, 96, 56, tiles);
   ctx.textAlign = 'center';
   ctx.fillStyle = PAPER.ink;
   ctx.font = `800 44px ${FONT}`;
@@ -292,6 +294,6 @@ export async function drawPreviewCard(canvas = document.createElement('canvas'))
   // The tray: every stroke the letters are made of.
   const size = 92;
   const gap = 16;
-  TILE_IDS.forEach((t, i) => trayTile(ctx, t, W / 2 + (i - (TILE_IDS.length - 1) / 2) * (size + gap), 454, size));
+  TILE_IDS.forEach((t, i) => trayTile(ctx, t, tiles[t], W / 2 + (i - (TILE_IDS.length - 1) / 2) * (size + gap), 454, size));
   return canvas;
 }

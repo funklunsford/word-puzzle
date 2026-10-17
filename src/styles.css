@@ -22,7 +22,8 @@
      heather, clay), each at least as far from the white of a letter's cell as its dark-mode colour
      is from the dark one (5.9–8:1), and never less than before, so the strokes stand out as much in
      both. Same hues, deeper and a little richer; the ochre is a deep amber (6.5:1), since no yellow
-     is that dark and still golden. */
+     is that dark and still golden. This is Earth, the default; the other palettes a player can
+     choose follow the dark theme below. */
   --t-LV: #395a7b;
   --t-H: #a84409;
   --t-LD: #3e580c;
@@ -67,6 +68,90 @@
   --t-P: #d6908f;
 
   color-scheme: dark;
+}
+
+/* The other stroke colours, the player's choice in Settings: <html data-palette>, set before the
+   first paint by public/boot.js. Each is at least 4.5:1 against a letter's cell in its theme.
+   src/palettes.ts has them too, for the result card, and its test checks the two agree. How far
+   apart they are, for most eyes and with colour blindness, is in DESIGN.md ("Stroke colours").
+   (They come after the dark theme: scripts/favicon.ts reads its colours, Earth's among them, from
+   the first rule that starts with its selector.) */
+
+/* Bright: Earth's hues, as vivid as they go. */
+:root[data-palette='bright'] {
+  --t-LV: #025dc9;
+  --t-H: #c14802;
+  --t-LD: #547a02;
+  --t-LB: #046d36;
+  --t-SB: #017b80;
+  --t-BV: #9c6900;
+  --t-SC: #b80f79;
+  --t-C: #6a29c5;
+  --t-P: #c50220;
+}
+
+:root[data-theme='dark'][data-palette='bright'] {
+  --t-LV: #67aaff;
+  --t-H: #fe9052;
+  --t-LD: #ade74e;
+  --t-LB: #39d075;
+  --t-SB: #36dede;
+  --t-BV: #ffcd45;
+  --t-SC: #fb75bb;
+  --t-C: #ad8dfd;
+  --t-P: #fa686a;
+}
+
+/* Ocean: blues, teals, greens and violets, with strokes of alike shapes apart in lightness. */
+:root[data-palette='ocean'] {
+  --t-LV: #133c8b;
+  --t-H: #0c796e;
+  --t-LD: #006943;
+  --t-LB: #077fa8;
+  --t-SB: #563199;
+  --t-BV: #98449e;
+  --t-SC: #015353;
+  --t-C: #0060a6;
+  --t-P: #448335;
+}
+
+:root[data-theme='dark'][data-palette='ocean'] {
+  --t-LV: #678dee;
+  --t-H: #6ce2d1;
+  --t-LD: #61d19a;
+  --t-LB: #9fe3fe;
+  --t-SB: #a58bec;
+  --t-BV: #e5aee8;
+  --t-SC: #39abab;
+  --t-C: #73b6fa;
+  --t-P: #a7f695;
+}
+
+/* Clear, for colour blindness: blues, near-neutrals and yellows at three lightnesses, which
+   red-green colour blindness still tells apart, so no two strokes look alike with it (or with
+   tritanopia). */
+:root[data-palette='clear'] {
+  --t-LV: #035eaa;
+  --t-H: #923f00;
+  --t-LD: #936e03;
+  --t-LB: #623512;
+  --t-SB: #00736a;
+  --t-BV: #0680a6;
+  --t-SC: #6e1250;
+  --t-C: #1a358d;
+  --t-P: #c23870;
+}
+
+:root[data-theme='dark'][data-palette='clear'] {
+  --t-LV: #7bc6ff;
+  --t-H: #f8ab4f;
+  --t-LD: #fee657;
+  --t-LB: #e87e42;
+  --t-SB: #52d7c1;
+  --t-BV: #abeeff;
+  --t-SC: #e16fbf;
+  --t-C: #7999f5;
+  --t-P: #fec5da;
 }
 
 * {
@@ -645,6 +730,33 @@ select,
   margin: 8px 0 0;
   font-size: 13px;
   color: var(--muted);
+}
+
+/* Stroke colours: the tray's nine strokes, each on a tile tinted in its colour (like .tray-tile). */
+.stroke-colours {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.stroke-colour {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 34px;
+  aspect-ratio: 1;
+  padding: 4px;
+  background: color-mix(in srgb, var(--tile) 12%, var(--surface));
+  border: 1.5px solid color-mix(in srgb, var(--tile) 30%, var(--line));
+  border-radius: 9px;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--tile) 35%, var(--ledge));
+}
+
+.stroke-colour svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 /* A setting that's on or off: its name and what it does, and a switch. The whole row flips it. */

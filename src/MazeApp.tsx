@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
-import { PrefsContext, followSystemMotion, loadPrefs, motionConfig, savePrefs, useReduceMotion, type Prefs } from './prefs';
+import { PrefsContext, applyPalette, followSystemMotion, loadPrefs, motionConfig, savePrefs, useReduceMotion, type Prefs } from './prefs';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, recognize, wordDistance } from './strokes';
 import { dataUrl } from './data';
@@ -198,11 +198,13 @@ export function MazeApp() {
   const themeRef = useRef(theme);
   themeRef.current = theme;
   useEffect(() => followSystemTheme(() => themeRef.current), []);
-  // The rest of the settings: motion, the letter guide, definitions, colour-blind squares.
+  // The rest of the settings: the stroke colours, motion, the letter guide, definitions, colour-blind squares.
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
   useEffect(() => followSystemMotion(() => prefsRef.current.motion), []);
+  // public/boot.js set the stroke colours before the first paint, unless a browser kept a copy from before it did.
+  useEffect(() => applyPalette(prefsRef.current.palette), []);
   const changePrefs = (patch: Partial<Prefs>) => {
     const next = { ...prefsRef.current, ...patch };
     setPrefs(next);
