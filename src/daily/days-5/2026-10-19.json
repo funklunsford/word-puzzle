@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-19",
+  "puzzle": {
+    "start": "SPILL",
+    "goal": "SHARK",
+    "best": 12,
+    "path": [
+      "SPILL",
+      "STILL",
+      "STALL",
+      "STALK",
+      "STARK",
+      "SHARK"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "STILL",
+        "door": "SPILT",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SPILL",
+        "door": "SPLIT",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "STILL",
+        "door": "SKILL",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "SPILT",
+      "STALE"
+    ],
+    "best": 12,
+    "walk": [
+      "SPILL",
+      "STILL",
+      "STALL",
+      "STALK",
+      "STARK",
+      "SHARK"
+    ]
+  },
+  "onRoute": {
+    "SHARK": 12,
+    "SPILL": 0,
+    "STALK": 7,
+    "STALL": 5,
+    "STARK": 10,
+    "STILL": 2
+  }
+}
