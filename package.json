@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@types/three": "^0.186.0",
-    "motion": "^13.4.6",
+    "motion": "^14.1.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "three": "^0.186.1"
