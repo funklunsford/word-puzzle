@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-20",
+  "puzzle": {
+    "start": "CRAMP",
+    "goal": "DRILL",
+    "best": 15,
+    "path": [
+      "CRAMP",
+      "CRANK",
+      "GRANT",
+      "GRAIL",
+      "GRILL",
+      "DRILL"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "CRAMP",
+        "door": "CRIMP",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "CRAMP",
+        "door": "TRAMP",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "CRANK",
+        "door": "PRANK",
+        "loses": 6,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "GIANT"
+    ],
+    "best": 15,
+    "walk": [
+      "CRAMP",
+      "CRANK",
+      "GRANT",
+      "GRAIL",
+      "GRILL",
+      "DRILL"
+    ]
+  },
+  "onRoute": {
+    "CRAMP": 0,
+    "CRANK": 3,
+    "DRILL": 15,
+    "GRAIL": 9,
+    "GRANT": 6,
+    "GRILL": 12
+  }
+}
