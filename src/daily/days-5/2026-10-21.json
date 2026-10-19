@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-21",
+  "puzzle": {
+    "start": "GUILD",
+    "goal": "SPLIT",
+    "best": 12,
+    "path": [
+      "GUILD",
+      "CHILD",
+      "CHILL",
+      "SHILL",
+      "SPILL",
+      "SPLIT"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "GUILD",
+        "door": "GUILT",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.13
+  },
+  "inkPots": {
+    "pots": [
+      "SPILT",
+      "GUILT",
+      "CHILE"
+    ],
+    "best": 11,
+    "walk": [
+      "GUILD",
+      "CHILD",
+      "CHILL",
+      "SHILL",
+      "SPILL",
+      "SPILT",
+      "SPLIT"
+    ]
+  },
+  "onRoute": {
+    "CHILD": 2,
+    "CHILI": 3,
+    "CHILL": 4,
+    "GUILD": 0,
+    "SHILL": 7,
+    "SPILL": 10,
+    "SPILT": 11,
+    "SPLIT": 12
+  }
+}
