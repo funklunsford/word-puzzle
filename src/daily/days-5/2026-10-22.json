@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-22",
+  "puzzle": {
+    "start": "CLINK",
+    "goal": "STACK",
+    "best": 13,
+    "path": [
+      "CLINK",
+      "SLINK",
+      "STINK",
+      "STANK",
+      "STALK",
+      "STACK"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "CLINK",
+        "door": "CLANK",
+        "loses": 3,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.1
+  },
+  "inkPots": {
+    "pots": [
+      "STAID",
+      "STINT"
+    ],
+    "best": 13,
+    "walk": [
+      "CLINK",
+      "SLINK",
+      "STINK",
+      "STANK",
+      "STALK",
+      "STACK"
+    ]
+  },
+  "onRoute": {
+    "CLINK": 0,
+    "SLINK": 3,
+    "STACK": 13,
+    "STALK": 10,
+    "STANK": 7,
+    "STINK": 4
+  }
+}
