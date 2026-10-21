@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-23",
+  "puzzle": {
+    "start": "SPEED",
+    "goal": "FIELD",
+    "best": 14,
+    "path": [
+      "SPEED",
+      "SPIED",
+      "BIPED",
+      "PILED",
+      "FILED",
+      "FIELD"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "SPEED",
+        "door": "BREED",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SPEED",
+        "door": "SLEEP",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SPEED",
+        "door": "SPELT",
+        "loses": 6,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "PIPED",
+      "TILED",
+      "CITED"
+    ],
+    "best": 13,
+    "walk": [
+      "SPEED",
+      "SPIED",
+      "BIPED",
+      "PIPED",
+      "PILED",
+      "FILED",
+      "FIELD"
+    ]
+  },
+  "onRoute": {
+    "BIPED": 6,
+    "FIELD": 14,
+    "FILED": 12,
+    "PILED": 9,
+    "PIPED": 7,
+    "SPEED": 0,
+    "SPIED": 3
+  }
+}
