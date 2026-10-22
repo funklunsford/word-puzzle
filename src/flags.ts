@@ -15,10 +15,10 @@ export const FLAGS = {
   // ads, a banner over the header on phones and a rail either side of the game on wide desktops
   // (see src/ads.ts, where the AdSense IDs go).
   ads: { label: 'Ad slots', on: false },
-  // Off: Settings has the Hardcore switch, as before. On: a Difficulty choice in its place,
-  // Easycore, Classic or Hardcore, where Easycore is a shorter daily with simpler words (see
-  // src/easycore.ts). 5 letters only.
-  easycore: { label: 'Easycore (Difficulty in Settings)', on: false },
+  // On (for everyone since 2026-10-22): a Difficulty choice in Settings, Easycore, Classic or
+  // Hardcore, where Easycore is a shorter daily with simpler words (see src/easycore.ts). Off:
+  // Settings has the Hardcore switch, as before. 5 letters only.
+  easycore: { label: 'Easycore (Difficulty in Settings)', on: true },
 } as const;
 
 export type Flag = keyof typeof FLAGS;
