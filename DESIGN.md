@@ -1133,14 +1133,19 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Tests:** the pool (its shape, simple words, a simple route at the whole maze's lowest strokes, no pair twice, two doors at each end, par chance as stored); the simple words; the date pick (the same each time, each puzzle once a round, two dates pinned); the setting and its Hardcore migration; Easycore's results and record kept apart; the share's label and title.
 - **Checked in headless Chrome** at 1280×800 and 390×844: Settings with the flag off is as before; with it on, Easycore swaps in its daily; a win keeps `strokes:result5e:2026-10-22` and the done mark and no classic result; Classic brings back the classic daily; Easycore again says "Solved today"; Easycore → Hardcore and Hardcore → Classic; an old Hardcore switch shows as Hardcore; the flag turned on and off in Dev swaps the daily; `?day=2026-10-15` plays Easycore No. 10; `?letters=4` with Easycore stored plays the 4-letter Classic daily with the Hardcore switch. The dateline doesn't scroll sideways at 320 px.
 
-## Code files checked on each visit (2026-10-22, branch `asset-cache`)
+## Code files no longer kept a year (2026-10-22, branch `asset-cache`)
 - **What happened:** from 19:56 UTC, Chrome showed a blank page at strokes.fun, at least through Cloudflare's Washington-area servers (IAD): until 22:21, and again from 22:33. Asked for the game's code (`/assets/index-C9MM0EtB.js`), Cloudflare answered with an older version's `index.html`, which Chrome won't run as code.
 - **Why:**
   - With no `404.html`, Pages answers a missing file with `index.html`. `public/_headers` marked everything under `/assets/` to be kept a year without checking (`public, max-age=31536000, immutable`), that answer included.
   - As the Easycore deploy finished (the copy was stored at 19:56:51; the run ended at 19:56:54), a request for the new code file reached the old version of the site, and Cloudflare's cache for strokes.fun kept the answer.
   - Only requests with `Origin: https://strokes.fun` got it: Cloudflare keeps a copy per `Origin`, and Chrome sends one when it fetches the game's code (a module script). Plain requests, like curl's, got the code, and so did Pages itself (strokes-f1a.pages.dev).
   - The How to Play deploy (22:21) renamed the code file, which hid the problem. Its revert (22:33) rebuilt the same code under the same name, and the bad copy was back.
-- **The fix:** code and styles are `Cache-Control: no-cache`. Cloudflare and browsers check with the site before reusing a copy, so a bad answer lasts until the next request, not a year. An unchanged file costs a "not modified" reply. The year bought little: each nightly puzzle renames the main code file.
+- **The fix:** code and styles are `Cache-Control: no-cache`. Cloudflare and browsers check with the site before reusing a copy, so a bad answer lasts one request, not a year. An unchanged file costs a "not modified" reply. The year bought little: each nightly puzzle renames the main code file.
+- **As live** (checked after the deploy):
+  - Cloudflare stores each code file and checks it with Pages on every request (`cf-cache-status: REVALIDATED` from the second request on).
+  - At first browsers were told `max-age=14400`, not `no-cache`: Cloudflare's Browser Cache TTL (then 4 hours; Caching → Configuration) overrides the site's header on the files it stores, so a browser that got a bad copy would keep it up to 4 hours. The owner set it to "Respect Existing Headers", and browsers now get `no-cache`. Other files Cloudflare stores, like `boot.js`, now reach browsers with Pages' `max-age=0, must-revalidate`, where they were kept 4 hours.
+  - The page and the data files aren't stored by Cloudflare, and browsers get Pages' `max-age=0, must-revalidate` for them, as before.
+  - The main code file and styles stored before the deploy (good copies) keep the year-long header at Cloudflare until a purge or a rename.
 - **The copy already stored** needed a purge (Caching → Configuration → Purge Everything): new headers don't touch what Cloudflare already keeps. A Chrome that got the bad copy keeps it too, until a hard reload (Cmd+Shift+R) or the next rename.
 - **Not done:**
   - A `404.html`: missing code would get a 404 instead of the page, which breaks the game just the same. Keeping it a year is what made it stick.

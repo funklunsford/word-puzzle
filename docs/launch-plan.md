@@ -40,7 +40,7 @@ Each with Claude's recommendation.
    - The licence notices ship in every build (`public/licenses`).
    - The theme set-up moved from inline to `public/boot.js`, so the security policy allows only the site's own scripts.
    - `public/_headers`:
-     - code checked with the site on each visit (cached for a year until 2026-10-22, when a bad copy stuck; see DESIGN.md);
+     - code checked with the site on each visit, by Cloudflare and browsers (it was kept a year until 2026-10-22, when a bad copy stuck; see DESIGN.md);
      - nosniff, a referrer policy, and no camera, microphone or location;
      - no framing;
      - the content security policy, report-only until checked.

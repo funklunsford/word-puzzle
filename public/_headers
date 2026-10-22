@@ -1,10 +1,12 @@
 # Response headers for Cloudflare Pages (other hosts serve this as a plain file and ignore it).
 
 # Code and styles: browsers and Cloudflare check with the site before reusing a copy (an unchanged
-# file costs only a "not modified" reply). They were kept a year, as their names change whenever
-# they do, but then a bad copy stuck: during a deploy, a request for a new file can reach the old
-# version of the site, which answers with the game's page. Cloudflare kept that page as the game's
-# code, and Chrome showed a blank page for hours (2026-10-22, DESIGN.md).
+# file costs only a "not modified" reply). Browsers get this header because Cloudflare's Browser
+# Cache TTL is "Respect Existing Headers" (Caching → Configuration); at 4 hours, it overrode it.
+# They were kept a year, as their names change whenever they do, but then a bad copy stuck: during
+# a deploy, a request for a new file can reach the old version of the site, which answers with the
+# game's page. Cloudflare kept that page as the game's code, and Chrome showed a blank page for
+# hours (2026-10-22, DESIGN.md).
 /assets/*
   Cache-Control: no-cache
 
