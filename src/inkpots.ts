@@ -45,6 +45,20 @@ export function scoreWalk(walk: string[], pots: Iterable<string>): number {
   return total;
 }
 
+/** A walk's steps under the same rules, for showing it: each word, the strokes charged and the ink that paid (they add up to scoreWalk). */
+export function walkSteps(walk: string[], pots: Iterable<string>): { word: string; cost: number; used: number }[] {
+  const potSet = new Set(pots);
+  const visited = new Set([walk[0]]);
+  let ink = 0;
+  return walk.slice(1).map((word, i) => {
+    if (visited.has(word)) return { word, cost: 0, used: 0 };
+    const { paid, used } = payStep(wordDistance(walk[i], word), ink);
+    ink += (potSet.has(word) ? 1 : 0) - used;
+    visited.add(word);
+    return { word, cost: paid, used };
+  });
+}
+
 // ---------- Shortest paths (binary heap; many runs per puzzle) ----------
 
 /**

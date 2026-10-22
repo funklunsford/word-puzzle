@@ -3,7 +3,7 @@ import mazeJson from '../public/mazes.json';
 import everydayText from '../data/everyday-4.txt?raw';
 import poolText from '../public/pool.json?raw';
 import definitionsJson from '../public/definitions.json';
-import { payStep, placePots, potRoute, potValues, scoreWalk } from './inkpots';
+import { payStep, placePots, potRoute, potValues, scoreWalk, walkSteps } from './inkpots';
 import { buildGraph, randomPuzzle, seededRandom } from './maze';
 import { STEP_LIMIT, wordDistance } from './strokes';
 import { parseWordList } from './wordlist';
@@ -28,6 +28,22 @@ describe('ink pot scoring', () => {
     const cost = (w: string[]) => w.slice(1).reduce((t, x, i) => t + wordDistance(w[i], x), 0);
     expect(scoreWalk(walk, [])).toBe(cost(['WILD', 'WILL', 'WILE', 'VILE']));
     expect(scoreWalk(walk, ['WILL'])).toBe(scoreWalk(walk, []) - 1);
+  });
+
+  it('lists a walk step by step, charged as scoreWalk charges it (the route shown after a win)', () => {
+    // CRUMB → GRUMP (2, a pot) → CRUMB, GRUMP (back: free) → CLUMP (3, 1 in ink) → CLUNK (3) → SLUNK (3, a pot) → SLINK (2, 1 in ink)
+    const walk = ['CRUMB', 'GRUMP', 'CRUMB', 'GRUMP', 'CLUMP', 'CLUNK', 'SLUNK', 'SLINK'];
+    expect(walkSteps(walk, ['GRUMP', 'SLUNK'])).toEqual([
+      { word: 'GRUMP', cost: 2, used: 0 },
+      { word: 'CRUMB', cost: 0, used: 0 },
+      { word: 'GRUMP', cost: 0, used: 0 },
+      { word: 'CLUMP', cost: 2, used: 1 },
+      { word: 'CLUNK', cost: 3, used: 0 },
+      { word: 'SLUNK', cost: 3, used: 0 },
+      { word: 'SLINK', cost: 1, used: 1 },
+    ]);
+    const charged = (steps: { cost: number }[]) => steps.reduce((t, s) => t + s.cost, 0);
+    for (const pots of [[], ['GRUMP', 'SLUNK'], ['CLUMP']]) expect(charged(walkSteps(walk, pots))).toBe(scoreWalk(walk, pots));
   });
 });
 
