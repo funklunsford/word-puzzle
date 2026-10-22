@@ -1,6 +1,6 @@
 // Build the maze's word list: familiar 4-letter words (or 5-letter ones, for the desktop game).
 //
-//   npx vite-node scripts/familiar.ts <path-to-scowl-40.txt> <path-to-scowl-50.txt> <path-to-scowl-35.txt> [--letters 5]
+//   npx vite-node scripts/familiar.ts <path-to-scowl-40.txt> <path-to-scowl-50.txt> <path-to-scowl-35.txt> [--letters 5 [<path-to-scowl-20.txt>]]
 //
 // Source: SCOWL / English Speller Database by Kevin Atkinson, US spelling, generated at
 //   http://app.aspell.net/create?max_size=40&spelling=US&max_variant=0&diacritic=strip&download=wordlist&encoding=utf-8&format=inline
@@ -14,6 +14,13 @@
 // data/familiar-5.txt and data/everyday-5.txt instead, with their own reviewed extras
 // (data/familiar-extra-5.txt), leaving out the obscure words in data/obscure-5.txt (SCOWL's size
 // doesn't track how well known a word is: HALER, a Czech coin, is in size 35).
+//
+// Given SCOWL size 20 as well (its "most common words"), the 5-letter run also writes
+// data/simple-5.txt, Easycore's words: the everyday ones also in size 20, less a reviewed list of
+// ones not right for its 11- to 15-year-olds (data/not-simple-5.txt). The list creator above now
+// starts at size 35, so size 20 comes from SCOWL 2020.12.07, the last release with smaller sizes:
+// its final/english-words.10 and .20 and american-words.10 and .20, after its Copyright file and a
+// --- line (see README.md).
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { BLOCKLIST, parseWordList } from '../src/wordlist';
@@ -21,9 +28,9 @@ import { BLOCKLIST, parseWordList } from '../src/wordlist';
 const args = process.argv.slice(2);
 const at = args.indexOf('--letters');
 const LETTERS = at >= 0 ? Number(args.splice(at, 2)[1]) : 4;
-const [base, wider, core] = args;
-if (!base || !wider || !core || ![4, 5].includes(LETTERS))
-  throw new Error('usage: vite-node scripts/familiar.ts <path-to-scowl-40.txt> <path-to-scowl-50.txt> <path-to-scowl-35.txt> [--letters 5]');
+const [base, wider, core, simplest] = args;
+if (!base || !wider || !core || ![4, 5].includes(LETTERS) || (simplest && LETTERS !== 5))
+  throw new Error('usage: vite-node scripts/familiar.ts <path-to-scowl-40.txt> <path-to-scowl-50.txt> <path-to-scowl-35.txt> [--letters 5 [<path-to-scowl-20.txt>]]');
 
 /** A SCOWL "inline" word list: its notice, then ---, then the words. */
 function scowl(path: string) {
@@ -85,3 +92,21 @@ writeFileSync(
   ].join('\n'),
 );
 console.log(`wrote ${everyday.length} everyday words`);
+
+// Easycore's words (see the top): its puzzles start and end on these, with a lowest-stroke route
+// through them. Every familiar word still counts as a word in play.
+if (simplest) {
+  const size20 = scowl(simplest);
+  const notSimple = new Set(parseWordList(readFileSync(new URL(`../data/not-simple-${LETTERS}.txt`, import.meta.url), 'utf8')));
+  const simple = everyday.filter((w) => size20.words.has(w) && !notSimple.has(w));
+  const simpleHeader = [
+    `The simplest maze words, for Easycore: those in data/everyday-${LETTERS}.txt that are also in SCOWL size 20`,
+    `(its "most common words"), less the ones in data/not-simple-${LETTERS}.txt. Easycore's puzzles start and`,
+    'end on these, with a lowest-stroke route through them (see scripts/mazes.ts --easy). Size 20 is from',
+    'SCOWL 2020.12.07, the last release with sizes under 35; its notice follows.',
+    '',
+    ...size20.notice,
+  ].map((l) => `# ${l}`.trimEnd());
+  writeFileSync(new URL(`../data/simple-${LETTERS}.txt`, import.meta.url), [...simpleHeader, ...simple, ''].join('\n'));
+  console.log(`wrote ${simple.length} simple words`);
+}

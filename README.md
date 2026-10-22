@@ -33,10 +33,14 @@ Regenerating the words and the maze:
 curl -o scowl-40.txt "http://app.aspell.net/create?max_size=40&spelling=US&max_variant=0&diacritic=strip&download=wordlist&encoding=utf-8&format=inline"
 curl -o scowl-50.txt "http://app.aspell.net/create?max_size=50&spelling=US&max_variant=0&diacritic=strip&download=wordlist&encoding=utf-8&format=inline"
 curl -o scowl-35.txt "http://app.aspell.net/create?max_size=35&spelling=US&max_variant=0&diacritic=strip&download=wordlist&encoding=utf-8&format=inline"
+# Size 20 (the most common words, for Easycore): the list creator now starts at 35, so it's from SCOWL 2020.12.07.
+curl -LO http://downloads.sourceforge.net/wordlist/scowl-2020.12.07.tar.gz && tar xzf scowl-2020.12.07.tar.gz
+(cat scowl-2020.12.07/Copyright; echo ---; cat scowl-2020.12.07/final/{english,american}-words.{10,20} | iconv -f ISO-8859-1 -t UTF-8) > scowl-20.txt
 npx vite-node scripts/familiar.ts scowl-40.txt scowl-50.txt scowl-35.txt   # → data/familiar-4.txt, data/everyday-4.txt
-npx vite-node scripts/familiar.ts scowl-40.txt scowl-50.txt scowl-35.txt --letters 5   # → data/familiar-5.txt, data/everyday-5.txt
+npx vite-node scripts/familiar.ts scowl-40.txt scowl-50.txt scowl-35.txt --letters 5 scowl-20.txt   # → data/familiar-5.txt, data/everyday-5.txt, data/simple-5.txt
 npx vite-node scripts/mazes.ts                   # → public/mazes.json, and its pool in public/pool.json
 npx vite-node scripts/mazes.ts --letters 5       # → public/mazes-5.json, and the dailies' pool in public/pool-5.json
+npx vite-node scripts/mazes.ts --letters 5 --easy   # → Easycore's pool, public/pool-5-easy.json (once shipped, keep it: see DESIGN.md)
 ```
 
 Definitions (`public/definitions.json`) are built from WordNet 3.0 plus hand-written ones in `data/definitions-extra.tsv`:
@@ -47,4 +51,4 @@ npx vite-node scripts/definitions.ts wordnet   # → public/definitions.json
 npx vite-node scripts/definitions.ts wordnet --letters 5   # → public/definitions-5.json
 ```
 
-Word list derived from [SCOWL](https://wordlist.aspell.net) by Kevin Atkinson (notice in DESIGN.md and in `data/familiar-4.txt`) and ENABLE. Definitions from [WordNet](https://wordnet.princeton.edu) 3.0, Copyright 2006 by Princeton University (licence in `data/WORDNET-LICENSE.txt`).
+Word list derived from [SCOWL](https://wordlist.aspell.net) by Kevin Atkinson (notice in DESIGN.md and in `data/familiar-4.txt`; Easycore's simplest words from SCOWL 2020.12.07, notice in `data/simple-5.txt`) and ENABLE. Definitions from [WordNet](https://wordnet.princeton.edu) 3.0, Copyright 2006 by Princeton University (licence in `data/WORDNET-LICENSE.txt`).
