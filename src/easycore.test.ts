@@ -89,7 +89,7 @@ describe("Easycore's daily", () => {
     const { puzzles } = JSON.parse(poolText) as { puzzles: { puzzle: { start: string; goal: string } }[] };
     const on = (date: string) => puzzles[easyIndex(date, puzzles.length)].puzzle;
     expect(puzzles.length).toBe(size);
-    expect(on('2026-10-22')).toMatchObject({ start: 'CREAM', goal: 'TREAD' });
+    expect(on('2026-10-22')).toMatchObject({ start: 'MIXED', goal: 'LINED' });
     expect(on(LAUNCH)).toMatchObject({ start: 'DINED', goal: 'TIMER' });
   });
 });

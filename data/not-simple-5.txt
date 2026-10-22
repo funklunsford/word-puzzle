@@ -1,15 +1,16 @@
 # Everyday words in SCOWL size 20 that aren't right for Easycore's 11- to 15-year-olds, reviewed by
-# hand (2026-10-22): drink, drugs, sex and nudity, insults and slavery (BEERS, DRUGS, NAKED, MORON,
-# SLAVE), and words they wouldn't know or use: rare or formal ones (AXIOM, CIRCA, DATUM, INTER),
-# odd forms (CASED, DOOMS, KEYED) and British ones (LORRY, PENCE). Not a blocklist: they're still
-# real words in Easycore, but no puzzle starts or ends on them, or needs them on its lowest-stroke
-# route. Used by scripts/familiar.ts --letters 5 to make data/simple-5.txt; edit this list to add or
-# drop words, then rebuild.
+# hand (2026-10-22): drink, drugs, sex and nudity, insults, slavery and violence (BEERS, DRUGS,
+# NAKED, MORON, SLAVE, KILLS), and words they wouldn't know or use: rare or formal ones (AXIOM,
+# CIRCA, DATUM, INTER), odd forms (CASED, DOOMS, KEYED) and British ones (LORRY, PENCE). Not a
+# blocklist: they're still real words in Easycore, but no puzzle starts or ends on them, or needs
+# them on its lowest-stroke route. Used by scripts/familiar.ts --letters 5 to make
+# data/simple-5.txt; edit this list to add or drop words, then rebuild.
 ABUSE
 AXIOM
 BANAL
 BEERS
 BIGOT
+BOMBS
 BORNE
 CASED
 CHAPS
@@ -36,6 +37,7 @@ INCUR
 INTER
 IRATE
 KEYED
+KILLS
 LAGER
 LEACH
 LIBEL
@@ -52,6 +54,7 @@ RENDS
 ROUTS
 SECTS
 SEXES
+SHOOT
 SLAVE
 SOBER
 TERSE
