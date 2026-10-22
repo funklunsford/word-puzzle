@@ -1066,3 +1066,29 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **It closes again** on Restart, with a new puzzle, and at the first stroke of playing again, so a later win offers it afresh.
 - **With ink pots on,** it's the pots' best walk, charged as the game charges it: banked ink pays first (a drop on the chip, as in the path) and going back is free, so the steps add up to the best with pots.
   - `walkSteps` (`src/inkpots.ts`) lists a walk's steps by `scoreWalk`'s rules. Tests check the two agree, and that every 5-letter daily's route adds up to its best, with pots and without.
+
+## The tray's C, centred on phones (2026-10-22, branch `tray-c-centre`)
+- **The owner's report:** on a phone, the C (the big arc) sat a bit too low in its tray tile.
+- **Why:** the nib. It draws the C's lower curve broad and its top thin, so the C's ink sits low: its balance point is 0.19 units below its outline's middle. Centring by eye (`opticalOffset`, see "Sharing, settings, and centring by eye") weighed only the centre line, which is level, so it never lifted the C.
+  - It shows most on phones. There the C's tile is the tray's biggest (72 px, 25 px a unit against 17 on desktop), so its ink sat 3.3 px below the tile's centre (1.7 px on desktop).
+  - It isn't the 40 px the tray assumes for a tile (`TRAY_PX_PER_UNIT`). That only sets the pen's least width, and the offsets come out the same for 40 to 60 px.
+- **The fix** (`opticalOffset` in `src/ink.ts`): up and down, a stroke is now centred halfway between its outline's middle and its ink's balance point (the centroid of its outline's area). Across, it's still halfway to its centre line's balance point: the ink's would move the small chevron 3.3 px towards its thin arm, though its point already keeps it looking centred.
+  - The C goes up 2.4 px on phones and 1.6 px on desktop.
+  - Turned round in the tray (D's arc), the C looked high, its broad curve being on top. It comes down 2.6 px (1.7 on desktop).
+  - The bowl comes down 0.9 px (0.6 on desktop), and goes up as much turned as in S's top.
+  - No other stroke moves more than 0.3 px, and nothing moves across.
+  - How to play's practice tray and the Settings swatches use the same centring: their C goes up 1.5 px and 0.8 px.
+  - A test (`src/ink.test.ts`) holds the C lifted and a reversed C lowered, and the straight strokes and chevrons shifted less than 0.03 units.
+- **Measured** in Chrome, in px from the tile's centre (+ is down), before → after. "By eye" is halfway between the outline's middle and the ink's balance point, which the centring now evens out. On 375 and 430 px phones the C, its tile also 72 px, measures as at 390.
+
+| Up and down | Phone (390 × 844): outline | Ink | By eye | Desktop (1280 × 800): outline | Ink | By eye |
+|---|---|---|---|---|---|---|
+| C | −1.4 → −3.9 | +3.3 → +0.9 | +0.9 → −1.5 | −1.5 → −3.1 | +1.7 → +0.1 | +0.1 → −1.5 |
+| C turned (D's arc) | −1.5 → +1.1 | −6.7 → −4.1 | −4.1 → −1.5 | −1.5 → +0.2 | −5.0 → −3.2 | −3.2 → −1.5 |
+| Bowl | −1.5 → −0.6 | −3.3 → −2.4 | −2.4 → −1.5 | −1.5 → −0.9 | −2.7 → −2.1 | −2.1 → −1.5 |
+| Bowl turned (S's top) | −1.4 → −2.3 | +0.2 → −0.7 | −0.6 → −1.5 | −1.5 → −2.0 | −0.4 → −1.0 | −0.9 → −1.5 |
+| Every other stroke and way round | −1.1 to −2.0 → −1.3 to −1.7 | −1.4 to −1.9 → −1.3 to −1.7 | −1.3 to −1.8 → −1.5 | −1.1 to −1.8 → −1.3 to −1.7 | −1.4 to −1.9 → −1.3 to −1.7 | −1.3 to −1.7 → −1.5 |
+
+  - Across, nothing changed: the C's outline is still 0.7 px right of the centre on phones (0.5 on desktop) and its ink 2.0 px left (1.4).
+  - Every stroke sits 1.5 px above its tile's centre, on every screen. The tray's svg is inline, so the line it sits on adds a descender's gap under it, and each tile comes out 3 px taller than wide (72 × 75 on a phone). That's left as it is: it isn't the C's fault, and it lifts every stroke alike. It depends on the button's font, though, so it may differ outside Chrome.
+- **The link preview** (`og.png`) has the same fault: its C's ink is 5.5 px below its tile's centre (the card has no lift). `trayTile` in `src/share.ts` uses `opticalOffset`, so the card's C will sit 2.8 px higher when `og.png` is next drawn. It hasn't been redrawn here.
