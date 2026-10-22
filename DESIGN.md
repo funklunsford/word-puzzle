@@ -1151,3 +1151,15 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - A `404.html`: missing code would get a 404 instead of the page, which breaks the game just the same. Keeping it a year is what made it stick.
   - Reloading the page by itself when its code fails to load.
 - **Checking the live site:** a 200 with the title "Strokes" isn't proof the game runs; this blank page passed both. Ask for the code file as Chrome does (`curl -H 'Origin: https://strokes.fun' https://strokes.fun/assets/index-….js` should say `application/javascript`), and check that the page draws the tray (`.tray-tile`).
+
+## The tray's strokes centred in Safari (2026-10-22, branch `tray-safari-centre`)
+- **The owner's report:** on an iPhone the C still sat low in its tray tile after `tray-c-centre`.
+- **Why:** each stroke's drawing (`.tray-tile svg`) had `height: 100%`.
+  - In Safari (WebKit), inside the tile's `<button>`, it came out as tall as the whole tile, padding included, starting at the top padding. So the drawing hung below the middle and stretched the tile: at 430 px wide every tile was 72 px tall, the top row's 63 px wide.
+  - In the owner's screenshot, ink sat 2.3 px low in the top row and 4.3 to 7.5 px low in the bottom row (the C 4.3, the chevron 7.0, the bowl 7.5). This Mac's WebKit gives the same to within 0.3 px.
+  - Chrome left an inline image's line gap under the drawing instead: tiles 3 px taller than wide, strokes 1.5 px high.
+  - `tray-c-centre` was measured in Chrome, so it couldn't see this.
+- **The fix:** the drawing is a block, square by its own aspect ratio (`display: block; height: auto; aspect-ratio: 1`).
+  - Tiles are square in both engines, and every drawing is centred on its tile: strokes within 0.2 px, the bowl 0.9 px low.
+  - The C's outline sits 2.3 px high on phones (1.5 px on desktop), as its centring by eye intends: its broad lower curve balances it.
+- **Checked** in Chrome and in this Mac's WebKit (Safari 18.4, through a WKWebView), at 430 × 932 and 1280 × 800, with the same measurements in both. The stroke colour tiles in Settings (a block drawing in a span) were already right.
