@@ -1054,6 +1054,19 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 
   - Only Clear keeps every pair apart with colour blindness. In each of the others, some strokes of different shapes take the same colour.
 
+## The lowest-stroke route after the win (2026-10-22, branch `route-after-win`)
+- **The owner's call:** the lowest-stroke route stays hidden until the puzzle's solved.
+  - The side card's "Show lowest-stroke route" (see "Modifiers and feature flags") is gone. It showed a route at any time, and every word within reach of the current one with its cost, which gave the game away too.
+  - Before a win, the side card has only Restart (and Dev, in development).
+- **After the win:** a quiet pill beside Share and Watch again, "See the lowest-stroke route", opens it under the buttons.
+  - "Lowest-stroke route · 13 strokes", over the words drawn as the path card's chips, each with its step's strokes: CRUMB, +2 GRUMP, +3 CLUMP, +3 CLUNK, +2 CLINK, +3 SLINK.
+  - The chips wrap: one row on a desktop, two rows of three on a 390 px phone.
+  - The pill then says "Hide the lowest-stroke route". It's a button with `aria-expanded`; the route is a list named by its total, and each word is read by name.
+- **Solved today already:** the note offers it too, as a link: "Solved today in 13 · perfect ⭐. Play it again any time, share it, or see the lowest-stroke route." It opens under the note.
+- **It closes again** on Restart, with a new puzzle, and at the first stroke of playing again, so a later win offers it afresh.
+- **With ink pots on,** it's the pots' best walk, charged as the game charges it: banked ink pays first (a drop on the chip, as in the path) and going back is free, so the steps add up to the best with pots.
+  - `walkSteps` (`src/inkpots.ts`) lists a walk's steps by `scoreWalk`'s rules. Tests check the two agree, and that every 5-letter daily's route adds up to its best, with pots and without.
+
 ## The tray's C, centred on phones (2026-10-22, branch `tray-c-centre`)
 - **The owner's report:** on a phone, the C (the big arc) sat a bit too low in its tray tile.
 - **Why:** the nib. It draws the C's lower curve broad and its top thin, so the C's ink sits low: its balance point is 0.19 units below its outline's middle. Centring by eye (`opticalOffset`, see "Sharing, settings, and centring by eye") weighed only the centre line, which is level, so it never lifted the C.
