@@ -92,6 +92,9 @@ export function HowToTry({ touch, waiting, onStart }: { touch: boolean; waiting:
   const say = done ? step.done : plan ? plan.say[touch ? 'touch' : 'mouse'] : step.stray;
   /** The move the ghost is showing, while the player leaves the practice alone (and the demo's done). */
   const ghost = geo && plan && idle && !waiting ? plan.move : null;
+  // The ghost starts its loop afresh when the panel is measured anew (a window resized across the side
+  // by side layout's width): new keyframes restart where it is, but not when it fades in and out.
+  const where = geo ? [geo.w, geo.h, ...geo.cells.flatMap((c) => [c.ox, c.oy])].map(Math.round).join(',') : '';
   // A turn is shown on the stroke itself: the ghost draws it turning, so the editor hides its own.
   const ghosted = ghost?.ghost.kind === 'turn' && !reduce ? `${ghost.cell}|${slotKey(ghost.ghost.at)}` : undefined;
   const out = !done && used >= STEP_LIMIT;
@@ -131,7 +134,7 @@ export function HowToTry({ touch, waiting, onStart }: { touch: boolean; waiting:
         />
         {geo && ghost && (
           <GhostMove
-            key={`${stepIndex}:${cells.map((c) => c.map(slotKey).join(',')).join('|')}`}
+            key={`${stepIndex}:${where}:${cells.map((c) => c.map(slotKey).join(',')).join('|')}`}
             move={ghost}
             content={cells[ghost.cell]}
             geo={geo}

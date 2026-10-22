@@ -56,13 +56,29 @@ export function ghostTiming(move: WordMove, touch: boolean) {
 }
 
 /** A point on a stroke to press: the middle of a bar, partway along a chevron's arm. */
-function grabPoint(p: Placement) {
+export function grabPoint(p: Placement) {
   const pts = strokeCenterline(p.tile, p.rot ?? 0);
   const [x, y] = pts[Math.round((pts.length - 1) * (p.tile === 'BV' ? 0.3 : 0.5))];
   return { x: p.x + x, y: p.y + y };
 }
 
 const CURSOR = 'M0 0 L0 0.78 L0.2 0.6 L0.36 0.92 L0.48 0.86 L0.32 0.55 L0.58 0.55 Z';
+
+/**
+ * A small ✕ on a stroke that comes off, where a still picture shows the move: red alone was too weak
+ * a mark (some strokes are a deep red already, as B's are, and red-green colour blindness can't tell
+ * them apart). At (x, y) on the panel, sized by the letters' unit `k`.
+ */
+export function RemoveMark({ x, y, k }: { x: number; y: number; k: number }) {
+  const a = 0.12 * k;
+  return (
+    <g className="how-remove-mark" transform={`translate(${x} ${y})`}>
+      <circle r={0.3 * k} />
+      <path d={`M${-a} ${-a}L${a} ${a}M${a} ${-a}L${-a} ${a}`} />
+    </g>
+  );
+}
+
 const wrap = (deg: number) => ((((deg + 180) % 360) + 360) % 360) - 180;
 
 /**
@@ -258,15 +274,17 @@ export function GhostMove({
     );
   }
   if (still) {
-    // Where the move leaves the stroke: on its new spot, or (red) about to go.
+    // Where the move leaves the stroke: on its new spot, or (red, with a ✕) about to go.
     const last = copy.x.length - 2;
     const x = plan.kind === 'carry' ? copy.x[last] : copy.x[0];
     const y = plan.kind === 'carry' ? copy.y[last] : copy.y[0];
+    const mark = plan.kind === 'remove' ? grabPoint(plan.at) : null;
     return (
       <svg className="how-try-ghost" width={geo.w} height={geo.h} viewBox={`0 0 ${geo.w} ${geo.h}`} aria-hidden="true">
         <g transform={`translate(${x} ${y})`} opacity={0.5}>
           {stroke(copy.fill)}
         </g>
+        {mark && <RemoveMark {...at(mark.x, mark.y)} k={k} />}
       </svg>
     );
   }

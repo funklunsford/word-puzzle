@@ -4,7 +4,7 @@ import { inkSeed } from '../../ink';
 import { STEP_LIMIT } from '../../strokes';
 import { TRAY, TUTORIAL, stepMoves, wordCells } from '../../tutorial';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
-import { GhostMove, ghostTiming, measureGeo, type Geo } from './GhostMove';
+import { GhostMove, RemoveMark, ghostTiming, grabPoint, measureGeo, type Geo } from './GhostMove';
 import { WordEditor, centerOffset } from './WordEditor';
 
 /** The step the demo shows, the practice's first: CRUMB → GRUMP. */
@@ -142,7 +142,7 @@ export function HowToShow({ touch, playing, onDone, onAgain }: { touch: boolean;
 
 /**
  * The still demo's marks on the word before: where the bar goes (faint, as the practice's still
- * ghost shows a move) and the stroke that comes off (red, as a stroke under the mouse is).
+ * ghost shows a move), and the stroke that comes off (red, as a stroke under the mouse is, and a ✕).
  */
 function Marks({ geo }: { geo: Geo }) {
   const pen = minHalfWidthAt(geo.k);
@@ -152,11 +152,15 @@ function Marks({ geo }: { geo: Geo }) {
         const p = ghost.kind === 'carry' ? ghost.to : ghost.at;
         const c = geo.cells[cell];
         if (!c) return null;
-        const x = c.ox + (p.x + centerOffset(before[cell])) * geo.k;
-        const y = c.oy + p.y * geo.k;
+        const at = (lx: number, ly: number) => ({ x: c.ox + (lx + centerOffset(before[cell])) * geo.k, y: c.oy + ly * geo.k });
+        const { x, y } = at(p.x, p.y);
+        const g = grabPoint(p);
         return (
-          <g key={cell} transform={`translate(${x} ${y}) scale(${geo.k})`} opacity={ghost.kind === 'carry' ? 0.5 : 1}>
-            <TileStroke tile={p.tile} rot={p.rot ?? 0} seed={inkSeed(p)} minHalfWidth={pen} fill={ghost.kind === 'remove' ? 'var(--remove)' : undefined} />
+          <g key={cell}>
+            <g transform={`translate(${x} ${y}) scale(${geo.k})`} opacity={ghost.kind === 'carry' ? 0.5 : 1}>
+              <TileStroke tile={p.tile} rot={p.rot ?? 0} seed={inkSeed(p)} minHalfWidth={pen} fill={ghost.kind === 'remove' ? 'var(--remove)' : undefined} />
+            </g>
+            {ghost.kind === 'remove' && <RemoveMark {...at(g.x, g.y)} k={geo.k} />}
           </g>
         );
       })}
