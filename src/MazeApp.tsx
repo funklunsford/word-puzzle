@@ -16,7 +16,7 @@ import { InkPot } from './components/maze/InkPot';
 import { centerOf, useInkFlights } from './components/maze/InkFlights';
 import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
-import { HowToTry } from './components/maze/HowToTry';
+import { HowTo } from './components/maze/HowTo';
 import { GearIcon, Settings } from './components/maze/Settings';
 import { HintIcon, ResetIcon, UndoIcon } from './components/maze/StepIcons';
 import { ShareSheet } from './components/maze/ShareSheet';
@@ -783,10 +783,10 @@ export function MazeApp() {
                     </button>
                   </div>
                   <p className="help-lead">Turn one word into another, in as few strokes as you can.</p>
-                  <HowToTry touch={coarse} />
+                  {/* A word step shown, then tried, then a turn (the demo's caption says what a step is). */}
+                  <HowTo touch={coarse} />
                   {/* Touch screens and mouse play differently (tap vs click; a finger double-taps to turn, a mouse swipes), so each gets its own. */}
                   <ul className="how">
-                    <li>Each step, change up to 3 strokes to make another real word.</li>
                     {coarse ? (
                       <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it.</li>
                     ) : (
