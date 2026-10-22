@@ -1603,7 +1603,8 @@ select,
   margin-top: 4px;
 }
 
-/* After a win the step controls give way to the result: the score, Share, and Watch again. */
+/* After a win the step controls give way to the result: the score, Share, Watch again, and the
+   lowest-stroke route. */
 .result-line {
   margin: 0;
   font-size: 16px;
@@ -1735,7 +1736,8 @@ select,
   align-items: flex-start;
 }
 
-.trail li {
+.trail li,
+.route li {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1782,9 +1784,33 @@ select,
   background: color-mix(in srgb, var(--gold) 9%, var(--surface));
 }
 
-.trail .cost {
+.trail .cost,
+.route .cost {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* A lowest-stroke route, once the puzzle's solved (after the win, or from the "Solved today" note):
+   the path card's chips in a row under the total, raised off the page in the card's colour. */
+.best-route {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.route {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.route li {
+  background: var(--surface);
 }
 
 /* Ink pots (a modifier behind the inkPots flag): drops of ink, the bank, and the pots to collect. */
@@ -1956,14 +1982,6 @@ select,
   width: 100%;
   font-size: 13px;
   color: var(--muted);
-}
-
-.side-card .answers {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
-  word-break: break-word;
 }
 
 /* Letter reference along the bottom of the board; lights up for the hovered stroke. */

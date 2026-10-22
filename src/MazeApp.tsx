@@ -5,7 +5,7 @@ import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
 import { STEP_LIMIT, recognize, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
-import { payStep, type InkPots } from './inkpots';
+import { payStep, walkSteps, type InkPots } from './inkpots';
 import { clue, doorsFrom, hintSays, nextHintLevel, nextStep, type Doors, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { hasStarted, loadHardcore, saveHardcore } from './hardcore';
@@ -178,6 +178,7 @@ export function MazeApp() {
   /** The door just walked through (cost 0 when it led back to a word already visited). */
   const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
+  /** A lowest-stroke route is shown, once the puzzle's solved (after the win, or from the "Solved today" note). */
   const [reveal, setReveal] = useState(false);
   // Hints, for the word the player is in: first the next word's meaning, then the letters to
   // change, then the word to make (see src/hints.ts). They're free, but each ask counts as a hint
@@ -431,6 +432,8 @@ export function MazeApp() {
     (next: Placement[][]): boolean => {
       if (won || locked) return false;
       startedAt.current ??= Date.now();
+      // Playing again closes a route opened from the "Solved today" note, so the win offers it afresh.
+      setReveal(false);
       const letters = next.map(recognize);
       const word = letters.every(Boolean) ? letters.join('') : null;
       if (word === room) {
@@ -564,6 +567,35 @@ export function MazeApp() {
 
   // The step after a door opens, until the next stroke: confirm it (completion feedback).
   const justOpened = !won && !stepEdits && !!lastDoor;
+
+  // A lowest-stroke route, only once the puzzle's solved: the path card's chips, each with its
+  // step's strokes (with ink pots, as the game charges them), under the total.
+  const route = potPlan?.walk ?? puzzle.path;
+  const bestRoute = reveal && (
+    <div className="best-route">
+      <span className="label" id="route-label">
+        Lowest-stroke route · {best} strokes
+      </span>
+      <ol className="route" aria-labelledby="route-label">
+        <li>
+          <GlyphWord word={route[0]} size={14} />
+        </li>
+        {walkSteps(route, potPlan?.pots ?? []).map((s, i) => (
+          <li key={i}>
+            <span className="cost">+{s.cost}</span>
+            {!!s.used && (
+              <span className="ink-used" aria-label={`${s.used} paid in ink`}>
+                <InkDrop size={9} />
+                {s.used}
+              </span>
+            )}
+            <GlyphWord word={s.word} size={14} />
+            {potPlan?.pots.includes(s.word) && <InkPot full={false} size={13} />}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 
   return (
     <PrefsContext.Provider value={prefs}>
@@ -836,20 +868,31 @@ export function MazeApp() {
                     Watch again
                   </button>
                 )}
+                <button className="pill quiet" aria-expanded={reveal} onClick={() => setReveal((r) => !r)}>
+                  {reveal ? 'Hide' : 'See'} the lowest-stroke route
+                </button>
               </div>
+              {bestRoute}
               {current?.date && <p className="result-next">A new puzzle comes at midnight.</p>}
             </section>
           ) : (
           <section className="controls" aria-label="This step">
             {saved && stepEdits === 0 && trail.length === 1 && (
-              <p className="solved-before">
-                Solved today in {saved.strokes}
-                {saved.strokes <= saved.best ? ' · perfect ⭐' : ''}. Play it again any time, or{' '}
-                <button ref={shareBtn} className="link-btn" aria-haspopup="dialog" onClick={() => share(saved)}>
-                  share it
-                </button>
-                .
-              </p>
+              <>
+                <p className="solved-before">
+                  Solved today in {saved.strokes}
+                  {saved.strokes <= saved.best ? ' · perfect ⭐' : ''}. Play it again any time,{' '}
+                  <button ref={shareBtn} className="link-btn" aria-haspopup="dialog" onClick={() => share(saved)}>
+                    share it
+                  </button>
+                  , or{' '}
+                  <button className="link-btn" aria-expanded={reveal} onClick={() => setReveal((r) => !r)}>
+                    {reveal ? 'hide' : 'see'} the lowest-stroke route
+                  </button>
+                  .
+                </p>
+                {bestRoute}
+              </>
             )}
             <div className="pill-row">
               <button className="pill step-btn" onClick={undo} disabled={!history.length}>
@@ -975,9 +1018,6 @@ export function MazeApp() {
             <button className="pill quiet" onClick={restart}>
               Restart
             </button>
-            <button className="pill quiet" onClick={() => setReveal((r) => !r)}>
-              {reveal ? 'Hide' : 'Show'} lowest-stroke route
-            </button>
           </div>
           {import.meta.env.DEV && (
             <div className="dev-tools">
@@ -1004,13 +1044,6 @@ export function MazeApp() {
                 </label>
               ))}
             </div>
-          )}
-          {reveal && (
-            <p className="answers">
-              {(potPlan?.walk ?? puzzle.path).join(' → ')} ({best} strokes)
-              <br />
-              Words within reach of {room}: {roomExits.map((x) => `${x.word} (${x.cost})`).join(', ')}
-            </p>
           )}
         </aside>
         {/* The ads come last, so the keyboard and screen readers reach the game first (the grid
