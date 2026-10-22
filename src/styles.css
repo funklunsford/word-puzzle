@@ -1047,7 +1047,9 @@ select,
   line-height: 1.4;
 }
 
-/* How to play's practice (HowToTry): a letter cell and a few tray strokes, with a ghost showing each move. */
+/* How to play's demo (HowToShow) and practice (HowToTry): panels with the game's own editor, the
+   word's five letters or one, and a few tray strokes, with a ghost hand showing each move. */
+.how-show,
 .how-try {
   margin: 12px 0 8px;
   padding: 10px 12px 12px;
@@ -1060,6 +1062,7 @@ select,
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-height: 18px;
 }
 
 .how-try-label {
@@ -1070,49 +1073,113 @@ select,
   color: var(--muted);
 }
 
-.how-try-dots {
-  display: flex;
-  gap: 5px;
+/* The demo's caption, and what it made: the word, ticked, once it lands (and while it rests). */
+.how-show-caption {
+  margin: 6px 0 10px;
+  font-size: 15px;
+  line-height: 1.45;
 }
 
-.how-try-dots span {
-  width: 9px;
-  height: 9px;
+.how-show-box,
+.how-show-word {
+  position: relative;
+}
+
+.how-show-made {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.how-show-made.shown {
+  opacity: 1;
+}
+
+.how-show-made strong {
+  margin-right: 4px;
+  color: var(--ok);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.how-show-again {
+  margin: -12px -6px;
+  padding: 12px 6px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* While it plays again: still there (it keeps the focus), but quiet. */
+.how-show-again[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The demo's editor is only shown, never touched: its tray isn't dimmed as a locked one is. */
+.how-show .editor.disabled .tray-tile {
+  opacity: 1;
+}
+
+/* Reduced motion: the word before (the strokes that change marked) and after, without a tray. */
+.how-show.still .tray {
+  display: none;
+}
+
+.how-show-arrow {
+  margin: 4px 0;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+/* This step's strokes, as under the board: filling as they're used, red when they're all gone, green
+   once the word's made. */
+.how-try-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.how-try-meter span {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  border: 1.5px solid color-mix(in srgb, var(--muted) 70%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--ink) 40%, transparent);
   transition: background 0.2s, border-color 0.2s;
 }
 
-.how-try-dots span.now {
+.how-try-meter span:first-of-type {
+  margin-left: 3px;
+}
+
+.how-try-meter span.used {
+  background: var(--ink);
   border-color: var(--ink);
 }
 
-.how-try-dots span.done {
+.how-try-meter.done span.used {
   background: var(--ok);
   border-color: var(--ok);
 }
 
-/* More practice: the letters made so far, in place of the five moves' dots. */
-.how-try-count {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ok);
-  font-variant-numeric: tabular-nums;
-}
-
-/* The five moves done: the offer of more letters, over the practice cell. */
-.how-try-more {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px 12px;
-  margin: -4px 0 10px;
-  padding: 8px 8px 8px 12px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--ok) 10%, var(--surface));
-  font-size: 15px;
-  font-weight: 600;
+.how-try-meter.out span.used {
+  background: var(--spicy);
+  border-color: var(--spicy);
 }
 
 .how-try-say {
@@ -1142,16 +1209,41 @@ select,
   position: relative;
 }
 
-.how-try .editor {
+:is(.how-show, .how-try) .editor {
   gap: 10px;
 }
 
-.how-try .tray {
+/* Four strokes in one row, narrower on the smallest phones. */
+:is(.how-show, .how-try) .tray {
   min-height: 0;
+  flex-wrap: nowrap;
 }
 
-.how-try .tray-tile {
-  flex: 0 0 54px;
+:is(.how-show, .how-try) .tray-tile {
+  flex: 0 1 54px;
+}
+
+/* The word's five letters: narrow cells sharing the panel's width, as on a phone's board. */
+:is(.how-show, .how-try) .editor.compact .word-cells {
+  gap: 4px;
+}
+
+:is(.how-show, .how-try) .editor.compact .cell {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 60px;
+  padding: 2px 0;
+  border-radius: 12px;
+  box-shadow: 0 3px 0 var(--ledge);
+}
+
+:is(.how-show, .how-try) .editor.compact .cell svg {
+  width: 100%;
+  height: auto;
+}
+
+:is(.how-show, .how-try) .editor.compact .cell-letter {
+  font-size: 10px;
 }
 
 /* The ghost doing the move: drawn over the cell and tray, never in the way. */
