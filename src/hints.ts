@@ -45,7 +45,12 @@ function doors(word: string, words: string[]): [string, number][] {
  * so it only looks at words at most as far from the goal as the room is.
  */
 export function nextStep(doorsOf: Doors, room: string, goal: string, visited: Set<string>): NextStep | null {
-  if (room === goal) return null;
+  return nextSteps(doorsOf, room, goal, visited)[0] ?? null;
+}
+
+/** Every next step on a cheapest route from `room` to `goal`, the best first (see nextStep). The sample puzzle's coach plans towards any of them. */
+export function nextSteps(doorsOf: Doors, room: string, goal: string, visited: Set<string>): NextStep[] {
+  if (room === goal) return [];
   const enter = (w: string, c: number) => (visited.has(w) && w !== goal ? 0 : c);
   const dist = new Map<string, number>([[goal, 0]]);
   const done = new Set<string>();
@@ -67,15 +72,13 @@ export function nextStep(doorsOf: Doors, room: string, goal: string, visited: Se
     }
   }
   const best = dist.get(room);
-  if (best === undefined || !done.has(room)) return null;
+  if (best === undefined || !done.has(room)) return [];
   // The room's doors that lie on a cheapest route; prefer new words over going back.
-  const options = doorsOf(room)
+  return doorsOf(room)
     .map(([w, c]) => ({ w, cost: enter(w, c), after: dist.get(w) }))
     .filter((o) => done.has(o.w) && o.after !== undefined && o.cost + o.after === best)
-    .sort((a, b) => Number(visited.has(a.w)) - Number(visited.has(b.w)) || a.cost - b.cost);
-  const pick = options[0];
-  if (!pick) return null;
-  return { next: pick.w, cost: pick.cost, remaining: best, letters: [...pick.w].flatMap((ch, k) => (ch !== room[k] ? [k] : [])) };
+    .sort((a, b) => Number(visited.has(a.w)) - Number(visited.has(b.w)) || a.cost - b.cost)
+    .map((o) => ({ next: o.w, cost: o.cost, remaining: best, letters: [...o.w].flatMap((ch, k) => (ch !== room[k] ? [k] : [])) }));
 }
 
 // ---------- What a hint shows ----------

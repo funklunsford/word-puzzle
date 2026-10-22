@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { PrefsContext, applyPalette, followSystemMotion, loadPrefs, motionConfig, savePrefs, useReduceMotion, type Prefs } from './prefs';
 import { LETTERS, recipe, type Placement, type TileId } from './glyphs';
-import { STEP_LIMIT, recognize, wordDistance } from './strokes';
+import { STEP_LIMIT, recognize, slotKey, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, walkSteps, type InkPots } from './inkpots';
@@ -16,7 +16,8 @@ import { InkPot } from './components/maze/InkPot';
 import { centerOf, useInkFlights } from './components/maze/InkFlights';
 import { Definition, type Definitions } from './components/maze/Definition';
 import { Masthead } from './components/maze/Masthead';
-import { HowToTry } from './components/maze/HowToTry';
+import { HowToCard } from './components/maze/HowToCard';
+import { BoardGhost, CoachTip, useArrowTo, useCoach } from './components/maze/Coach';
 import { GearIcon, Settings } from './components/maze/Settings';
 import { HintIcon, ResetIcon, UndoIcon } from './components/maze/StepIcons';
 import { ShareSheet } from './components/maze/ShareSheet';
@@ -27,8 +28,11 @@ import { dayFor, dayNumber, daysFor, loadDaily, localDate } from './daily/daily'
 import { CELL_W, WordEditor } from './components/maze/WordEditor';
 import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
-import { dailyRecord, formatTime, resultKey } from './stats';
-import { SCORE_KEY, scoreName } from './golf';
+import { dailyRecord, formatTime } from './stats';
+import { scoreName } from './golf';
+import { keepWin, loadResult, type Result } from './results';
+import { SAMPLE } from './tutorial';
+import { isFirstVisit, loadOnboarded, saveOnboarded } from './onboarding';
 import { AD_SLOTS, BANNER, RAIL_H, loadAdSense, railWidth } from './ads';
 import { AdSlot } from './components/AdSlot';
 
@@ -43,6 +47,8 @@ interface Pick {
   date?: string;
   /** An Easycore daily (see src/easycore.ts): its results and record are kept apart from the classic ones. */
   easy?: boolean;
+  /** How to play's sample puzzle (see src/tutorial.ts): coached, played as Classic, and it keeps nothing. */
+  sample?: boolean;
   /** Words on a lowest-stroke route, with their strokes from the start (hardcore keeps to them). */
   onRoute?: Record<string, number>;
   /** Pool puzzles: what its shortest routes need from C, I and V, and whether the obvious approach misses par (shown in Dev). */
@@ -88,6 +94,13 @@ const poolFile = (letters: WordLength, easy: boolean) => (easy ? 'pool-5-easy.js
 /** Easycore's puzzle for `date`, from its pool (none if the pool didn't load). */
 const easyPick = (pool: Pick[], date: string): Pick | null => (pool.length ? { ...pool[easyIndex(date, pool.length)], date, easy: true } : null);
 
+/** How to play's sample puzzle, as a puzzle to play: no date, so no result, record or done mark (see keepWin), and no ink pots. */
+const SAMPLE_PICK: Pick = {
+  puzzle: { start: SAMPLE.start, goal: SAMPLE.goal, best: SAMPLE.best, path: SAMPLE.path },
+  inkPots: { pots: [], best: SAMPLE.best, walk: SAMPLE.path },
+  sample: true,
+};
+
 /** A random puzzle from the pool, other than the one being played (the maze's own puzzle if there's no pool). */
 function pickPuzzle(pool: Pick[], data: MazeData, current?: Puzzle): Pick {
   const from = pool.length ? pool : [{ puzzle: data.puzzle, inkPots: data.inkPots, onRoute: data.onRoute }];
@@ -116,27 +129,6 @@ const SIDE_MIN_5 = 1100;
 const COMPACT_MAX = 600;
 
 const HELP_KEY = 'strokes:seen-help';
-/** A daily's result, kept in this browser so a return visit shows it. */
-interface Result {
-  strokes: number;
-  best: number;
-  hints: number;
-  hardcore: boolean;
-  /** Each step's words and strokes, for the share grid. */
-  steps: ShareResult['steps'];
-  /** How long it took, from the first stroke (results kept before the stats have none). */
-  seconds?: number;
-}
-/** A daily's kept result (see resultKey: Easycore's are kept apart). */
-const loadResult = (date: string, letters: WordLength, easy = false): Result | null => {
-  try {
-    const r = JSON.parse(localStorage.getItem(resultKey(date, letters, easy)) ?? 'null');
-    // (Results kept before the grid have only each step's strokes: they share without it.)
-    return r && { ...r, steps: Array.isArray(r.steps) ? r.steps.filter((s: unknown) => typeof s === 'object') : [] };
-  } catch {
-    return null;
-  }
-};
 
 /** A path's steps, for sharing: where each began, the word it made, and its strokes. */
 const stepsOf = (trail: Visit[]): ShareResult['steps'] => trail.slice(1).map((v) => ({ from: v.from ?? v.word, to: v.word, cost: v.cost }));
@@ -207,8 +199,6 @@ export function MazeApp() {
   const mode: Difficulty = difficulty === 'easy' && !easyOn ? 'classic' : difficulty;
   const modeRef = useRef(mode);
   modeRef.current = mode;
-  /** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par (see src/hardcore.ts). */
-  const hardcore = mode === 'hard';
   // Settings (the gear): light or dark, the player's choice or the device's.
   const [settings, setSettings] = useState(false);
   const gearBtn = useRef<HTMLButtonElement>(null);
@@ -255,11 +245,19 @@ export function MazeApp() {
   // How to play pops up on a player's very first visit only (or with ?help in the address, for testing).
   const [help, setHelp] = useState(() => !seenHelp() || new URLSearchParams(location.search).has('help'));
   useEffect(() => markHelpSeen(), []);
+  // Opened by itself on a first visit, it offers the sample puzzle (see src/onboarding.ts); closing it
+  // there, any way, skips the sample. From the ? button it offers the sample again.
+  const [firstVisit, setFirstVisit] = useState(() => isFirstVisit(seenHelp(), loadOnboarded(), new URLSearchParams(location.search).has('help')));
+  const firstRef = useRef(firstVisit);
+  firstRef.current = firstVisit;
+  const [sampled, setSampled] = useState(() => loadOnboarded() === 'done');
   const helpBtn = useRef<HTMLButtonElement>(null);
   const helpClose = useRef<HTMLButtonElement>(null);
   const closeHelp = useCallback(() => {
     setHelp(false);
     helpBtn.current?.focus();
+    if (firstRef.current) saveOnboarded('skipped');
+    setFirstVisit(false);
   }, []);
   useEffect(() => {
     if (!help) return;
@@ -327,6 +325,10 @@ export function MazeApp() {
   const potPlan = flags.inkPots ? (current?.inkPots ?? null) : null;
   const best = potPlan?.best ?? puzzle?.best ?? 0;
   const dict = useMemo(() => new Set(data?.words ?? []), [data]);
+  /** How to play's sample puzzle is being played: coached, and played as Classic whatever the difficulty. */
+  const sample = !!current?.sample;
+  /** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par (see src/hardcore.ts). */
+  const hardcore = mode === 'hard' && !sample;
 
   const toggleFlag = (flag: Flag) => {
     const next = { ...flags, [flag]: !flags[flag] };
@@ -370,8 +372,11 @@ export function MazeApp() {
     });
   };
 
+  /** Each start of a puzzle (the coach starts the sample afresh on each). */
+  const [run, setRun] = useState(0);
   const restart = useCallback(() => {
     if (!puzzle) return;
+    setRun((r) => r + 1);
     setRoom(puzzle.start);
     setCells(cellsFor(puzzle.start));
     setHistory([]);
@@ -401,7 +406,8 @@ export function MazeApp() {
     const now: Difficulty = next === 'easy' && !easyOn ? 'classic' : next;
     saveDifficulty(next);
     setDifficulty(next);
-    if ((now === 'easy') !== (mode === 'easy')) {
+    // (In the sample, a difficulty chosen is a puzzle wanted: that difficulty's daily.)
+    if ((now === 'easy') !== (mode === 'easy') || sample) {
       setRefused(null);
       playMode(now === 'easy');
       return;
@@ -441,30 +447,16 @@ export function MazeApp() {
     if (perfect) celebrate();
     const took = startedAt.current ? (Date.now() - startedAt.current) / 1000 : 0;
     setSeconds(took);
-    // A daily's result is kept, so coming back today shows it (the best one, if played again).
-    const date = current?.date;
-    if (!date) return;
-    // Today's daily solved (classic or Easycore): leave the mark a Puzzle Playlist on this origin would
-    // read (see its src/firstParty.ts). Not for an earlier day. The playlist itself lives on
-    // funklunsford.github.io, out of reach, so it ticks Strokes when you come back instead.
-    const easy = !!current?.easy;
-    if (date === (easy ? easyDayFor(localDate()) : dayFor(localDate(), daysFor(letters)))) {
-      try {
-        localStorage.setItem(`puzzle-done:strokes:${localDate()}`, JSON.stringify({ at: Date.now() }));
-      } catch {
-        // storage blocked: the playlist won't know
-      }
+    // The sample, played through: it's not offered by itself again, and keeps nothing else.
+    if (current?.sample) {
+      saveOnboarded('done');
+      setSampled(true);
     }
-    const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail), seconds: Math.round(took) };
-    const before = loadResult(date, letters, easy);
-    if (!before || result.strokes < before.strokes || (result.strokes === before.strokes && result.hints < before.hints)) {
-      try {
-        localStorage.setItem(resultKey(date, letters, easy), JSON.stringify(result));
-      } catch {
-        // storage blocked: shown this visit only
-      }
-      setSaved(result);
-    }
+    // A daily's result is kept, so coming back today shows it (the best one, if played again), and
+    // today's leaves the mark a Puzzle Playlist on this origin would read. The playlist itself lives
+    // on funklunsford.github.io, out of reach, so it ticks Strokes when you come back instead.
+    const kept = current && keepWin(current, letters, { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail), seconds: Math.round(took) });
+    if (kept) setSaved(kept);
   }, [won]);
   /** Today's result from an earlier visit (or this one), if any. */
   const [saved, setSaved] = useState<Result | null>(null);
@@ -579,6 +571,62 @@ export function MazeApp() {
     setHistory([]);
   };
 
+  // How to play's sample puzzle, coached a tip at a time, with a ghost hand on the board showing the
+  // next move (see Coach.tsx). The goal's tip points at the goal panel.
+  const coach = useCoach({
+    active: sample,
+    run,
+    won,
+    locked,
+    used: stepEdits,
+    room,
+    cells,
+    visited: trail.map((v) => v.word),
+    landings: trail.length - 1 + backs,
+    lastDoor,
+    goal: puzzle?.goal ?? '',
+    doorsOf,
+    dict,
+    touch: coarse,
+  });
+  const goalRef = useRef<HTMLDivElement>(null);
+  const editorBox = useRef<HTMLDivElement>(null);
+  // Tips go in two places: right above the word (the goal, pointing up at it; the next move, pointing
+  // down at its letter; a word made; solved, with the way on), and in the step line (the step's
+  // strokes, pointing at its dots; out of strokes, pointing at Undo and Reset).
+  const headTip = coach.tip === 'goal' || coach.tip === 'move' || coach.tip === 'word' || coach.tip === 'done';
+  const lineTip = coach.tip === 'dots' || coach.tip === 'out';
+  const headTipRef = useRef<HTMLDivElement>(null);
+  const lineTipRef = useRef<HTMLDivElement>(null);
+  const arrowDeps = [coach.tip, coach.move?.cell, width, height, compact];
+  const headArrow = useArrowTo(
+    headTipRef,
+    () => (coach.tip === 'goal' ? goalRef.current : coach.tip === 'move' && coach.move ? boardRef.current?.querySelectorAll('.cell')[coach.move.cell] : null),
+    arrowDeps,
+  );
+  const lineArrow = useArrowTo(
+    lineTipRef,
+    () => (coach.tip === 'dots' ? document.querySelector('.step-meter .pips') : coach.tip === 'out' ? [...document.querySelectorAll('.controls .step-btn')].slice(0, 2) : null),
+    arrowDeps,
+  );
+  // A tip in the step line pushes the dots down: on a short screen (1280 × 800) past the fold, so they're
+  // brought into view with it.
+  useEffect(() => {
+    if (lineTip) document.querySelector('.step-meter')?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+  }, [lineTip && coach.tip, reduce]);
+  /** The sample, from How to play's card: afresh, even when it's being played already. */
+  const startSample = () => {
+    setHelp(false);
+    setFirstVisit(false);
+    if (current === SAMPLE_PICK) restart();
+    else setCurrent(SAMPLE_PICK);
+  };
+  /** From the sample to today's puzzle, at the player's difficulty: Skip, or Play today's puzzle once it's solved. */
+  const leaveSample = () => {
+    saveOnboarded(won ? 'done' : 'skipped');
+    playMode(mode === 'easy');
+  };
+
   if (!data || !puzzle || !room) return <div className="maze loading">Loading…</div>;
 
   /** The daily at this difficulty (for Dev to go back to). */
@@ -690,14 +738,16 @@ export function MazeApp() {
             </div>
           }
           dateline={
-            current?.date &&
-            `No. ${dayNumber(current.date)}${current.easy ? ' · Easycore' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
+            sample
+              ? 'Sample puzzle'
+              : current?.date &&
+                `No. ${dayNumber(current.date)}${current.easy ? ' · Easycore' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
           }
         />
 
         <main className="column">
           <section className="scorecard">
-            <div className={`goal-panel${won ? ' reached' : ''}`}>
+            <div ref={goalRef} className={`goal-panel${won ? ' reached' : ''}${coach.tip === 'goal' ? ' pointed' : ''}`}>
               <span className="label">{won ? 'Reached' : 'Goal'}</span>
               <GlyphWord word={puzzle.goal} size={compact ? 24 : unit * 1.3} />
             </div>
@@ -776,73 +826,96 @@ export function MazeApp() {
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
                   transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
                 >
-                  <div className="help-head">
-                    <h2 id="help-title">How to play</h2>
-                    <button ref={helpClose} className="close" aria-label="Close how to play" onClick={closeHelp}>
-                      ×
-                    </button>
-                  </div>
-                  <p className="help-lead">Turn one word into another, in as few strokes as you can.</p>
-                  <HowToTry touch={coarse} />
                   {/* Touch screens and mouse play differently (tap vs click; a finger double-taps to turn, a mouse swipes), so each gets its own. */}
-                  <ul className="how">
-                    <li>Each step, change up to 3 strokes to make another real word.</li>
-                    {coarse ? (
-                      <li>Drag strokes in from the tray. Tap one to remove it, or drag it to move it. To turn one, double-tap it.</li>
-                    ) : (
-                      <li>Drag strokes in from the tray. Click one to remove it, or drag it to move it. To turn one, swipe it as you place it.</li>
-                    )}
-                    <li>Going back to a word you've visited is free.</li>
-                    <li>Your score is named like golf: {SCORE_KEY}.</li>
-                    <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the next word's meaning, then the letters to change, then the word.</li>
-                    {easyOn && <li>Want it easier? Choose Easycore in Settings: shorter puzzles with everyday words, and a daily of their own.</li>}
-                    <li>Want a challenge? {easyOn ? 'Choose' : 'Turn on'} Hardcore in Settings (it starts the puzzle over): only words on a lowest-stroke route count, and no hints.</li>
-                    {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
-                  </ul>
-                  <button className="pill help-go" onClick={closeHelp}>
-                    Let's play
-                  </button>
+                  <HowToCard
+                    touch={coarse}
+                    compact={compact}
+                    firstVisit={firstVisit}
+                    // The sample's words are 5 letters; and it's not offered over a puzzle in progress, which it would lose.
+                    canSample={letters === 5 && (sample || won || !hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed }))}
+                    sampled={sampled}
+                    easycore={easyOn}
+                    inkPots={!!potPlan}
+                    closeRef={helpClose}
+                    onClose={closeHelp}
+                    onSample={startSample}
+                    onSkip={closeHelp}
+                  />
                 </motion.section>
               </motion.div>
             )}
           </AnimatePresence>
 
-          <section className="board" ref={boardRef}>
+          <section
+            className="board"
+            ref={boardRef}
+            onPointerDownCapture={sample ? coach.busy : undefined}
+            onPointerUpCapture={sample ? coach.rest : undefined}
+            onPointerCancelCapture={sample ? coach.rest : undefined}
+          >
             <div className="board-head">
               <span className="label">You are in</span>
-              {/* The word's meaning sits right above it, and changes as each new word is made. */}
-              <AnimatePresence mode="wait" initial={false}>
-                {prefs.definitions && defs?.[room] && (
-                  <motion.p
-                    key={room}
-                    className="definition"
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Definition word={room} def={defs[room]} />
-                  </motion.p>
-                )}
-              </AnimatePresence>
+              {sample ? (
+                // The sample's coach, right above the word: the goal (pointing up at it), each move (at its letter), a word made.
+                <div className="coach-slot" ref={headTipRef}>
+                  {coach.text && headTip && coach.tip !== 'done' && (
+                    <CoachTip text={coach.text} point={coach.tip === 'goal' ? 'up' : 'down'} arrowX={headArrow} onClose={coach.close} />
+                  )}
+                  {/* Solved: on to today's puzzle (the sample kept nothing to share or count). */}
+                  {coach.text && coach.tip === 'done' && (
+                    <CoachTip text={coach.text} point="none">
+                      <button className="pill coach-go" onClick={leaveSample}>
+                        Play today's puzzle
+                      </button>
+                    </CoachTip>
+                  )}
+                </div>
+              ) : (
+                // The word's meaning sits right above it, and changes as each new word is made.
+                <AnimatePresence mode="wait" initial={false}>
+                  {prefs.definitions && defs?.[room] && (
+                    <motion.p
+                      key={room}
+                      className="definition"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Definition word={room} def={defs[room]} />
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              )}
             </div>
-            <WordEditor
-              cells={cells}
-              unit={unit}
-              compact={compact}
-              disabled={won || locked}
-              hinted={shownHint && shownHint.level >= 2 ? shownHint.step?.letters : undefined}
-              room={room}
-              onEdit={onEdit}
-              onHoverTile={setHoverTile}
-              onMiss={(why) =>
-                setNotice(
-                  why === 'turn'
-                    ? `That fits there turned the other way: ${coarse ? 'turn it in the tray first' : 'swipe as you drop it'}.`
-                    : "That stroke doesn't fit in that letter.",
-                )
-              }
-            />
+            {sample && !won && (
+              <button className="pill quiet skip-sample" onClick={leaveSample} aria-label="Skip the sample puzzle">
+                Skip
+              </button>
+            )}
+            {/* The editor alone, so the sample's ghost hand is measured against it. */}
+            <div className="board-editor" ref={editorBox}>
+              <WordEditor
+                cells={cells}
+                unit={unit}
+                compact={compact}
+                disabled={won || locked}
+                hinted={shownHint && shownHint.level >= 2 ? shownHint.step?.letters : undefined}
+                room={room}
+                onEdit={onEdit}
+                onHoverTile={setHoverTile}
+                onMiss={(why) =>
+                  setNotice(
+                    why === 'turn'
+                      ? `That fits there turned the other way: ${coarse ? 'turn it in the tray first' : 'swipe as you drop it'}.`
+                      : "That stroke doesn't fit in that letter.",
+                  )
+                }
+                // A turn the ghost shows is drawn on the stroke itself: the editor hides its own ink meanwhile.
+                ghosted={coach.ghost?.ghost.kind === 'turn' && !reduce ? `${coach.ghost.cell}|${slotKey(coach.ghost.ghost.at)}` : undefined}
+              />
+              {sample && <BoardGhost box={editorBox} move={coach.ghost} cells={cells} touch={coarse} still={reduce} compact={compact} />}
+            </div>
             {prefs.letters && (
               <div className="letters" aria-label="Letters by stroke">
                 {Object.keys(LETTERS).map((ch) => (
@@ -871,80 +944,85 @@ export function MazeApp() {
                 {hardcore && <span className="nowrap"> · hardcore</span>}
                 {current?.easy && <span className="nowrap"> · easycore</span>}
               </p>
-              {/* This game's stats, then (for a daily) the player's record over them. */}
-              <dl className="result-stats" aria-label="This game">
-                <div>
-                  <dt>{spent <= best ? 'lowest possible' : 'over the lowest'}</dt>
-                  <dd>{spent <= best ? best : `+${spent - best}`}</dd>
-                </div>
-                <div>
-                  <dt>words made</dt>
-                  <dd>{made}</dd>
-                </div>
-                <div>
-                  <dt>biggest step</dt>
-                  <dd>+{biggest}</dd>
-                </div>
-                {seconds !== null && (
-                  <div>
-                    <dt>time</dt>
-                    <dd>{formatTime(seconds)}</dd>
-                  </div>
-                )}
-                <div>
-                  <dt>{backs === 1 ? 'free return' : 'free returns'}</dt>
-                  <dd>{backs}</dd>
-                </div>
-                <div>
-                  <dt>{hintsUsed === 1 ? 'hint' : 'hints'}</dt>
-                  <dd>{hintsUsed}</dd>
-                </div>
-              </dl>
-              {record && record.solved > 0 && (
+              {/* The sample's way on is in the coach's tip, over the word: no stats, record or share for it. */}
+              {!sample && (
                 <>
-                  <span className="label" id="record-label">
-                    {current?.easy ? 'Your Easycore dailies' : 'Your dailies'}
-                  </span>
-                  <dl className="result-stats record" aria-labelledby="record-label">
+                  {/* This game's stats, then (for a daily) the player's record over them. */}
+                  <dl className="result-stats" aria-label="This game">
                     <div>
-                      <dt>dailies solved</dt>
-                      <dd>{record.solved}</dd>
+                      <dt>{spent <= best ? 'lowest possible' : 'over the lowest'}</dt>
+                      <dd>{spent <= best ? best : `+${spent - best}`}</dd>
                     </div>
                     <div>
-                      <dt>aces</dt>
-                      <dd>{record.perfect}</dd>
+                      <dt>words made</dt>
+                      <dd>{made}</dd>
                     </div>
                     <div>
-                      <dt>streak</dt>
-                      <dd>{record.streak}</dd>
+                      <dt>biggest step</dt>
+                      <dd>+{biggest}</dd>
+                    </div>
+                    {seconds !== null && (
+                      <div>
+                        <dt>time</dt>
+                        <dd>{formatTime(seconds)}</dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt>{backs === 1 ? 'free return' : 'free returns'}</dt>
+                      <dd>{backs}</dd>
                     </div>
                     <div>
-                      <dt>best streak</dt>
-                      <dd>{record.bestStreak}</dd>
+                      <dt>{hintsUsed === 1 ? 'hint' : 'hints'}</dt>
+                      <dd>{hintsUsed}</dd>
                     </div>
                   </dl>
+                  {record && record.solved > 0 && (
+                    <>
+                      <span className="label" id="record-label">
+                        {current?.easy ? 'Your Easycore dailies' : 'Your dailies'}
+                      </span>
+                      <dl className="result-stats record" aria-labelledby="record-label">
+                        <div>
+                          <dt>dailies solved</dt>
+                          <dd>{record.solved}</dd>
+                        </div>
+                        <div>
+                          <dt>aces</dt>
+                          <dd>{record.perfect}</dd>
+                        </div>
+                        <div>
+                          <dt>streak</dt>
+                          <dd>{record.streak}</dd>
+                        </div>
+                        <div>
+                          <dt>best streak</dt>
+                          <dd>{record.bestStreak}</dd>
+                        </div>
+                      </dl>
+                    </>
+                  )}
+                  <div className="pill-row">
+                    <button
+                      ref={shareBtn}
+                      className="pill"
+                      aria-haspopup="dialog"
+                      onClick={() => share({ strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail) })}
+                    >
+                      Share
+                    </button>
+                    {spent <= best && !reduce && (
+                      <button className="pill quiet" onClick={() => celebrate()}>
+                        Watch again
+                      </button>
+                    )}
+                    <button className="pill quiet" aria-expanded={reveal} onClick={() => setReveal((r) => !r)}>
+                      {reveal ? 'Hide' : 'See'} the lowest-stroke route
+                    </button>
+                  </div>
+                  {bestRoute}
+                  {current?.date && <p className="result-next">A new puzzle comes at midnight.</p>}
                 </>
               )}
-              <div className="pill-row">
-                <button
-                  ref={shareBtn}
-                  className="pill"
-                  aria-haspopup="dialog"
-                  onClick={() => share({ strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail) })}
-                >
-                  Share
-                </button>
-                {spent <= best && !reduce && (
-                  <button className="pill quiet" onClick={() => celebrate()}>
-                    Watch again
-                  </button>
-                )}
-                <button className="pill quiet" aria-expanded={reveal} onClick={() => setReveal((r) => !r)}>
-                  {reveal ? 'Hide' : 'See'} the lowest-stroke route
-                </button>
-              </div>
-              {bestRoute}
-              {current?.date && <p className="result-next">A new puzzle comes at midnight.</p>}
             </section>
           ) : (
           <section className="controls" aria-label="This step">
@@ -985,25 +1063,35 @@ export function MazeApp() {
                 </button>
               )}
             </div>
-            <p aria-live="polite" className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
-              {refused
-                ? `Hardcore: ${refused} is off the lowest-stroke route.`
-                : notice
-                ? notice
-                : hintText && !locked
-                ? hintText
-                : locked
-                ? 'Out of strokes for this step. Undo to try another way.'
-                : stepEdits
-                  ? 'Keep going: land on a real word.'
-                  : justOpened
-                    ? lastDoor!.back
-                      ? `Back in ${room}: free, you've been here before.`
-                      : `New word: ${room} (+${lastDoor!.cost}${lastDoor!.used ? `, ${lastDoor!.used} paid in ink` : ''}).${
-                          lastDoor!.pot ? ' Ink pot! You banked a free stroke.' : ' Find the next one.'
-                        }`
-                    : null}
-            </p>
+            {/* In the sample the coach has the step line (the step's strokes, out of strokes), unless
+                the player's just been told something else (a stroke that doesn't fit, a hint). */}
+            {sample && !notice && !(hintText && !locked) && coach.text && lineTip ? (
+              <div className="coach-line" ref={lineTipRef}>
+                <CoachTip text={coach.text} point={coach.tip === 'dots' ? 'down' : 'up'} arrowX={lineArrow} onClose={coach.close} />
+              </div>
+            ) : (
+              <p aria-live="polite" className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
+                {refused
+                  ? `Hardcore: ${refused} is off the lowest-stroke route.`
+                  : notice
+                  ? notice
+                  : hintText && !locked
+                  ? hintText
+                  : sample
+                  ? null
+                  : locked
+                  ? 'Out of strokes for this step. Undo to try another way.'
+                  : stepEdits
+                    ? 'Keep going: land on a real word.'
+                    : justOpened
+                      ? lastDoor!.back
+                        ? `Back in ${room}: free, you've been here before.`
+                        : `New word: ${room} (+${lastDoor!.cost}${lastDoor!.used ? `, ${lastDoor!.used} paid in ink` : ''}).${
+                            lastDoor!.pot ? ' Ink pot! You banked a free stroke.' : ' Find the next one.'
+                          }`
+                      : null}
+              </p>
+            )}
             {/* This step's strokes: three dots, filling as strokes are used. */}
             <div className={`step-meter${locked ? ' full' : ''}`} aria-label={`${stepEdits} of ${STEP_LIMIT} strokes used this step`}>
               <span>Strokes this step</span>

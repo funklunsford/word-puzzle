@@ -202,6 +202,12 @@ function contentDiff(content: Placement[], ch: string): LetterDiff {
   return best!;
 }
 
+/**
+ * The fewest strokes that could turn each cell into its letter in `to` (a stroke moved from one
+ * letter to another counting once): a lower bound on what the editor needs.
+ */
+export const editsLeft = (cells: Placement[][], to: string[]) => editCost(cells.map((c, i) => contentDiff(c, to[i])));
+
 const stepCache = new Map<string, number>();
 
 /**
@@ -216,7 +222,7 @@ function stepCost(from: string[], to: string[]): number {
   const key = from.map((f, i) => f + to[i]).sort().join(',');
   const hit = stepCache.get(key);
   if (hit !== undefined) return hit;
-  const left = (cells: Placement[][]) => editCost(cells.map((c, i) => contentDiff(c, to[i])));
+  const left = (cells: Placement[][]) => editsLeft(cells, to);
   const done = (cells: Placement[][]) => cells.every((c, i) => recognize(c) === to[i]);
   const search = (cells: Placement[][], budget: number): boolean => {
     if (done(cells)) return true;

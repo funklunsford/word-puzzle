@@ -183,14 +183,17 @@ export function drawnSqueeze(letter: string | null, maxDrawn: number | null): nu
 /** How far apart a formed letter's strokes are drawn, beyond its squeeze (M's spread; see drawnScale). */
 const spreadOf = (letter: string | null) => (letter ? (LETTERS[letter].spread ?? 1) : 1);
 
+/** The widest a formed letter is drawn: capped in the phone layout's narrow cells, else free (null). */
+export const maxDrawnFor = (compact: boolean, letters: number) => (compact ? (letters === 5 ? MAX_DRAWN_COMPACT_5 : MAX_DRAWN_COMPACT) : null);
+
 /**
  * Where a cell draws its strokes across. The letter it is narrows them (W's squeeze). The letter
  * its shape is becoming spreads them (M's spread): a formed M, a half-built one (a bar with the
  * chevron on top, so the chevron's end sits on the bar), or one forming under a held stroke.
  * `shape` is the cell as it's about to be (with a held stroke on its spot); the spread is about
- * its middle, so nothing jumps when the stroke lands.
+ * its middle, so nothing jumps when the stroke lands. (The sample's ghost hand lands where this says.)
  */
-function across(content: Placement[], shape: Placement[], maxDrawn: number | null) {
+export function across(content: Placement[], shape: Placement[], maxDrawn: number | null) {
   const squeeze = drawnSqueeze(recognize(content), maxDrawn);
   const spread = spreadOf(onlyFit(shape)?.ch ?? null);
   const basis = spread !== 1 ? shape : content;
@@ -270,7 +273,7 @@ export function WordEditor({ cells, unit, disabled, room, onEdit, onHoverTile, o
   // get narrower cells, so they're drawn bigger).
   const five = compact && cells.length === 5;
   const cellW = compact ? (five ? CELL_W_COMPACT_5 : CELL_W_COMPACT) : CELL_W;
-  const maxDrawn = compact ? (five ? MAX_DRAWN_COMPACT_5 : MAX_DRAWN_COMPACT) : null;
+  const maxDrawn = maxDrawnFor(compact, cells.length);
   const [measured, setMeasured] = useState<number | null>(null);
   const u = compact && measured ? measured : unit;
   useLayoutEffect(() => {

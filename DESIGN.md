@@ -1132,3 +1132,72 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Around the game:** "· easycore" on the result line; the dateline says "No. 17 · Easycore · Thursday, October 22" (on phones it wraps to two lines more often than Classic's: today's from 360 px down, the longest, "No. 359 · Easycore · Wednesday, September 29", at 390 px, where Classic's longest wraps only at 320 px; the header makes room); the share card says EASYCORE in its date line and on a badge in the page's calm green (`--ok`, #497c38, as a ski run's easiest slopes are green), and the share is titled "Strokes No. 17 · Easycore" (`strokes-easycore-17.png`). How to play adds "Want it easier? Choose Easycore in Settings: shorter puzzles with everyday words, and a daily of their own." With the flag, its Hardcore line says Choose for Turn on.
 - **Tests:** the pool (its shape, simple words, a simple route at the whole maze's lowest strokes, no pair twice, two doors at each end, par chance as stored); the simple words; the date pick (the same each time, each puzzle once a round, two dates pinned); the setting and its Hardcore migration; Easycore's results and record kept apart; the share's label and title.
 - **Checked in headless Chrome** at 1280×800 and 390×844: Settings with the flag off is as before; with it on, Easycore swaps in its daily; a win keeps `strokes:result5e:2026-10-22` and the done mark and no classic result; Classic brings back the classic daily; Easycore again says "Solved today"; Easycore → Hardcore and Hardcore → Classic; an old Hardcore switch shows as Hardcore; the flag turned on and off in Dev swaps the daily; `?day=2026-10-15` plays Easycore No. 10; `?letters=4` with Easycore stored plays the 4-letter Classic daily with the Hardcore switch. The dateline doesn't scroll sideways at 320 px.
+
+## How to play: a card and a guided sample (2026-10-22, branch `howto-card`)
+- **Why** (the owner): the reverted try (`howto-word-step`) put a demo, a word practice, a turn drill and the rules all in the dialog: too much at once, the demo wasn't clear, and the goal still wasn't obvious. Before it, How to play taught gestures on single letters (I → T…), and the key rule was one line in a list.
+- **Now:** a short, still card, then a sample puzzle on the real board, coached a tip at a time. No daily is shown anywhere.
+- **The card** (`HowToCard`): no animation; drawn with the game's own strokes (`GlyphWord`, `TileStroke`, `PlacedStrokes`, the path card's chips), so it follows the theme and the stroke colours (`data-palette`).
+  - **The goal:** the sample's route as the path card draws one: "start JUICE", "+2 JUDGE", "+3 goal FUDGE" (dashed gold, as the path's goal chip), and "5 strokes". Then: "Turn the start word into the goal word, one real word at a time. Fewest strokes wins."
+  - **Each step:** JUDGE → FUDGE, letter by letter, "3 strokes" under the arrow. A stroke that comes off is red and crossed out with the reverted design's ✕ disc (the J's curve); one that goes on is ringed in green (the F's two bars), so they differ by shape as well as colour. Then: "Change up to 3 strokes. Every step must make a real word."
+  - **The moves,** each with a drawing marked the same way (a bar from a tray tile onto a T; E's bottom bar crossed out; L's foot bar, moved down from the top; a V turned over): "Drag a stroke in from the tray", "Tap one to remove it", "Drag one to move it", "Double-tap one to turn it". A mouse gets "Click one to remove it" and "To turn one, swipe it as you place it" (`moveLines`).
+  - **More,** folded (one tap): the old list's going back free, the golf names, Hint, Easycore, Hardcore and ink pots. Its first two lines (change up to 3 strokes; the controls) are the card's sections now.
+  - **Buttons:** opened by itself on a first visit, **Try a sample puzzle** and **Skip to today's puzzle**; from **?**, **Play** (closes it) and a small **Try the sample puzzle again** ("Try a sample puzzle" for a player who skipped it, or never had it). The sample isn't offered over a puzzle in progress, which it would lose (`hasStarted`), nor in the 4-letter game, whose words it isn't in.
+  - **Fit,** More folded: 672 px tall on a 390 × 844 phone (room for 812), 688 at 1280 × 800 (768): neither scrolls. More open, it scrolls (954 and 964 px).
+- **The sample** (`SAMPLE` in `src/tutorial.ts`, the one source for the card and the board): **JUICE → JUDGE → FUDGE**, 5 strokes. A bar onto the C (it stands up as G's chin) and the big curve onto the I make JUDGE; the J's curve off and two bars on make FUDGE.
+  - **Chosen by a search** of the simple words (`data/simple-5.txt`) for 2-step puzzles of 4 to 6 strokes at the whole maze's lowest. It's the one that also has:
+    - every word on every lowest route a simple word (it has only the one route);
+    - neither step in any daily's or pool puzzle's route or ink-pot walk, either way round (and so never an Easycore daily, which come from that pool);
+    - a bar dragged in from the tray for its first move;
+    - a step with a stroke off and strokes on (JUDGE → FUDGE, all 3 strokes), for the card;
+    - no turn to make (the editor turns the bar and the curve to fit as they land).
+  - **Turned down:** PILLS → PILES → TILES (its other route stops at TILLS, "unstratified soil deposited by a glacier", and both steps are on Easycore routes); BOOKS → BOOTS → ROOTS (ROOKS; Easycore's SOCKS → ROOTS goes BOOTS → ROOTS); SCARF → SCARE → SCALE (the classic pool's SHARP → SCALE has its second step); GIANT → GRANT → GRAND and LOCKS → LOOKS → BOOKS (steps on pool routes). The reverted demo's CRUMB → GRUMP was a step of No. 11's route.
+  - Doing the J first strands the step: J → F takes 3 strokes and FUICE isn't a word. The coach says it's out of strokes, as for any step.
+- **On the real board:** the sample plays in the real game, as Classic whatever the difficulty (no HARDCORE tag; Hint works as usual).
+  - **Labelled:** the dateline says "Sample puzzle", and **Skip** sits in the board's corner until it's solved.
+  - **No trace:** a win's writes now go through `keepWin` (`src/results.ts`), which keeps nothing for the sample: no result, so no record or streak, and no Puzzle Playlist done mark. Its solved area has only "FUDGE in 5 strokes · Ace ⭐": no stats, record, Share or route. Choosing a difficulty in Settings leaves it for that difficulty's daily.
+  - **Confetti:** it keeps the Ace's confetti, though a coached sample is nearly always an Ace: it shows what an Ace gets.
+- **The coach** (`useCoach` in `Coach.tsx`; which tip, `coachTip` in `src/onboarding.ts`): one tip at a time, each with an arrow at what it's about and a ✕.
+  - **Right above the word,** where the definition is otherwise (it reserves room for two lines, so the board doesn't jump):
+    1. "Goal: turn JUICE into FUDGE." Its arrow points up at the goal, which is ringed while it shows.
+    2. The next move, its arrow at that letter, while the ghost hand shows it: "Drag the bar from the tray onto the C to make G.", "Drag the big curve from the tray onto the I to make D.", "Tap the J's curve to remove it." ("Click" with a mouse), "Drag the bar from the tray onto the I.", "Drag the bar from the tray onto the 1st letter to make F."
+    3. When a word lands: "JUDGE: a real word! That step cost 2. Now on to FUDGE." A word visited before: "Back in JUICE: free, you've been here before. Now on to FUDGE."
+    4. Solved: "You've got it! Now today's puzzle." with **Play today's puzzle**, which plays the player's daily at their difficulty, with no coaching. It's over the word so it's on screen; under the board it was below the fold at 1280 × 800.
+  - **In the step line:**
+    - after the first stroke, "A step can use up to 3 strokes. Make a real word to finish it.", pointing at the dots;
+    - with 3 strokes used and no word, "Out of strokes for this step. Undo or Reset to try another way.", pointing between Undo and Reset.
+  - **Off the route** with strokes left (no way to a next word on a lowest route in the strokes left): "Not quite. Undo or Reset to try another way.", and no ghost. The step line's own lines are left out in the sample, so nothing doubles up; a hint asked for, or a stroke that doesn't fit, still says so there.
+  - **How long a tip stays:** the goal, the strokes and a word made go once closed, once the board changes, or after 4, 6 and 5 s left alone, and the next move takes over. Each word landed on, a free return too, gets its own tip. Out of strokes stays until the step has strokes again.
+  - **On a short screen:** a tip in the step line pushes the dots down, at 1280 × 800 past the fold (to 838 px), so the page scrolls them into view with it (39 px).
+- **The ghost hand** (`GhostMove`, the reverted commits' five-letter one, over the board's editor only): it shows the next move as soon as that's the tip, and again 2.5 s after the board's left alone (a finger, or a cursor with a mouse, as before). A press on the board hides it until it's let go, wherever that is: a mouse can let a stroke go off the board, where only the window hears it.
+  - It now carries a stroke from one letter to another too, and lands where the editor draws (`across`, now exported, for squeezed and spread letters).
+  - Reduced motion: no travelling ghost. The move's still mark: the spot outlined in green, with the stroke faint in it, or the stroke red and crossed out with the ✕; a turn still shows only the pointer.
+  - Its overlay is `.ghost-hand`: the old prototype's `.ghost` rule faded it to 0.28.
+- **Planning a move** (`planStep`, `coachPlan` in `src/tutorial.ts`, from the scratch planner): the fewest editor moves from the letters as they are to the next word, in the strokes left.
+  - The moves: adds (the tray's strokes as they sit, landing as the editor lands them: `trayLands`, the reverted fix that turns a bar to fit G's chin), removes, carries (a finger's into an empty letter landing as `restingTurn` says), and half turns. No swipes.
+  - Never through another word (the step would land there) or back to the step's own (it would be taken back).
+  - Ties go to a remove, then a bar from the tray, another stroke, a carry, a turn, leftmost first.
+  - It aims at the sample's next word, then any other on a lowest remaining route (`nextSteps`, from `hints.ts`), so it follows a player who does the letters in another order.
+  - `editsLeft` (`src/strokes.ts`, shared with `stepCost`) cuts the search short.
+- **Only once:** `strokes:onboarded`, kept as `done` (solved) or `skipped` (Skip on the card or the board, or the first visit's card closed any other way). A play-through stays `done`.
+  - How to play still opens by itself on a first visit (`strokes:seen-help`), and offers the sample only then, while the flag's unset (`isFirstVisit`). `?help` opens it as a first visit's, for testing.
+  - A returning player never gets the sample unless they ask for it from the card. That includes a player from before today, who has seen How to play but has no flag.
+- **Removed:** the single-letter practice (`HowToTry`), its drills and more practice (`TUTORIAL`, `practiceStep`, `offersMore`), and their tests. How to play's lead line is now the goal section.
+- **Tests:**
+  - The sample: its words are simple maze words; 2 steps at the maze's lowest; one lowest route; no daily or pool puzzle shares its start and goal or a step.
+  - Played as the game plays it, by the coach's moves on touch and with a mouse: each move is one the editor allows, a word spelled becomes the room and is the one planned, and it ends JUDGE (2) then FUDGE (3).
+  - The coach: its lines in order; that it follows the letters done the other way round; nothing to show once off the route; never through another word.
+  - The card's step and its touch and mouse lines.
+  - The flag: first visit or not, kept, blocked storage.
+  - The tip order: one at a time, out of strokes first, the strokes tip once.
+  - `keepWin`: nothing for the sample or a pool puzzle; a daily's result and done mark; Easycore's apart.
+- **Checked in headless Chrome** (the dev server; 390 × 844 at 3× with touch, where `(pointer: coarse)` matches and the card says Tap; 1280 × 800 with a mouse; light and dark; reduced motion):
+  - **First visit:** the card; Try a sample puzzle; the sample solved with real touch on the phone (finger drags, the stroke held above the finger, and a tap) and a real mouse on desktop; each tip as above; Play today's puzzle; the daily, with no coaching. localStorage gained only `strokes:onboarded` (`done`): no result, record or done mark.
+  - **Skip:** on the card (the daily; `skipped`) and mid-sample (the same). Closing the first visit's card with × is a skip too.
+  - **Returning:** with How to play seen, no card and no sample, and nothing written.
+  - **The ? button:** Play and Try a sample puzzle (Try the sample puzzle again once played), which starts it afresh; in the sample, Play goes back to it. Mid-daily, or at `?letters=4`, only Play.
+  - **Off the route and out of strokes:** the E's bars off, one, then three; Undo, then Reset back to the move.
+  - **A free return:** JUDGE, then the G's chin and the D's curve off, back in JUICE: its tip.
+  - **A mouse let go off the board** (a stroke dragged down onto the step's buttons): the ghost is back 2.5 s later.
+  - **At 1280 × 800,** the strokes tip and the dots in view (the dots' bottom at 800 px, scrolled 39 px).
+  - The skip, returning, ?, off-route and free-return checks on both devices.
+  - The ghost caught mid-move (the bar standing up on its way to the C, under a finger and a cursor; the J's curve tapped, and reddening under the cursor), and the still marks with reduced motion.
