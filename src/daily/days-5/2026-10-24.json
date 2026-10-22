@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-24",
+  "puzzle": {
+    "start": "QUIET",
+    "goal": "CHIEF",
+    "best": 12,
+    "path": [
+      "QUIET",
+      "QUILT",
+      "GUILT",
+      "CHILL",
+      "CHILE",
+      "CHIEF"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 2,
+    "traps": [
+      {
+        "at": "QUIET",
+        "door": "OUTED",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "QUIET",
+        "door": "OUTER",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "QUILT",
+        "door": "QUILL",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.05
+  },
+  "inkPots": {
+    "pots": [
+      "GUILE",
+      "QUILL",
+      "GUILD"
+    ],
+    "best": 11,
+    "walk": [
+      "QUIET",
+      "QUILT",
+      "GUILT",
+      "GUILE",
+      "CHILE",
+      "CHIEF"
+    ]
+  },
+  "onRoute": {
+    "CHIEF": 12,
+    "CHILE": 10,
+    "CHILL": 8,
+    "GUILE": 8,
+    "GUILT": 5,
+    "QUIET": 0,
+    "QUILT": 2
+  }
+}
