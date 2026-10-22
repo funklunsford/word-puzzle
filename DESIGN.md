@@ -1095,7 +1095,7 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 
 ## Easycore (2026-10-22, branch `easycore`)
 - **The owner's call:** a Difficulty choice in Settings, **Easycore · Classic · Hardcore**, with Classic the default. Easycore is for middle and early high school players: a daily of its own, shorter (lowest 5–8 strokes over 2–3 steps, against Classic's 12–15 over 4–8) and built from simpler words. Rules, hints and golf scoring are Classic's; Hardcore is unchanged.
-- **Behind a flag:** `easycore` in `src/flags.ts`, off by default (`?flags=easycore`, or Dev). Off, the game and Settings are as before, with the Hardcore switch. Easycore is 5 letters only; at 4 letters a stored Easycore plays Classic.
+- **Behind a flag:** `easycore` in `src/flags.ts`, on for everyone since 2026-10-22, after the owner tried it live with `?flags=easycore` (`?flags=-easycore`, or Dev, turns it off). Off, the game and Settings are as before, with the Hardcore switch. Easycore is 5 letters only; at 4 letters a stored Easycore plays Classic.
 - **Simpler words** (`data/simple-5.txt`, 1,299 words; `scripts/familiar.ts --letters 5 … scowl-20.txt`):
   - The everyday words also in SCOWL size 20, its "most common words". The list creator the other sizes come from now starts at 35: asked for size 20 it returns its notice and no words. So size 20 comes from SCOWL 2020.12.07, the last release with sizes under 35 (its `english-words.10` and `.20` and `american-words.10` and `.20`; the README says how). Its notice heads the list and is in `public/licenses/SCOWL-v1.txt`.
   - Size 20 has 1,365 lowercase 5-letter words; 1,354 of them are everyday words.
