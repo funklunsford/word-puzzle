@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../../public/mazes.json';
 import maze5Json from '../../public/mazes-5.json';
-import { potRoute } from '../inkpots';
+import { potRoute, walkSteps } from '../inkpots';
 import { PUZZLE_SHAPES, buildGraph, classifyNeed, isObvious, routeWords, solve } from '../maze';
 import { STEP_LIMIT, wordDistance } from '../strokes';
 import { DAYS, DAYS_5, LAUNCH, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
@@ -86,6 +86,13 @@ describe('the daily puzzles', () => {
           it('has ink pots that still give the best it says', () => {
             expect(potRoute(words, adj, start, goal, day.inkPots.pots).best).toBe(day.inkPots.best);
           });
+
+          if (letters === 5)
+            it('shows a route after the win whose steps add up to its best, with ink pots or without', () => {
+              const charged = (steps: { cost: number }[]) => steps.reduce((t, s) => t + s.cost, 0);
+              expect(charged(walkSteps(path, []))).toBe(best);
+              expect(charged(walkSteps(day.inkPots.walk, day.inkPots.pots))).toBe(day.inkPots.best);
+            });
 
           it('is labelled with what it asks of the player', () => {
             expect(classifyNeed(words, adj, start, goal, best).need).toBe(day.need);

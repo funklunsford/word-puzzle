@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { TILE_IDS } from './glyphs';
-import { inkMorph, inkOutline, inkSeed, lookCenterline, strokeCenterline } from './ink';
+import { TILE_IDS, TRAY_TURN } from './glyphs';
+import { inkMorph, inkOutline, inkSeed, lookCenterline, opticalOffset, strokeCenterline } from './ink';
 
 /** The outline's points, parsed from its path. */
 function points(d: string): [number, number][] {
@@ -102,5 +102,19 @@ describe('inkMorph', () => {
     expect(bottom(mid)).toBeCloseTo(0.5, 1);
     expect(bottom(inkMorph(full, half, 0))).toBeCloseTo(1, 1);
     expect(bottom(inkMorph(full, half, 1))).toBeCloseTo(0, 1);
+  });
+});
+
+describe('opticalOffset', () => {
+  it('lifts the C, whose broad lower curve made it look low, and drops a reversed C', () => {
+    const [across, up] = opticalOffset('C', 0);
+    expect(across).toBeGreaterThan(0.05); // towards its open side, away from its back
+    expect(up).toBeLessThan(-0.05);
+    expect(opticalOffset('C', 180)[1]).toBeGreaterThan(0.05);
+  });
+
+  it('leaves the straight strokes and chevrons about where their outlines centre them', () => {
+    for (const tile of ['LV', 'H', 'LD', 'LB', 'SB', 'BV', 'SC'] as const)
+      for (const v of opticalOffset(tile, TRAY_TURN[tile])) expect(Math.abs(v), tile).toBeLessThan(0.03);
   });
 });
