@@ -1,26 +1,8 @@
-// Hardcore (Settings → Playing): only words on a lowest-stroke route open, each reached on par,
-// and there are no hints. Turning it on starts a puzzle in progress over, so a hardcore result never
-// carries strokes, words or hints from before; turning it off lets the puzzle go on. Kept in this
-// browser.
-
-const KEY = 'strokes:hardcore';
-
-/** Whether hardcore is on (storage can be missing or blocked: then it's off). */
-export function loadHardcore(): boolean {
-  try {
-    return localStorage.getItem(KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function saveHardcore(on: boolean) {
-  try {
-    localStorage.setItem(KEY, on ? '1' : '0');
-  } catch {
-    // storage blocked: this visit only
-  }
-}
+// Hardcore (Settings: the Hardcore switch, or Difficulty → Hardcore with the easycore flag): only
+// words on a lowest-stroke route open, each reached on par, and there are no hints. Turning it on
+// starts a puzzle in progress over, so a hardcore result never carries strokes, words or hints from
+// before; turning it off lets the puzzle go on. The choice is kept with the difficulty setting
+// (src/easycore.ts), under its old key too.
 
 /**
  * Whether the puzzle has started, so turning hardcore on starts it over: a word made, a stroke on

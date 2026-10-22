@@ -21,8 +21,19 @@ export interface ShareResult {
   best: number;
   hints: number;
   hardcore: boolean;
+  /** An Easycore daily (see src/easycore.ts): numbered like the classic ones, but another puzzle. */
+  easycore?: boolean;
   /** Each step: the word it started from, the word it made, and what it cost. */
   steps: { from: string; to: string; cost: number }[];
+}
+
+/** What a result's card and share say it is, after its number: Easycore, or (for the 5-letter game) 5 letters. */
+export const shareLabel = (r: Pick<ShareResult, 'easycore' | 'start'>) => (r.easycore ? 'Easycore' : r.start.length !== 4 ? `${r.start.length} letters` : '');
+
+/** The share's title: "Strokes No. 15 · 5 letters", or for Easycore's No. 15, "Strokes No. 15 · Easycore". */
+export function shareTitle(r: Pick<ShareResult, 'number' | 'easycore' | 'start'>): string {
+  const label = shareLabel(r);
+  return `Strokes${r.number ? ` No. ${r.number}` : ''}${label ? ` · ${label}` : ''}`;
 }
 
 /** The site's public address, with a trailing slash (VITE_SITE_URL in .env). */
@@ -56,6 +67,8 @@ const PAPER = {
   ledge: '#e4ddcf',
   gold: '#ad8211',
   spicy: '#d4410d',
+  /** Easycore's badge: the page's calm green (--ok), as on a ski run's easiest slopes. */
+  easy: '#497c38',
   squares: ['#efeae0', '#f2c65a', '#e8913a', '#d9542f'],
   squareLedges: ['#ddd6c8', '#d6a63a', '#c9752a', '#b54224'],
   /** Colour-blind: yellow, blue, red (light, middle, dark to red-green colour blindness too). */
@@ -157,9 +170,10 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, strokes
   ctx.fillStyle = PAPER.muted;
   ctx.font = `700 28px ${FONT}`;
   const when = r.date ? new Date(`${r.date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '';
-  // (The desktop game's 5-letter puzzles say so: a phone's 4-letter puzzle that day is another one.)
+  // (The desktop game's 5-letter puzzles say so: a phone's 4-letter puzzle that day is another one.
+  // Easycore's say Easycore: the classic daily of that number is another one.)
   const letters = r.start.length;
-  ctx.fillText([r.number ? `No. ${r.number}` : '', letters !== 4 ? `${letters} letters` : '', when].filter(Boolean).join(' · ').toUpperCase(), cx, 206);
+  ctx.fillText([r.number ? `No. ${r.number}` : '', shareLabel(r), when].filter(Boolean).join(' · ').toUpperCase(), cx, 206);
 
   // The score.
   const perfect = r.strokes <= r.best;
@@ -181,10 +195,11 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, strokes
   ctx.font = `600 30px ${FONT}`;
   ctx.fillText(`lowest possible ${r.best}${r.hints ? ` · ${r.hints} ${r.hints === 1 ? 'hint' : 'hints'}` : ''}`, cx, 394);
 
-  // Badges: the score's golf name (an Ace in gold), and Hardcore.
+  // Badges: the score's golf name (an Ace in gold), and Hardcore or Easycore.
   const name = scoreName(r.strokes, r.best).toUpperCase();
   const badges: [string, string][] = [perfect ? [`★ ${name}`, PAPER.gold] : [name, PAPER.muted]];
   if (r.hardcore) badges.push(['🔥 HARDCORE', PAPER.spicy]);
+  if (r.easycore) badges.push(['EASYCORE', PAPER.easy]);
   if (badges.length) {
     ctx.font = `800 30px ${FONT}`;
     const widths = badges.map(([t]) => ctx.measureText(t).width + 44);

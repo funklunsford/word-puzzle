@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import type { ThemeChoice } from '../../theme';
 import type { MotionChoice, Prefs } from '../../prefs';
+import type { Difficulty } from '../../easycore';
 import { PALETTES } from '../../palettes';
 import { TILES, TILE_IDS, TRAY_TURN } from '../../glyphs';
 import { opticalOffset } from '../../ink';
@@ -17,6 +18,18 @@ const MOTIONS: { choice: MotionChoice; label: string }[] = [
   { choice: 'less', label: 'Less' },
   { choice: 'full', label: 'Full' },
 ];
+const DIFFICULTIES: { choice: Difficulty; label: string }[] = [
+  { choice: 'easy', label: 'Easycore' },
+  { choice: 'classic', label: 'Classic' },
+  { choice: 'hard', label: 'Hardcore' },
+];
+const HARDCORE_NOTE = 'Only words on a lowest-stroke route count, and there are no hints. Turning it on starts the puzzle over.';
+/** What the chosen difficulty means, under the choice. */
+const DIFFICULTY_NOTES: Record<Difficulty, string> = {
+  easy: 'Shorter puzzles with everyday words: its own daily.',
+  classic: 'The daily puzzle, with hints if you need them.',
+  hard: HARDCORE_NOTE,
+};
 
 /** One of a few choices, as a row of buttons (a radio group), and anything to show with it (`children`) above its note. */
 function Segmented<T extends string>({ label, options, value, onChange, note, children }: { label: string; options: { choice: T; label: string }[]; value: T; onChange: (v: T) => void; note: string; children?: ReactNode }) {
@@ -91,14 +104,19 @@ interface Props {
   onTheme: (choice: ThemeChoice) => void;
   prefs: Prefs;
   onPrefs: (patch: Partial<Prefs>) => void;
-  /** Hardcore; turning it on starts a puzzle in progress over (see src/hardcore.ts). */
-  hardcore: boolean;
-  onHardcore: (on: boolean) => void;
+  /**
+   * The difficulty being played: with `easycore` (the flag), chosen from Easycore, Classic and
+   * Hardcore; without it, the Hardcore switch (Classic when off). Turning Hardcore on starts a
+   * puzzle in progress over (see src/hardcore.ts); Easycore has its own daily (src/easycore.ts).
+   */
+  difficulty: Difficulty;
+  onDifficulty: (difficulty: Difficulty) => void;
+  easycore: boolean;
   onClose: () => void;
 }
 
 /** The settings pop-up (the gear). Escape, the ×, Done or a tap outside closes it. */
-export function Settings({ theme, onTheme, prefs, onPrefs, hardcore, onHardcore, onClose }: Props) {
+export function Settings({ theme, onTheme, prefs, onPrefs, difficulty, onDifficulty, easycore, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
@@ -143,14 +161,10 @@ export function Settings({ theme, onTheme, prefs, onPrefs, hardcore, onHardcore,
           onChange={(motion) => onPrefs({ motion })}
           note="Less: strokes snap instead of springing, and a win shows its finished picture. System follows your device."
         />
+        {easycore && <Segmented label="Difficulty" options={DIFFICULTIES} value={difficulty} onChange={onDifficulty} note={DIFFICULTY_NOTES[difficulty]} />}
         <div className="setting">
           <span className="setting-label">Playing</span>
-          <Toggle
-            label="Hardcore"
-            note="Only words on a lowest-stroke route count, and there are no hints. Turning it on starts the puzzle over."
-            on={hardcore}
-            onChange={onHardcore}
-          />
+          {!easycore && <Toggle label="Hardcore" note={HARDCORE_NOTE} on={difficulty === 'hard'} onChange={(on) => onDifficulty(on ? 'hard' : 'classic')} />}
           <Toggle
             label="Letter guide"
             note="The A to Z under the word, lighting up the letters a stroke is in."

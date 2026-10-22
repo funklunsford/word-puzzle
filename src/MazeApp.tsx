@@ -8,7 +8,8 @@ import type { Need, Puzzle } from './maze';
 import { payStep, type InkPots } from './inkpots';
 import { clue, doorsFrom, hintSays, nextHintLevel, nextStep, type Doors, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
-import { hasStarted, loadHardcore, saveHardcore } from './hardcore';
+import { hasStarted } from './hardcore';
+import { easyDayFor, easyDays, easyIndex, isEasyDay, loadDifficulty, saveDifficulty, type Difficulty } from './easycore';
 import { COARSE, useMedia } from './useMedia';
 import { InkDrop } from './components/maze/InkDrop';
 import { InkPot } from './components/maze/InkPot';
@@ -26,7 +27,7 @@ import { dayFor, dayNumber, daysFor, loadDaily, localDate } from './daily/daily'
 import { CELL_W, WordEditor } from './components/maze/WordEditor';
 import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
-import { dailyRecord, formatTime } from './stats';
+import { dailyRecord, formatTime, resultKey } from './stats';
 import { SCORE_KEY, scoreName } from './golf';
 import { AD_SLOTS, BANNER, RAIL_H, loadAdSense, railWidth } from './ads';
 import { AdSlot } from './components/AdSlot';
@@ -40,6 +41,8 @@ interface Pick {
   inkPots: PotPlan;
   /** A daily's date (pool puzzles have none). */
   date?: string;
+  /** An Easycore daily (see src/easycore.ts): its results and record are kept apart from the classic ones. */
+  easy?: boolean;
   /** Words on a lowest-stroke route, with their strokes from the start (hardcore keeps to them). */
   onRoute?: Record<string, number>;
   /** Pool puzzles: what its shortest routes need from C, I and V, and whether the obvious approach misses par (shown in Dev). */
@@ -61,21 +64,29 @@ interface MazeData extends Pick {
 }
 
 /**
- * The pool of puzzles the dailies are chosen from (see scripts/mazes.ts), fetched the first time it's
- * needed: only the freshPuzzle flag and dev's New start & goal play from it, so a visit doesn't load it.
+ * A pool of puzzles (see scripts/mazes.ts), fetched the first time it's needed: the one the dailies
+ * are chosen from, which only the freshPuzzle flag and dev's New start & goal play from, so a visit
+ * doesn't load it; or Easycore's, which its days come from. (One that didn't load is asked for again.)
  */
-const pools = new Map<WordLength, Promise<Pick[]>>();
-function loadPool(letters: WordLength): Promise<Pick[]> {
-  if (!pools.has(letters))
+const pools = new Map<string, Promise<Pick[]>>();
+function loadPool(file: string): Promise<Pick[]> {
+  if (!pools.has(file))
     pools.set(
-      letters,
-      fetch(dataUrl(letters === 5 ? 'pool-5.json' : 'pool.json'))
+      file,
+      fetch(dataUrl(file))
         .then((r) => r.json() as Promise<{ puzzles: Pick[] }>)
         .then((p) => p.puzzles)
-        .catch(() => []),
+        .catch(() => {
+          pools.delete(file);
+          return [];
+        }),
     );
-  return pools.get(letters)!;
+  return pools.get(file)!;
 }
+/** The pool a game plays from: Easycore's, or the dailies' at its word length. */
+const poolFile = (letters: WordLength, easy: boolean) => (easy ? 'pool-5-easy.json' : letters === 5 ? 'pool-5.json' : 'pool.json');
+/** Easycore's puzzle for `date`, from its pool (none if the pool didn't load). */
+const easyPick = (pool: Pick[], date: string): Pick | null => (pool.length ? { ...pool[easyIndex(date, pool.length)], date, easy: true } : null);
 
 /** A random puzzle from the pool, other than the one being played (the maze's own puzzle if there's no pool). */
 function pickPuzzle(pool: Pick[], data: MazeData, current?: Puzzle): Pick {
@@ -116,11 +127,10 @@ interface Result {
   /** How long it took, from the first stroke (results kept before the stats have none). */
   seconds?: number;
 }
-/** Where a daily's result is kept: the 4- and 5-letter games keep theirs apart. */
-const resultKey = (date: string, letters: WordLength) => `strokes:result${letters === 5 ? '5' : ''}:${date}`;
-const loadResult = (date: string, letters: WordLength): Result | null => {
+/** A daily's kept result (see resultKey: Easycore's are kept apart). */
+const loadResult = (date: string, letters: WordLength, easy = false): Result | null => {
   try {
-    const r = JSON.parse(localStorage.getItem(resultKey(date, letters)) ?? 'null');
+    const r = JSON.parse(localStorage.getItem(resultKey(date, letters, easy)) ?? 'null');
     // (Results kept before the grid have only each step's strokes: they share without it.)
     return r && { ...r, steps: Array.isArray(r.steps) ? r.steps.filter((s: unknown) => typeof s === 'object') : [] };
   } catch {
@@ -189,8 +199,15 @@ export function MazeApp() {
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
+  // The difficulty (Settings): Easycore, Classic or Hardcore. Easycore takes the easycore flag and
+  // the 5-letter game; without them a stored Easycore plays Classic (see src/easycore.ts).
+  const [difficulty, setDifficulty] = useState<Difficulty>(loadDifficulty);
+  const easyOn = flags.easycore && letters === 5;
+  const mode: Difficulty = difficulty === 'easy' && !easyOn ? 'classic' : difficulty;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   /** Hardcore: only words on a lowest-stroke route open, so every step must keep the player on par (see src/hardcore.ts). */
-  const [hardcore, setHardcore] = useState(loadHardcore);
+  const hardcore = mode === 'hard';
   // Settings (the gear): light or dark, the player's choice or the device's.
   const [settings, setSettings] = useState(false);
   const gearBtn = useRef<HTMLButtonElement>(null);
@@ -259,22 +276,34 @@ export function MazeApp() {
   }, [flags.ads]);
 
   useEffect(() => {
-    // The puzzle is picked before the first render: the day's puzzle for the player's own date, or
-    // with the freshPuzzle flag a random one from the pool. ?day=YYYY-MM-DD plays an earlier day's
-    // (any day's, in development). (`live` drops a load that was superseded, e.g. by StrictMode
-    // running this effect twice in development.)
+    // The puzzle is picked before the first render: the day's puzzle for the player's own date
+    // (Easycore's, at that difficulty), or with the freshPuzzle flag a random one from the pool.
+    // ?day=YYYY-MM-DD plays an earlier day's (any day's, in development); Easycore has one for every
+    // date from the first. (`live` drops a load that was superseded, e.g. by StrictMode running this
+    // effect twice in development.)
     let live = true;
     const today = localDate();
     const asked = new URLSearchParams(location.search).get('day');
+    const allowed = (date: string) => import.meta.env.DEV || date <= today;
     const days = daysFor(letters);
-    const date = asked && days.includes(asked) && (import.meta.env.DEV || asked <= today) ? asked : dayFor(today, days);
+    const date = asked && days.includes(asked) && allowed(asked) ? asked : dayFor(today, days);
+    easyDate.current = asked && isEasyDay(asked) && allowed(asked) ? asked : easyDayFor(today);
+    const easy = mode === 'easy';
     const maze = letters === 5 ? 'mazes-5.json' : 'mazes.json';
-    Promise.all([fetch(dataUrl(maze)).then((r) => r.json() as Promise<MazeData>), loadDaily(date, letters), flags.freshPuzzle ? loadPool(letters) : null]).then(([d, day, pool]) => {
+    Promise.all([
+      fetch(dataUrl(maze)).then((r) => r.json() as Promise<MazeData>),
+      loadDaily(date, letters),
+      flags.freshPuzzle ? loadPool(poolFile(letters, easy)) : null,
+      easy ? loadPool(poolFile(letters, true)) : null,
+    ]).then(([d, day, pool, easyPool]) => {
       if (!live) return;
       const pick: Pick = { puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date, onRoute: day.onRoute };
+      // (Should Easycore's pool not load, the classic daily is played.)
+      const easyDay = easyPool && easyPick(easyPool, easyDate.current);
       setData(d);
       setDaily(pick);
-      setCurrent(pool ? pickPuzzle(pool, d) : pick);
+      setEasyDaily(easyDay);
+      setCurrent(pool ? pickPuzzle(pool, d) : (easyDay ?? pick));
     });
     // Definitions are a nicety: the game plays without them if they don't load.
     fetch(dataUrl(letters === 5 ? 'definitions-5.json' : 'definitions.json'))
@@ -289,6 +318,9 @@ export function MazeApp() {
   /** The puzzle being played: the day's, or a random one from the pool (see the freshPuzzle flag; dev can switch). */
   const [current, setCurrent] = useState<Pick | null>(null);
   const [daily, setDaily] = useState<Pick | null>(null);
+  /** Easycore's day (once its pool has loaded), and its date: the classic daily's, or any day asked for. */
+  const [easyDaily, setEasyDaily] = useState<Pick | null>(null);
+  const easyDate = useRef('');
   const puzzle = current?.puzzle;
   /** The puzzle's ink pots, when that modifier is on. */
   const potPlan = flags.inkPots ? (current?.inkPots ?? null) : null;
@@ -308,9 +340,33 @@ export function MazeApp() {
     }
     setFlags(next); // the puzzle restarts, so ink and the best score never mix across settings
     if (flag === 'freshPuzzle' && data) {
-      if (next.freshPuzzle) loadPool(letters).then((pool) => setCurrent(pickPuzzle(pool, data, puzzle)));
-      else setCurrent(daily);
+      if (next.freshPuzzle) loadPool(poolFile(letters, mode === 'easy')).then((pool) => setCurrent(pickPuzzle(pool, data, puzzle)));
+      else setCurrent(mode === 'easy' ? easyDaily : daily);
     }
+    // Easycore chosen comes and goes with its flag.
+    if (flag === 'easycore' && difficulty === 'easy' && letters === 5) playMode(next.easycore);
+  };
+
+  /**
+   * Plays a difficulty's daily, Easycore's (loading its pool the first time) or the classic one, or
+   * with the freshPuzzle flag a random puzzle from its pool. A daily already solved today starts
+   * with the result ("Solved today in…"), as on a return visit.
+   */
+  const playMode = (easy: boolean) => {
+    if (!data) return;
+    if (flags.freshPuzzle) {
+      loadPool(poolFile(letters, easy)).then((pool) => setCurrent(pickPuzzle(pool, data, puzzle)));
+      return;
+    }
+    if (!easy) return setCurrent(daily);
+    if (easyDaily) return setCurrent(easyDaily);
+    loadPool(poolFile(letters, true)).then((pool) => {
+      const day = easyPick(pool, easyDate.current);
+      if (!day) return; // didn't load: the classic daily goes on
+      setEasyDaily(day);
+      // (Unless the player has switched again while it loaded.)
+      if (modeRef.current === 'easy') setCurrent(day);
+    });
   };
 
   const restart = useCallback(() => {
@@ -336,13 +392,22 @@ export function MazeApp() {
   useEffect(restart, [restart]);
 
   /**
-   * Hardcore is switched in Settings. Turning it on starts a puzzle in progress over (no stroke,
-   * word or hint carries into a hardcore result); turning it off lets the puzzle go on.
+   * The difficulty is chosen in Settings (the Hardcore switch, without the easycore flag). To or from
+   * Easycore plays that difficulty's daily. Turning Hardcore on starts a puzzle in progress over (no
+   * stroke, word or hint carries into a hardcore result); turning it off lets the puzzle go on.
    */
-  const changeHardcore = (on: boolean) => {
+  const changeDifficulty = (next: Difficulty) => {
+    const now: Difficulty = next === 'easy' && !easyOn ? 'classic' : next;
+    saveDifficulty(next);
+    setDifficulty(next);
+    if ((now === 'easy') !== (mode === 'easy')) {
+      setRefused(null);
+      playMode(now === 'easy');
+      return;
+    }
+    const on = now === 'hard';
+    if (on === hardcore) return;
     const over = on && hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed });
-    saveHardcore(on);
-    setHardcore(on);
     if (over) restart();
     setRefused(null);
     setNotice(on ? `Hardcore on${over ? ', so the puzzle starts over' : ''}: only lowest-stroke words count, and no hints.` : 'Hardcore off.');
@@ -378,10 +443,11 @@ export function MazeApp() {
     // A daily's result is kept, so coming back today shows it (the best one, if played again).
     const date = current?.date;
     if (!date) return;
-    // Today's daily solved: leave the mark a Puzzle Playlist on this origin would read (see its
-    // src/firstParty.ts). Not for an earlier day. The playlist itself lives on funklunsford.github.io, out of
-    // reach, so it ticks Strokes when you come back instead.
-    if (date === dayFor(localDate(), daysFor(letters))) {
+    // Today's daily solved (classic or Easycore): leave the mark a Puzzle Playlist on this origin would
+    // read (see its src/firstParty.ts). Not for an earlier day. The playlist itself lives on
+    // funklunsford.github.io, out of reach, so it ticks Strokes when you come back instead.
+    const easy = !!current?.easy;
+    if (date === (easy ? easyDayFor(localDate()) : dayFor(localDate(), daysFor(letters)))) {
       try {
         localStorage.setItem(`puzzle-done:strokes:${localDate()}`, JSON.stringify({ at: Date.now() }));
       } catch {
@@ -389,10 +455,10 @@ export function MazeApp() {
       }
     }
     const result: Result = { strokes: spent, best, hints: hintsUsed, hardcore, steps: stepsOf(trail), seconds: Math.round(took) };
-    const before = loadResult(date, letters);
+    const before = loadResult(date, letters, easy);
     if (!before || result.strokes < before.strokes || (result.strokes === before.strokes && result.hints < before.hints)) {
       try {
-        localStorage.setItem(resultKey(date, letters), JSON.stringify(result));
+        localStorage.setItem(resultKey(date, letters, easy), JSON.stringify(result));
       } catch {
         // storage blocked: shown this visit only
       }
@@ -401,11 +467,12 @@ export function MazeApp() {
   }, [won]);
   /** Today's result from an earlier visit (or this one), if any. */
   const [saved, setSaved] = useState<Result | null>(null);
-  useEffect(() => setSaved(current?.date ? loadResult(current.date, letters) : null), [current?.date, letters]);
-  /** The player's record over the dailies, for the end of a daily (worked out again once its result is kept). */
+  useEffect(() => setSaved(current?.date ? loadResult(current.date, letters, current.easy) : null), [current?.date, current?.easy, letters]);
+  /** The player's record over the dailies (Easycore's over its own), for the end of a daily (worked out again once its result is kept). */
   const record = useMemo(
-    () => (current?.date ? dailyRecord(daysFor(letters), (d) => loadResult(d, letters), current.date) : null),
-    [current?.date, letters, saved],
+    () =>
+      current?.date ? dailyRecord(current.easy ? easyDays(current.date) : daysFor(letters), (d) => loadResult(d, letters, current.easy), current.date) : null,
+    [current?.date, current?.easy, letters, saved],
   );
   /** The result being shared (the share sheet is open). */
   const [sharing, setSharing] = useState<ShareResult | null>(null);
@@ -413,7 +480,7 @@ export function MazeApp() {
   const share = (r: Result | null) => {
     if (!puzzle || !r) return;
     const date = current?.date;
-    setSharing({ ...r, start: puzzle.start, goal: puzzle.goal, date, number: date ? dayNumber(date) : undefined });
+    setSharing({ ...r, start: puzzle.start, goal: puzzle.goal, date, number: date ? dayNumber(date) : undefined, easycore: !!current?.easy });
   };
   const closeShare = useCallback(() => {
     setSharing(null);
@@ -511,6 +578,8 @@ export function MazeApp() {
 
   if (!data || !puzzle || !room) return <div className="maze loading">Loading…</div>;
 
+  /** The daily at this difficulty (for Dev to go back to). */
+  const modeDaily = mode === 'easy' ? easyDaily : daily;
   // The main column (score, board, step controls) with the path card beside it when there's room.
   const columnW = letters === 5 ? COLUMN_W_5 : COLUMN_W;
   const side = width >= (letters === 5 ? SIDE_MIN_5 : SIDE_MIN);
@@ -590,7 +659,7 @@ export function MazeApp() {
           }
           dateline={
             current?.date &&
-            `No. ${dayNumber(current.date)} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
+            `No. ${dayNumber(current.date)}${current.easy ? ' · Easycore' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
           }
         />
 
@@ -694,7 +763,8 @@ export function MazeApp() {
                     <li>Going back to a word you've visited is free.</li>
                     <li>Your score is named like golf: {SCORE_KEY}.</li>
                     <li>Stuck? {coarse ? 'Tap' : 'Click'} Hint for the next word's meaning, then the letters to change, then the word.</li>
-                    <li>Want a challenge? Turn on Hardcore in Settings (it starts the puzzle over): only words on a lowest-stroke route count, and no hints.</li>
+                    {easyOn && <li>Want it easier? Choose Easycore in Settings: shorter puzzles with everyday words, and a daily of their own.</li>}
+                    <li>Want a challenge? {easyOn ? 'Choose' : 'Turn on'} Hardcore in Settings (it starts the puzzle over): only words on a lowest-stroke route count, and no hints.</li>
                     {potPlan && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
                   </ul>
                   <button className="pill help-go" onClick={closeHelp}>
@@ -767,6 +837,7 @@ export function MazeApp() {
                   {spent <= best && ' ⭐'}
                 </span>
                 {hardcore && <span className="nowrap"> · hardcore</span>}
+                {current?.easy && <span className="nowrap"> · easycore</span>}
               </p>
               {/* This game's stats, then (for a daily) the player's record over them. */}
               <dl className="result-stats" aria-label="This game">
@@ -800,7 +871,7 @@ export function MazeApp() {
               {record && record.solved > 0 && (
                 <>
                   <span className="label" id="record-label">
-                    Your dailies
+                    {current?.easy ? 'Your Easycore dailies' : 'Your dailies'}
                   </span>
                   <dl className="result-stats record" aria-labelledby="record-label">
                     <div>
@@ -987,12 +1058,12 @@ export function MazeApp() {
                   This maze: {current.tricky ? 'tricky' : 'obvious'}, {NEEDS[current.need]}
                 </span>
               )}
-              <button className="pill quiet" onClick={() => loadPool(letters).then((pool) => setCurrent(pickPuzzle(pool, data, puzzle)))}>
+              <button className="pill quiet" onClick={() => loadPool(poolFile(letters, mode === 'easy')).then((pool) => setCurrent(pickPuzzle(pool, data, puzzle)))}>
                 New start & goal
               </button>
-              {daily && current !== daily ? (
-                <button className="pill quiet" onClick={() => setCurrent(daily)}>
-                  Play the daily ({daily.puzzle.start} → {daily.puzzle.goal})
+              {modeDaily && current !== modeDaily ? (
+                <button className="pill quiet" onClick={() => setCurrent(modeDaily)}>
+                  Play the daily ({modeDaily.puzzle.start} → {modeDaily.puzzle.goal})
                 </button>
               ) : null}
               <button className="pill quiet" onClick={() => celebrate()}>
@@ -1026,8 +1097,9 @@ export function MazeApp() {
             onTheme={chooseTheme}
             prefs={prefs}
             onPrefs={changePrefs}
-            hardcore={hardcore}
-            onHardcore={changeHardcore}
+            difficulty={mode}
+            onDifficulty={changeDifficulty}
+            easycore={easyOn}
             onClose={closeSettings}
           />
         )}
