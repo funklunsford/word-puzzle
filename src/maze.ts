@@ -104,6 +104,12 @@ export const PUZZLE_SHAPES: Record<number, { best: readonly [number, number]; st
 };
 
 /**
+ * Easycore's shape (5 letters): lowest 5–8 strokes, over 2–3 words after the start on a route
+ * through simple words (data/simple-5.txt; see scripts/mazes.ts --easy). About half a classic puzzle.
+ */
+export const EASY_SHAPE = { best: [5, 8], steps: [2, 3] } as const;
+
+/**
  * A random puzzle: a start with a few doors, and a goal `shape` away (by word length). `endpoint` limits which
  * words a puzzle may start and end on (the words in between are any in the maze).
  */

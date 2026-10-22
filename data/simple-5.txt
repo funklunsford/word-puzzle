@@ -1,0 +1,1552 @@
+# The simplest maze words, for Easycore: those in data/everyday-5.txt that are also in SCOWL size 20
+# (its "most common words"), less the ones in data/not-simple-5.txt. Easycore's puzzles start and
+# end on these, with a lowest-stroke route through them (see scripts/mazes.ts --easy). Size 20 is from
+# SCOWL 2020.12.07, the last release with sizes under 35; its notice follows.
+#
+# The collective work is Copyright 2000-2018 by Kevin Atkinson as well
+# as any of the copyrights mentioned below:
+#
+#   Copyright 2000-2018 by Kevin Atkinson
+#
+#   Permission to use, copy, modify, distribute and sell these word
+#   lists, the associated scripts, the output created from the scripts,
+#   and its documentation for any purpose is hereby granted without fee,
+#   provided that the above copyright notice appears in all copies and
+#   that both that copyright notice and this permission notice appear in
+#   supporting documentation. Kevin Atkinson makes no representations
+#   about the suitability of this array for any purpose. It is provided
+#   "as is" without express or implied warranty.
+#
+# Alan Beale <biljir@pobox.com> also deserves special credit as he has,
+# in addition to providing the 12Dicts package and being a major
+# contributor to the ENABLE word list, given me an incredible amount of
+# feedback and created a number of special lists (those found in the
+# Supplement) in order to help improve the overall quality of SCOWL.
+#
+# The 10 level includes the 1000 most common English words (according to
+# the Moby (TM) Words II [MWords] package), a subset of the 1000 most
+# common words on the Internet (again, according to Moby Words II), and
+# frequently class 16 from Brian Kelk's "UK English Wordlist
+# with Frequency Classification".
+#
+# The MWords package was explicitly placed in the public domain:
+#
+#     The Moby lexicon project is complete and has
+#     been place into the public domain. Use, sell,
+#     rework, excerpt and use in any way on any platform.
+#
+#     Placing this material on internal or public servers is
+#     also encouraged. The compiler is not aware of any
+#     export restrictions so freely distribute world-wide.
+#
+#     You can verify the public domain status by contacting
+#
+#     Grady Ward
+#     3449 Martha Ct.
+#     Arcata, CA  95521-4884
+#
+#     grady@netcom.com
+#     grady@northcoast.com
+#
+# The "UK English Wordlist With Frequency Classification" is also in the
+# Public Domain:
+#
+#   Date: Sat, 08 Jul 2000 20:27:21 +0100
+#   From: Brian Kelk <Brian.Kelk@cl.cam.ac.uk>
+#
+#   > I was wondering what the copyright status of your "UK English
+#   > Wordlist With Frequency Classification" word list as it seems to
+#   > be lacking any copyright notice.
+#
+#   There were many many sources in total, but any text marked
+#   "copyright" was avoided. Locally-written documentation was one
+#   source. An earlier version of the list resided in a filespace called
+#   PUBLIC on the University mainframe, because it was considered public
+#   domain.
+#
+#   Date: Tue, 11 Jul 2000 19:31:34 +0100
+#
+#   > So are you saying your word list is also in the public domain?
+#
+#   That is the intention.
+#
+# The 20 level includes frequency classes 7-15 from Brian's word list.
+#
+# The 35 level includes frequency classes 2-6 and words appearing in at
+# least 11 of 12 dictionaries as indicated in the 12Dicts package.  All
+# words from the 12Dicts package have had likely inflections added via
+# my inflection database.
+#
+# The 12Dicts package and Supplement is in the Public Domain.
+#
+# The WordNet database, which was used in the creation of the
+# Inflections database, is under the following copyright:
+#
+#   This software and database is being provided to you, the LICENSEE,
+#   by Princeton University under the following license.  By obtaining,
+#   using and/or copying this software and database, you agree that you
+#   have read, understood, and will comply with these terms and
+#   conditions.:
+#
+#   Permission to use, copy, modify and distribute this software and
+#   database and its documentation for any purpose and without fee or
+#   royalty is hereby granted, provided that you agree to comply with
+#   the following copyright notice and statements, including the
+#   disclaimer, and that the same appear on ALL copies of the software,
+#   database and documentation, including modifications that you make
+#   for internal use or for distribution.
+#
+#   WordNet 1.6 Copyright 1997 by Princeton University.  All rights
+#   reserved.
+#
+#   THIS SOFTWARE AND DATABASE IS PROVIDED "AS IS" AND PRINCETON
+#   UNIVERSITY MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR
+#   IMPLIED.  BY WAY OF EXAMPLE, BUT NOT LIMITATION, PRINCETON
+#   UNIVERSITY MAKES NO REPRESENTATIONS OR WARRANTIES OF MERCHANT-
+#   ABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF THE
+#   LICENSED SOFTWARE, DATABASE OR DOCUMENTATION WILL NOT INFRINGE ANY
+#   THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+#
+#   The name of Princeton University or Princeton may not be used in
+#   advertising or publicity pertaining to distribution of the software
+#   and/or database.  Title to copyright in this software, database and
+#   any associated documentation shall at all times remain with
+#   Princeton University and LICENSEE agrees to preserve same.
+#
+# The 40 level includes words from Alan's 3esl list found in version 4.0
+# of his 12dicts package.  Like his other stuff the 3esl list is also in the
+# public domain.
+#
+# The 50 level includes Brian's frequency class 1, words appearing
+# in at least 5 of 12 of the dictionaries as indicated in the 12Dicts
+# package, and uppercase words in at least 4 of the previous 12
+# dictionaries.  A decent number of proper names is also included: The
+# top 1000 male, female, and Last names from the 1990 Census report; a
+# list of names sent to me by Alan Beale; and a few names that I added
+# myself.  Finally a small list of abbreviations not commonly found in
+# other word lists is included.
+#
+# The name files form the Census report is a government document which I
+# don't think can be copyrighted.
+#
+# The file special-jargon.50 uses common.lst and word.lst from the
+# "Unofficial Jargon File Word Lists" which is derived from "The Jargon
+# File".  All of which is in the Public Domain.  This file also contain
+# a few extra UNIX terms which are found in the file "unix-terms" in the
+# special/ directory.
+#
+# The 55 level includes words from Alan's 2of4brif list found in version
+# 4.0 of his 12dicts package.  Like his other stuff the 2of4brif is also
+# in the public domain.
+#
+# The 60 level includes all words appearing in at least 2 of the 12
+# dictionaries as indicated by the 12Dicts package.
+#
+# The 70 level includes Brian's frequency class 0 and the 74,550 common
+# dictionary words from the MWords package.  The common dictionary words,
+# like those from the 12Dicts package, have had all likely inflections
+# added.  The 70 level also included the 5desk list from version 4.0 of
+# the 12Dics package which is in the public domain.
+#
+# The 80 level includes the ENABLE word list, all the lists in the
+# ENABLE supplement package (except for ABLE), the "UK Advanced Cryptics
+# Dictionary" (UKACD), the list of signature words from the YAWL package,
+# and the 10,196 places list from the MWords package.
+#
+# The ENABLE package, mainted by M\Cooper <thegrendel@theriver.com>,
+# is in the Public Domain:
+#
+#   The ENABLE master word list, WORD.LST, is herewith formally released
+#   into the Public Domain. Anyone is free to use it or distribute it in
+#   any manner they see fit. No fee or registration is required for its
+#   use nor are "contributions" solicited (if you feel you absolutely
+#   must contribute something for your own peace of mind, the authors of
+#   the ENABLE list ask that you make a donation on their behalf to your
+#   favorite charity). This word list is our gift to the Scrabble
+#   community, as an alternate to "official" word lists. Game designers
+#   may feel free to incorporate the WORD.LST into their games. Please
+#   mention the source and credit us as originators of the list. Note
+#   that if you, as a game designer, use the WORD.LST in your product,
+#   you may still copyright and protect your product, but you may *not*
+#   legally copyright or in any way restrict redistribution of the
+#   WORD.LST portion of your product. This *may* under law restrict your
+#   rights to restrict your users' rights, but that is only fair.
+#
+# UKACD, by J Ross Beresford <ross@bryson.demon.co.uk>, is under the
+# following copyright:
+#
+#   Copyright (c) J Ross Beresford 1993-1999. All Rights Reserved.
+#
+#   The following restriction is placed on the use of this publication:
+#   if The UK Advanced Cryptics Dictionary is used in a software package
+#   or redistributed in any form, the copyright notice must be
+#   prominently displayed and the text of this document must be included
+#   verbatim.
+#
+#   There are no other restrictions: I would like to see the list
+#   distributed as widely as possible.
+#
+# The 95 level includes the 354,984 single words, 256,772 compound
+# words, 4,946 female names and the 3,897 male names, and 21,986 names
+# from the MWords package, ABLE.LST from the ENABLE Supplement, and some
+# additional words found in my part-of-speech database that were not
+# found anywhere else.
+#
+# Accent information was taken from UKACD.
+#
+# The VarCon package was used to create the American, British, Canadian,
+# and Australian word list.  It is under the following copyright:
+#
+#   Copyright 2000-2016 by Kevin Atkinson
+#
+#   Permission to use, copy, modify, distribute and sell this array, the
+#   associated software, and its documentation for any purpose is hereby
+#   granted without fee, provided that the above copyright notice appears
+#   in all copies and that both that copyright notice and this permission
+#   notice appear in supporting documentation. Kevin Atkinson makes no
+#   representations about the suitability of this array for any
+#   purpose. It is provided "as is" without express or implied warranty.
+#
+#   Copyright 2016 by Benjamin Titze
+#
+#   Permission to use, copy, modify, distribute and sell this array, the
+#   associated software, and its documentation for any purpose is hereby
+#   granted without fee, provided that the above copyright notice appears
+#   in all copies and that both that copyright notice and this permission
+#   notice appear in supporting documentation. Benjamin Titze makes no
+#   representations about the suitability of this array for any
+#   purpose. It is provided "as is" without express or implied warranty.
+#
+#   Since the original words lists come from the Ispell distribution:
+#
+#   Copyright 1993, Geoff Kuenning, Granada Hills, CA
+#   All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions
+#   are met:
+#
+#   1. Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#   2. Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#   3. All modifications to the source code must be clearly marked as
+#      such.  Binary redistributions based on modified source code
+#      must be clearly marked as modified versions in the documentation
+#      and/or other materials provided with the distribution.
+#   (clause 4 removed with permission from Geoff Kuenning)
+#   5. The name of Geoff Kuenning may not be used to endorse or promote
+#      products derived from this software without specific prior
+#      written permission.
+#
+#   THIS SOFTWARE IS PROVIDED BY GEOFF KUENNING AND CONTRIBUTORS ``AS IS'' AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#   ARE DISCLAIMED.  IN NO EVENT SHALL GEOFF KUENNING OR CONTRIBUTORS BE LIABLE
+#   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+#   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+#   OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+#   HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#   LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+#   OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#   SUCH DAMAGE.
+ABIDE
+ABORT
+ABOUT
+ABOVE
+ACORN
+ACTED
+ACTOR
+ACUTE
+ADAPT
+ADDED
+ADMIT
+ADOPT
+ADULT
+AFTER
+AGAIN
+AGENT
+AGING
+AGONY
+AGREE
+AHEAD
+AIDED
+AIMED
+ALARM
+ALBUM
+ALERT
+ALIAS
+ALIEN
+ALIGN
+ALIKE
+ALIVE
+ALLOW
+ALONE
+ALONG
+ALOUD
+ALPHA
+ALTER
+AMAZE
+AMBER
+AMEND
+AMONG
+AMPLE
+AMUSE
+ANGEL
+ANGER
+ANGLE
+ANGRY
+ANNOY
+APART
+APPLE
+APPLY
+AREAS
+ARENA
+ARGUE
+ARISE
+ARMED
+AROSE
+ARRAY
+ARROW
+ASHES
+ASIDE
+ASKED
+ASSET
+ATLAS
+ATOMS
+AUDIO
+AVOID
+AWAIT
+AWAKE
+AWARD
+AWARE
+AWFUL
+BACKS
+BADGE
+BADLY
+BAKED
+BAKES
+BALLS
+BANDS
+BANKS
+BARKS
+BASED
+BASES
+BASIC
+BASIS
+BATCH
+BATHS
+BEACH
+BEANS
+BEARD
+BEARS
+BEAST
+BEATS
+BEGAN
+BEGIN
+BEGUN
+BEING
+BELLS
+BELOW
+BENCH
+BENDS
+BIBLE
+BILLS
+BINDS
+BIRDS
+BIRTH
+BITES
+BLACK
+BLADE
+BLAME
+BLANK
+BLAST
+BLESS
+BLIND
+BLINK
+BLISS
+BLOCK
+BLOOD
+BLOWN
+BLOWS
+BLUES
+BLURB
+BOARD
+BOATS
+BOGUS
+BOILS
+BONES
+BONUS
+BOOKS
+BOOST
+BOOTS
+BORED
+BORES
+BOUND
+BOXES
+BRAIN
+BRAKE
+BRAND
+BRASS
+BRAVE
+BREAD
+BREAK
+BREED
+BRICK
+BRIEF
+BRING
+BROAD
+BROKE
+BROWN
+BRUSH
+BUCKS
+BUILD
+BUILT
+BULBS
+BUNCH
+BURNS
+BURNT
+BURST
+BUSES
+BUYER
+BYTES
+CABLE
+CAKES
+CALLS
+CAMPS
+CARDS
+CARED
+CARES
+CARRY
+CASES
+CASTS
+CATCH
+CATER
+CAUSE
+CEASE
+CELLS
+CHAIN
+CHAIR
+CHALK
+CHAOS
+CHARM
+CHART
+CHASE
+CHATS
+CHEAP
+CHEAT
+CHECK
+CHEEK
+CHEER
+CHESS
+CHEST
+CHEWS
+CHIEF
+CHILD
+CHIPS
+CHOIR
+CHOPS
+CHORD
+CHOSE
+CHUCK
+CHUNK
+CIDER
+CITED
+CITES
+CIVIL
+CLAIM
+CLASH
+CLASS
+CLEAN
+CLEAR
+CLICK
+CLIFF
+CLIMB
+CLIPS
+CLOCK
+CLONE
+CLOSE
+CLOTH
+CLOUD
+CLUBS
+CLUES
+COACH
+COAST
+COATS
+CODED
+CODES
+COINS
+COLON
+COLOR
+COMES
+COMIC
+COMMA
+COOKS
+COOLS
+COPED
+COPES
+COSTS
+COUGH
+COULD
+COUNT
+COURT
+COVER
+CRACK
+CRAFT
+CRAMP
+CRASH
+CRAWL
+CRAZY
+CREAM
+CREEP
+CRIED
+CRIES
+CRIME
+CRISP
+CROPS
+CROSS
+CROWD
+CROWN
+CRUDE
+CRUEL
+CRUSH
+CUBIC
+CURED
+CURES
+CURLY
+CURRY
+CURSE
+CURVE
+CYCLE
+DAILY
+DANCE
+DARED
+DARES
+DATED
+DATES
+DEALS
+DEALT
+DEATH
+DEBUG
+DECAY
+DEEDS
+DELAY
+DELTA
+DENSE
+DEPTH
+DEVIL
+DIALS
+DIARY
+DIGIT
+DINED
+DINER
+DINES
+DIRTY
+DISCO
+DISCS
+DITCH
+DITTO
+DIVED
+DIVES
+DODGE
+DOING
+DOORS
+DOSES
+DOUBT
+DOZEN
+DRAFT
+DRAGS
+DRAIN
+DRAMA
+DRANK
+DRAWN
+DRAWS
+DREAD
+DREAM
+DRESS
+DRIED
+DRIES
+DRIFT
+DRILL
+DRINK
+DRIPS
+DRIVE
+DROPS
+DROVE
+DROWN
+DRUMS
+DUCKS
+DUMMY
+DUMPS
+DUSTY
+DYING
+EAGER
+EAGLE
+EARLY
+EARNS
+EARTH
+EATEN
+EATER
+EDGES
+EDITS
+EIGHT
+ELECT
+ELITE
+EMBED
+EMPTY
+ENDED
+ENEMY
+ENJOY
+ENTER
+ENTRY
+EQUAL
+EQUIP
+ERASE
+ERROR
+ESSAY
+EVENS
+EVENT
+EVERY
+EVILS
+EXACT
+EXAMS
+EXIST
+EXITS
+EXTRA
+FACED
+FACES
+FACTS
+FAILS
+FAINT
+FAIRY
+FAITH
+FALLS
+FALSE
+FANCY
+FATAL
+FAULT
+FAVOR
+FEARS
+FEEDS
+FEELS
+FENCE
+FETCH
+FEVER
+FEWER
+FIBER
+FIELD
+FIFTH
+FIFTY
+FIGHT
+FILED
+FILES
+FILLS
+FILMS
+FINAL
+FINDS
+FINED
+FINER
+FINES
+FIRED
+FIRES
+FIRMS
+FIRST
+FIXED
+FIXES
+FIZZY
+FLAGS
+FLAME
+FLASH
+FLAWS
+FLEET
+FLESH
+FLIES
+FLIPS
+FLOAT
+FLOOD
+FLOOR
+FLOUR
+FLOWN
+FLOWS
+FLUID
+FLUSH
+FLUTE
+FOCUS
+FOLDS
+FOLKS
+FONTS
+FOODS
+FOOLS
+FORCE
+FORMS
+FORTH
+FORTY
+FORUM
+FOUND
+FRAME
+FRANK
+FRAUD
+FREAK
+FREED
+FREES
+FRESH
+FRIED
+FRIES
+FROGS
+FRONT
+FROWN
+FROZE
+FRUIT
+FUDGE
+FULLY
+FUMES
+FUNDS
+FUNNY
+FURRY
+FUSSY
+FUZZY
+GAINS
+GAMES
+GATES
+GEARS
+GENES
+GENRE
+GHOST
+GIANT
+GIFTS
+GIRLS
+GIVEN
+GIVES
+GLASS
+GLORY
+GLOVE
+GLOWS
+GNOME
+GOALS
+GOING
+GOODS
+GOODY
+GRABS
+GRACE
+GRADE
+GRAIN
+GRAND
+GRANT
+GRAPH
+GRASP
+GRASS
+GRAVE
+GREAT
+GREED
+GREEN
+GRIEF
+GRIND
+GRIPS
+GROAN
+GROSS
+GROUP
+GROWN
+GROWS
+GUARD
+GUESS
+GUEST
+GUIDE
+GUILT
+HABIT
+HACKS
+HAIRS
+HAIRY
+HALLS
+HALTS
+HALVE
+HANDS
+HANDY
+HANGS
+HAPPY
+HARDY
+HARSH
+HASTY
+HATED
+HATES
+HAVOC
+HEADS
+HEARD
+HEARS
+HEART
+HEATS
+HEAVY
+HEELS
+HELLO
+HELPS
+HENCE
+HIDES
+HILLS
+HINTS
+HIRED
+HIRES
+HOBBY
+HOLDS
+HOLES
+HOMES
+HONEY
+HONOR
+HOOKS
+HOPED
+HOPES
+HORDE
+HORSE
+HOSTS
+HOTEL
+HOURS
+HOUSE
+HUMAN
+HUMOR
+HUNTS
+HURRY
+HURTS
+ICONS
+IDEAL
+IDEAS
+IDIOM
+IMAGE
+IMPLY
+INDEX
+INFER
+INNER
+INPUT
+IRONY
+ISSUE
+ITEMS
+JEANS
+JELLY
+JOINS
+JOINT
+JOKED
+JOKES
+JOLLY
+JUDGE
+JUICE
+JUMPS
+KEEPS
+KICKS
+KINDS
+KINGS
+KNEES
+KNIFE
+KNOCK
+KNOWN
+KNOWS
+LABEL
+LABOR
+LACKS
+LANDS
+LARGE
+LASER
+LASTS
+LATER
+LAUGH
+LAYER
+LEADS
+LEANS
+LEARN
+LEAST
+LEAVE
+LEGAL
+LEMON
+LENDS
+LEVEL
+LIFTS
+LIGHT
+LIKED
+LIKES
+LIMBS
+LIMIT
+LINED
+LINES
+LINKS
+LISTS
+LITER
+LIVED
+LIVER
+LIVES
+LOADS
+LOANS
+LOBBY
+LOCAL
+LOCKS
+LODGE
+LOGIC
+LOOKS
+LOOPS
+LOOSE
+LORDS
+LOSES
+LOUSY
+LOVED
+LOVES
+LOWER
+LOYAL
+LUCKY
+LUMPS
+LUNCH
+LUNGS
+LURKS
+LYING
+LYRIC
+MAGIC
+MAILS
+MAIZE
+MAJOR
+MAKER
+MAKES
+MALES
+MANIA
+MARCH
+MARKS
+MARRY
+MATCH
+MAYBE
+MAYOR
+MEALS
+MEANS
+MEANT
+MEDIA
+MEETS
+MENDS
+MENUS
+MERCY
+MERGE
+MERIT
+MERRY
+MESSY
+METAL
+METER
+MIGHT
+MILES
+MIMIC
+MINDS
+MINED
+MINES
+MINOR
+MINUS
+MISTS
+MIXED
+MIXES
+MOANS
+MODEL
+MODES
+MONEY
+MONTH
+MOONS
+MORAL
+MOTOR
+MOTTO
+MOUNT
+MOUSE
+MOUTH
+MOVED
+MOVES
+MOVIE
+MUMMY
+MUSIC
+MYTHS
+NAILS
+NAIVE
+NAMED
+NAMES
+NASTY
+NEEDS
+NERVE
+NESTS
+NEVER
+NEWER
+NEWLY
+NICER
+NICKS
+NIGHT
+NOBLE
+NOISE
+NOISY
+NORTH
+NOSES
+NOTED
+NOTES
+NOUNS
+NOVEL
+NURSE
+OBEYS
+OCCUR
+OCEAN
+ODDLY
+OFFER
+OFTEN
+OLDER
+OMITS
+ONION
+OPENS
+OPERA
+OPTED
+OPTIC
+ORBIT
+ORDER
+ORGAN
+OTHER
+OUGHT
+OUTER
+OWING
+OWNED
+OWNER
+OZONE
+PACKS
+PAGED
+PAGES
+PAINS
+PAINT
+PAIRS
+PANEL
+PANIC
+PANTS
+PAPER
+PARKS
+PARTS
+PARTY
+PASTE
+PATCH
+PATHS
+PAUSE
+PEACE
+PEAKS
+PEDAL
+PEERS
+PENNY
+PETTY
+PHASE
+PHONE
+PHOTO
+PIANO
+PICKS
+PIECE
+PILES
+PILLS
+PILOT
+PINCH
+PINTS
+PIPES
+PITCH
+PIZZA
+PLACE
+PLAIN
+PLANE
+PLANS
+PLANT
+PLATE
+PLAYS
+PLOTS
+PLUGS
+POEMS
+POETS
+POINT
+POLAR
+POLLS
+PORTS
+POSED
+POSES
+POSTS
+POUND
+POURS
+POWER
+PRAYS
+PRESS
+PRICE
+PRIDE
+PRIME
+PRINT
+PRIOR
+PRIZE
+PRONE
+PROOF
+PROSE
+PROUD
+PROVE
+PULLS
+PULSE
+PUMPS
+PUNCH
+PUNTS
+PUPIL
+PURGE
+PUTTS
+QUEEN
+QUERY
+QUEST
+QUEUE
+QUICK
+QUIET
+QUITE
+QUITS
+QUOTA
+QUOTE
+RABID
+RACED
+RACES
+RACKS
+RADAR
+RADIO
+RAIDS
+RAILS
+RAINS
+RAISE
+RANGE
+RANKS
+RANTS
+RAPID
+RARER
+RATED
+RATES
+RATIO
+RAVED
+RAVES
+RAZOR
+REACH
+REACT
+READS
+READY
+REALM
+REFER
+REIGN
+RELAX
+RELAY
+RENEW
+REPLY
+RESET
+RESTS
+REUSE
+RHYME
+RIDES
+RIGHT
+RIGID
+RINGS
+RISEN
+RISES
+RISKS
+RISKY
+RIVAL
+RIVER
+ROADS
+ROBOT
+ROCKS
+ROLES
+ROLLS
+ROMAN
+ROOMS
+ROOTS
+ROUGH
+ROUND
+ROUTE
+ROYAL
+RUINS
+RULED
+RULER
+RULES
+RUMOR
+RURAL
+RUSTY
+SACKS
+SADLY
+SAFER
+SAILS
+SAINT
+SALES
+SAUCE
+SAVED
+SAVES
+SCALE
+SCANS
+SCARE
+SCARF
+SCENE
+SCOPE
+SCORE
+SCRAP
+SCREW
+SEALS
+SEATS
+SEEKS
+SEEMS
+SELLS
+SENDS
+SENSE
+SERVE
+SEVEN
+SHADE
+SHAKE
+SHAKY
+SHALL
+SHAME
+SHAPE
+SHARE
+SHARP
+SHEDS
+SHEEP
+SHEER
+SHEET
+SHELF
+SHELL
+SHIFT
+SHINE
+SHINY
+SHIPS
+SHIRT
+SHOCK
+SHOES
+SHONE
+SHOOK
+SHOPS
+SHORT
+SHOTS
+SHOUT
+SHOVE
+SHOWN
+SHOWS
+SHUTS
+SIDED
+SIDES
+SIGHT
+SIGMA
+SIGNS
+SILLY
+SINCE
+SINGS
+SINKS
+SITES
+SIXTH
+SIXTY
+SIZED
+SIZES
+SKILL
+SKIPS
+SKIRT
+SKULL
+SLANG
+SLASH
+SLEEP
+SLEPT
+SLICE
+SLIDE
+SLIPS
+SLOPE
+SLOTS
+SLOWS
+SMALL
+SMART
+SMASH
+SMELL
+SMILE
+SMITH
+SMOKE
+SNACK
+SNAIL
+SNEAK
+SNIFF
+SOCKS
+SOLAR
+SOLES
+SOLID
+SOLVE
+SONGS
+SORRY
+SORTS
+SOULS
+SOUND
+SOUTH
+SPACE
+SPARE
+SPEAK
+SPEED
+SPELL
+SPEND
+SPENT
+SPIES
+SPIKE
+SPILL
+SPITE
+SPITS
+SPLIT
+SPOIL
+SPOKE
+SPOOF
+SPOOL
+SPORT
+SPOTS
+SPOUT
+SPRAY
+SQUAD
+STACK
+STAFF
+STAGE
+STAIR
+STAKE
+STALE
+STALL
+STAMP
+STAND
+STARE
+STARK
+STARS
+START
+STATE
+STAYS
+STEAL
+STEAM
+STEEL
+STEEP
+STEER
+STEMS
+STEPS
+STICK
+STIFF
+STILL
+STIRS
+STOCK
+STOLE
+STONE
+STOOD
+STOPS
+STORE
+STORM
+STORY
+STRAW
+STRAY
+STRIP
+STUCK
+STUDY
+STUFF
+STUNS
+STUNT
+STYLE
+SUGAR
+SUING
+SUITE
+SUITS
+SUNNY
+SUPER
+SWAMP
+SWAPS
+SWEAR
+SWEAT
+SWEEP
+SWEET
+SWEPT
+SWIMS
+SWING
+SWORD
+SWORE
+SWORN
+TABLE
+TACKS
+TAILS
+TAKEN
+TAKES
+TALES
+TALKS
+TANKS
+TAPES
+TASKS
+TASTE
+TAXES
+TEACH
+TEAMS
+TEARS
+TEETH
+TELLS
+TEMPT
+TENDS
+TENSE
+TENTH
+TERMS
+TESTS
+TEXTS
+THANK
+THEFT
+THEIR
+THEME
+THERE
+THESE
+THICK
+THIEF
+THING
+THINK
+THIRD
+THOSE
+THREE
+THREW
+THROW
+THUMB
+TIGER
+TIGHT
+TILES
+TIMED
+TIMER
+TIMES
+TIRED
+TIRES
+TITLE
+TOAST
+TODAY
+TOKEN
+TONES
+TOOLS
+TOOTH
+TOPIC
+TOTAL
+TOUCH
+TOUGH
+TOWER
+TOWNS
+TRACE
+TRACK
+TRADE
+TRAIL
+TRAIN
+TRAPS
+TRASH
+TREAD
+TREAT
+TREES
+TREND
+TRIAL
+TRIBE
+TRICK
+TRIED
+TRIES
+TRIPS
+TROOP
+TRUCK
+TRULY
+TRUNK
+TRUST
+TRUTH
+TUBES
+TUNED
+TUNES
+TURNS
+TUTOR
+TWICE
+TWINS
+TWIST
+TYING
+TYPED
+TYPES
+UNCLE
+UNDER
+UNDID
+UNIFY
+UNION
+UNITE
+UNITS
+UNITY
+UNTIL
+UPPER
+UPSET
+URBAN
+URGED
+URGES
+USAGE
+USERS
+USING
+USUAL
+UTTER
+VAGUE
+VALID
+VALUE
+VALVE
+VENUE
+VERBS
+VERSE
+VIDEO
+VIEWS
+VINYL
+VIRUS
+VISIT
+VITAL
+VOCAL
+VOICE
+VOMIT
+VOTED
+VOTER
+VOTES
+VOUCH
+VOWEL
+WADED
+WADES
+WAGES
+WAITS
+WAKES
+WALKS
+WALLS
+WANTS
+WARMS
+WARNS
+WARPS
+WASTE
+WATCH
+WATER
+WAVED
+WAVES
+WEARS
+WEARY
+WEEKS
+WEIGH
+WEIRD
+WHALE
+WHEEL
+WHERE
+WHICH
+WHILE
+WHITE
+WHOLE
+WHOOP
+WHOSE
+WIDER
+WIDTH
+WILLS
+WINDS
+WINGS
+WIPED
+WIPES
+WIRED
+WIRES
+WISER
+WITCH
+WITTY
+WIVES
+WOKEN
+WOMAN
+WOMEN
+WOODS
+WORDS
+WORKS
+WORLD
+WORMS
+WORRY
+WORSE
+WORST
+WORTH
+WOULD
+WOUND
+WRAPS
+WRATH
+WRECK
+WRIST
+WRITE
+WRONG
+WROTE
+YARDS
+YEARS
+YIELD
+YOUNG
+YOURS
+YOUTH
+ZEROS
+ZONES

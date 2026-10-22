@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import familiarText from '../data/familiar-4.txt?raw';
 import familiar5Text from '../data/familiar-5.txt?raw';
+import everyday5Text from '../data/everyday-5.txt?raw';
+import simple5Text from '../data/simple-5.txt?raw';
+import notSimple5Text from '../data/not-simple-5.txt?raw';
 import enableText from '../data/enable1.txt?raw';
 import mazeJson from '../public/mazes.json';
 import maze5Json from '../public/mazes-5.json';
@@ -44,6 +47,21 @@ describe("the desktop game's 5-letter word list", () => {
 
   it('is the 5-letter maze’s rooms', () => {
     expect((maze5Json as { words: string[] }).words).toEqual(familiar5);
+  });
+});
+
+describe("Easycore's simple words", () => {
+  it('are everyday maze words, none of those reviewed out, with the notice of the SCOWL release they come from', () => {
+    const simple = parseWordList(simple5Text);
+    const everyday = new Set(parseWordList(everyday5Text));
+    const out = new Set(parseWordList(notSimple5Text));
+    expect(simple.length).toBeGreaterThan(1000);
+    for (const w of simple) {
+      expect(everyday.has(w), w).toBe(true);
+      expect(out.has(w), w).toBe(false);
+    }
+    expect(simple.filter((w) => BLOCKLIST.includes(w))).toEqual([]);
+    expect(simple5Text).toContain('Copyright 2000-2018 by Kevin Atkinson');
   });
 });
 

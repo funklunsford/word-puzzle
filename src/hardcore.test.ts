@@ -1,9 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { hasStarted, loadHardcore, saveHardcore } from './hardcore';
+import { describe, expect, it } from 'vitest';
+import { hasStarted } from './hardcore';
 
+// (Where the choice is kept, under its old key too: src/easycore.test.ts.)
 describe('the hardcore switch', () => {
-  afterEach(() => vi.unstubAllGlobals());
-
   it('turns on without starting over before the puzzle has started', () => {
     expect(hasStarted({ words: 0, strokes: 0, hints: 0 })).toBe(false);
   });
@@ -14,26 +13,5 @@ describe('the hardcore switch', () => {
     expect(hasStarted({ words: 0, strokes: 0, hints: 1 })).toBe(true);
     // A won game has made its words.
     expect(hasStarted({ words: 5, strokes: 0, hints: 0 })).toBe(true);
-  });
-
-  it('is remembered in this browser, under its old key, and off when storage is blocked', () => {
-    const items = new Map<string, string>();
-    vi.stubGlobal('localStorage', { getItem: (k: string) => items.get(k) ?? null, setItem: (k: string, v: string) => items.set(k, v) });
-    expect(loadHardcore()).toBe(false);
-    saveHardcore(true);
-    expect(items.get('strokes:hardcore')).toBe('1');
-    expect(loadHardcore()).toBe(true);
-    saveHardcore(false);
-    expect(loadHardcore()).toBe(false);
-    vi.stubGlobal('localStorage', {
-      getItem: () => {
-        throw new Error('blocked');
-      },
-      setItem: () => {
-        throw new Error('blocked');
-      },
-    });
-    expect(loadHardcore()).toBe(false);
-    expect(() => saveHardcore(true)).not.toThrow();
   });
 });

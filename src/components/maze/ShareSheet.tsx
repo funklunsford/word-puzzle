@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { SITE, drawResultCard, type ShareResult } from '../../share';
+import { SITE, drawResultCard, shareTitle, type ShareResult } from '../../share';
 import { usePrefs } from '../../prefs';
 
 /**
@@ -16,8 +16,8 @@ export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: 
   const file = useRef<File | null>(null);
   const [copied, setCopied] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const name = `strokes-${result.number ?? 'result'}.png`;
-  const title = `Strokes${result.number ? ` No. ${result.number}` : ''}${result.start.length === 5 ? ' · 5 letters' : ''}`;
+  const name = `strokes-${result.easycore ? 'easycore-' : ''}${result.number ?? 'result'}.png`;
+  const title = shareTitle(result);
   const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write;
 
   useEffect(() => {

@@ -1,6 +1,11 @@
 // The end of a game's stats: the player's record over the dailies, worked out from the results this
 // browser keeps (one per daily solved, the best of them), so replaying a day never counts it twice.
 
+import type { WordLength } from './letters';
+
+/** Where a daily's result is kept: the 4- and 5-letter games keep theirs apart, and Easycore's dailies theirs. */
+export const resultKey = (date: string, letters: WordLength, easy = false) => `strokes:result${letters === 5 ? '5' : ''}${easy ? 'e' : ''}:${date}`;
+
 /** A daily's kept result, as far as the record needs it. */
 export interface Solved {
   strokes: number;

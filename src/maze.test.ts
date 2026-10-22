@@ -3,8 +3,12 @@ import mazeJson from '../public/mazes.json';
 import maze5Json from '../public/mazes-5.json';
 import poolText from '../public/pool.json?raw';
 import pool5Text from '../public/pool-5.json?raw';
-import { ONE_STROKE, POOL_MIX, PUZZLE_SHAPE, PUZZLE_SHAPES, buildGraph, classifyNeed, hubStep, isObvious, randomPuzzle, solve, steppingStone, type Need } from './maze';
+import easyPoolText from '../public/pool-5-easy.json?raw';
+import simpleText from '../data/simple-5.txt?raw';
+import { distancesFrom, parChance } from './difficulty';
+import { EASY_SHAPE, ONE_STROKE, POOL_MIX, PUZZLE_SHAPE, PUZZLE_SHAPES, buildGraph, classifyNeed, hubStep, isObvious, randomPuzzle, solve, steppingStone, type Need, type Puzzle } from './maze';
 import { STEP_LIMIT, wordDistance } from './strokes';
+import { parseWordList } from './wordlist';
 
 const { words, puzzle } = mazeJson as { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] } };
 const adj = buildGraph(words);
@@ -135,6 +139,56 @@ describe.each([
   it('solves its reference puzzle the same way the script did', () => {
     expect(solve(poolWords, poolAdj, json.puzzle.start, json.puzzle.goal)).toEqual(json.puzzle);
   });
+});
+
+// Easycore's pool (scripts/mazes.ts --easy), which its days are picked from by date (src/easycore.ts).
+describe("Easycore's puzzle pool", () => {
+  const { puzzles } = JSON.parse(easyPoolText) as { puzzles: { puzzle: Puzzle; difficulty: { parChance: number } }[] };
+  const words5 = (maze5Json as { words: string[] }).words;
+  const adj5 = buildGraph(words5);
+  const at = new Map(words5.map((w, i) => [w, i]));
+  const simple = new Set(parseWordList(simpleText));
+  const name = (p: Puzzle) => `${p.start} → ${p.goal}`;
+
+  it('holds three years of puzzles, each of its shape: lowest 5–8 strokes over 2–3 words after the start', () => {
+    expect(puzzles.length).toBeGreaterThanOrEqual(1000);
+    for (const { puzzle: p } of puzzles) {
+      expect(p.best, name(p)).toBeGreaterThanOrEqual(EASY_SHAPE.best[0]);
+      expect(p.best, name(p)).toBeLessThanOrEqual(EASY_SHAPE.best[1]);
+      expect(p.path.length - 1, name(p)).toBeGreaterThanOrEqual(EASY_SHAPE.steps[0]);
+      expect(p.path.length - 1, name(p)).toBeLessThanOrEqual(EASY_SHAPE.steps[1]);
+      expect([p.path[0], p.path.at(-1)], name(p)).toEqual([p.start, p.goal]);
+    }
+  });
+
+  it('keeps to simple words, with a lowest-stroke route through them alone, lowest over the whole maze', () => {
+    for (const { puzzle: p } of puzzles) {
+      for (const w of p.path) expect(simple.has(w), `${name(p)}: ${w}`).toBe(true);
+      let cost = 0;
+      for (let i = 1; i < p.path.length; i++) {
+        const step = wordDistance(p.path[i - 1], p.path[i]);
+        expect(step, `${name(p)}: ${p.path[i - 1]} → ${p.path[i]}`).toBeLessThanOrEqual(STEP_LIMIT);
+        cost += step;
+      }
+      expect(cost, name(p)).toBe(p.best);
+      // Every familiar word counts in play, so the score is against the whole maze's lowest.
+      expect(distancesFrom(adj5, at.get(p.start)!)[at.get(p.goal)!], name(p)).toBe(p.best);
+    }
+  }, 60_000);
+
+  it('never repeats a pair, either way round', () => {
+    const pairs = puzzles.map(({ puzzle: p }) => [p.start, p.goal].sort().join('|'));
+    expect(new Set(pairs).size).toBe(pairs.length);
+  });
+
+  it('is winnable: two doors or more at each end, and the simulated player makes par a fifth of the time or more', () => {
+    for (const { puzzle: p, difficulty } of puzzles) {
+      expect(adj5[at.get(p.start)!].length, name(p)).toBeGreaterThanOrEqual(2);
+      expect(adj5[at.get(p.goal)!].length, name(p)).toBeGreaterThanOrEqual(2);
+      expect(difficulty.parChance, name(p)).toBeGreaterThanOrEqual(0.2);
+      expect(parChance(words5, adj5, p), name(p)).toBe(difficulty.parChance);
+    }
+  }, 60_000);
 });
 
 describe('isObvious', () => {
