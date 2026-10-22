@@ -38,7 +38,10 @@ const TAP_SLOP_TOUCH = 10;
 /** Two taps on a tray stroke within this long (ms) are a double tap, which turns it on a touch screen. */
 const DOUBLE_TAP = 400;
 const WIGGLE = { duration: 0.4, times: [0, 0.35, 0.7, 1], ease: 'easeOut' as const };
-/** Tray tiles draw their 2.4-unit box in about 40 px. */
+/**
+ * Tray tiles draw their 2.4-unit box in about 40 px (up to 60 on phones). It only sets the pen's
+ * least width, which doesn't move a stroke's centring (see opticalOffset).
+ */
 const TRAY_PX_PER_UNIT = 40 / 2.4;
 
 // Springs, in Apple's terms (damping ratio → Motion's bounce, response → duration).
