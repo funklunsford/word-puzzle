@@ -1259,3 +1259,11 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Folded** (a phone, `compact`): one line, "YOUR PATH  3 words · 5 strokes ⌄" and Restart. Tapping the line opens the path's words, its ink pots and a word's meaning (`.path-words`), and the chevron turns up; it stays as left, through a restart too. 54 px tall where the card was 174, so two steps into the Oct 16 daily the game fits a 390 × 844 screen without scrolling (it scrolled 12 px).
 - The line is a button (`aria-expanded`, `aria-controls="your-path"`); the words stay in the page, `hidden`, while folded.
 - **Desktop** and the side card are as before: the words always shown, Restart under them.
+
+## No prototype pages on the site (2026-10-23, branch `no-dev-pages`)
+- **The owner's call,** ahead of a Show HN post: the site has just the game.
+- **Removed:** the Segment Smush prototype at `/#smush`.
+  - Its code: `src/App.tsx`; the `Board`, `Keyboard`, `WordLine` and `Stroke` components; `src/game.ts` and its tests; `scripts/boards.ts` and `public/boards.json` (and `boards.json` from the data files `vite.config.ts` hashes).
+  - Its styles: the stylesheet's old Game section, 326 lines. Only `.meta` there was still in use (Your path's "here" and "goal", an ad's label), and it stays.
+  - Screenshots of six states (phone and desktop, light and dark: How to play, Settings, Your path, the game) came out the same pixel for pixel without the rest.
+- **The glyph gallery** (`/#gallery`) is on the dev server only. `main.tsx` loads it lazily under `import.meta.env.DEV`, so the built site has none of it, and `/#gallery` (or `/#smush`) there opens the game.

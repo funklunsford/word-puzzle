@@ -6,7 +6,7 @@ A word maze where every letter is built from pen strokes. Each word is a room: d
 
 ```bash
 npm install
-npm run dev          # maze at http://localhost:5173, glyph gallery at /#gallery, old Smush prototype at /#smush
+npm run dev          # the game at http://localhost:5173, and the glyph gallery at /#gallery (dev server only)
 npm test             # game-logic and celebration tests
 npm run daily        # candidates for the next daily puzzle (see below)
 ```
