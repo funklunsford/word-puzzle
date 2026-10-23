@@ -1,14 +1,17 @@
 // Sharing a result: a picture card with the link back (no text to paste). The card shows the solve's
-// shape, never its words: the start and goal in ink, and between them a row of squares per step, a
-// square per letter, coloured by how many strokes went into that letter, with the step's strokes
-// beside it. (A stroke moved from one letter to another colours both, so a row's squares can add up
-// to more than it cost.) There's also the link preview for the site itself (og.png).
+// shape, never its words (with them, which letters changed would give the route away): between START
+// and GOAL, a row of squares per step, a square per letter, coloured by how many strokes went into
+// that letter, then the step's strokes and a mark in its colour for each kind of move it made (see
+// moves.ts). A stroke carried to another letter counts where it went, and the letter it left is
+// outlined. (Results kept before moves were recorded colour both letters, so a row's squares can add
+// up to more than it cost.) There's also the link preview for the site itself (og.png).
 
 import { LETTERS, TILE_IDS, TRAY_TURN, drawnScale, drawnWidth, type TileId } from './glyphs';
 import { inkOutline, inkSeed, opticalOffset } from './ink';
 import { scoreName } from './golf';
 import { spaced } from './spacing';
 import { letterDiff } from './strokes';
+import { MOVE_KINDS, validMoves, type Move, type MoveKind } from './moves';
 import { palette, type PaletteChoice } from './palettes';
 
 export interface ShareResult {
@@ -23,8 +26,8 @@ export interface ShareResult {
   hardcore: boolean;
   /** An Easycore daily (see src/easycore.ts): numbered like the classic ones, but another puzzle. */
   easycore?: boolean;
-  /** Each step: the word it started from, the word it made, and what it cost. */
-  steps: { from: string; to: string; cost: number }[];
+  /** Each step: the word it started from, the word it made, what it cost, and what its strokes did (results kept before 2026-10-23 have no moves). */
+  steps: { from: string; to: string; cost: number; moves?: Move[] }[];
 }
 
 /** What a result's card and share say it is, after its number: Easycore, or (for the 5-letter game) 5 letters. */
@@ -55,6 +58,26 @@ function letterStrokes(a: string, b: string): number {
 /** One step's squares: 0 for a letter kept, else its strokes (1, 2, 3+). */
 export const stepSquares = (from: string, to: string) => [...to].map((ch, i) => Math.min(3, letterStrokes(from[i], ch)));
 
+/**
+ * One step's squares from its moves: each letter's strokes (1, 2, 3+), a carried stroke counting in
+ * the letter it went to, and the letters strokes were carried from (`gave`).
+ */
+export function stepHeat(letters: number, moves: Move[]): { heat: number[]; gave: number[] } {
+  const heat = Array<number>(letters).fill(0);
+  const gave: number[] = [];
+  for (const m of moves) {
+    if (m.kind !== 'carry') heat[m.at]++;
+    else {
+      heat[m.to!]++;
+      if (!gave.includes(m.at)) gave.push(m.at);
+    }
+  }
+  return { heat: heat.map((n) => Math.min(3, n)), gave };
+}
+
+/** The kinds of move a step made, each once, in the card's order. */
+export const kindsIn = (moves: Move[] = []): MoveKind[] => MOVE_KINDS.filter((k) => moves.some((m) => m.kind === k));
+
 // ---------- The picture card ----------
 
 /** The light page's colours (the card is always on paper, whatever the player's theme; its strokes are in the player's palette, light). */
@@ -71,10 +94,10 @@ const PAPER = {
   easy: '#497c38',
   squares: ['#efeae0', '#f2c65a', '#e8913a', '#d9542f'],
   squareLedges: ['#ddd6c8', '#d6a63a', '#c9752a', '#b54224'],
-  /** Colour-blind: yellow, blue, red (light, middle, dark to red-green colour blindness too). */
-  squaresCB: ['#efeae0', '#f2c65a', '#3f7fd6', '#b8402a'],
-  squareLedgesCB: ['#ddd6c8', '#d6a63a', '#2f63ad', '#8f2f1e'],
 };
+
+/** Each kind of move in its own colour: added green and removed red, as How to play marks them (--ok, --remove); moved blue, carried purple, turned amber. */
+const MOVE_COLOURS: Record<MoveKind, string> = { add: '#497c38', remove: '#df2c3b', move: '#2f6fb3', carry: '#7d4fb0', turn: '#c27c0e' };
 
 const FONT = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif';
 
@@ -136,24 +159,69 @@ function cardBase(ctx: CanvasRenderingContext2D, w: number, h: number, m: number
   ctx.stroke();
 }
 
+/**
+ * A move's mark, round-capped like the game's strokes, `r` px from its centre to its ends: + added,
+ * − removed, ↔ moved within its letter, a hop for carried to another letter, ↻ turned.
+ */
+function moveMark(ctx: CanvasRenderingContext2D, kind: MoveKind, cx: number, cy: number, r: number, color: string) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(3, r * 0.3);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  /** An arrowhead at (x, y), pointing along (dx, dy). */
+  const head = (x: number, y: number, dx: number, dy: number) => {
+    const l = Math.hypot(dx, dy);
+    const [ux, uy] = [dx / l, dy / l];
+    for (const side of [-1, 1]) {
+      const [c, s] = [Math.cos((side * Math.PI) / 5), Math.sin((side * Math.PI) / 5)];
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - r * 0.5 * (ux * c - uy * s), y - r * 0.5 * (uy * c + ux * s));
+    }
+  };
+  if (kind === 'add' || kind === 'remove' || kind === 'move') {
+    ctx.moveTo(-r, 0);
+    ctx.lineTo(r, 0);
+    if (kind === 'add') {
+      ctx.moveTo(0, -r);
+      ctx.lineTo(0, r);
+    }
+    if (kind === 'move') {
+      head(r, 0, 1, 0);
+      head(-r, 0, -1, 0);
+    }
+  } else if (kind === 'turn') {
+    const end = Math.PI * 1.35;
+    ctx.arc(0, 0, r * 0.9, -Math.PI * 0.2, end);
+    head(r * 0.9 * Math.cos(end), r * 0.9 * Math.sin(end), -Math.sin(end), Math.cos(end));
+  } else {
+    ctx.moveTo(-r, r * 0.55);
+    ctx.quadraticCurveTo(0, -r * 1.3, r, r * 0.55);
+    head(r, r * 0.55, 0.55, 1);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** A heat square: the game's tile shape, with its ledge. */
-function square(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, heat: number, colorBlind = false) {
+function square(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, heat: number) {
   const r = size * 0.22;
   const ledge = Math.max(3, size * 0.07);
   roundRect(ctx, x, y + ledge, size, size, r);
-  ctx.fillStyle = (colorBlind ? PAPER.squareLedgesCB : PAPER.squareLedges)[heat];
+  ctx.fillStyle = PAPER.squareLedges[heat];
   ctx.fill();
   roundRect(ctx, x, y, size, size, r);
-  ctx.fillStyle = (colorBlind ? PAPER.squaresCB : PAPER.squares)[heat];
+  ctx.fillStyle = PAPER.squares[heat];
   ctx.fill();
 }
 
 /**
- * The result card (1080×1350, a portrait post): the score, then the solve as a ladder (the start
- * word in ink, a row of squares per step under the letters it changed, the goal word in ink), and
- * the link.
+ * The result card (1080×1350, a portrait post): the score, then the solve as a ladder (START, a row
+ * of squares per step with its strokes and its moves' marks, GOAL), and the link.
  */
-export async function drawResultCard(r: ShareResult, colorBlind = false, strokes: PaletteChoice = 'earth', canvas = document.createElement('canvas')): Promise<HTMLCanvasElement> {
+export async function drawResultCard(r: ShareResult, strokes: PaletteChoice = 'earth', canvas = document.createElement('canvas')): Promise<HTMLCanvasElement> {
   await document.fonts?.ready;
   const tiles = palette(strokes).light;
   const W = 1080;
@@ -210,38 +278,50 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, strokes
     });
   }
 
-  // The ladder: the start word, a row per step, the goal word; the letters over their columns.
+  // The ladder: START, a row per step (a square per letter), GOAL.
   const top = badges.length ? 510 : 456;
   const bottom = 1124;
-  const rows = r.steps.length + 2;
-  const size = Math.min(100, Math.floor((bottom - top) / (rows * 1.22)));
+  const steps = r.steps.map((s) => ({ ...s, moves: validMoves(s.moves, letters) }));
+  const rows = Math.max(1, steps.length);
+  const size = Math.min(112, Math.floor((bottom - top - 120) / (rows * 1.22)));
   const gap = Math.round(size * 0.22);
   const ladderH = rows * size + (rows - 1) * gap;
   const y0 = top + (bottom - top - ladderH) / 2;
   const rowW = letters * size + (letters - 1) * gap;
-  const tag = size * 1.1; // room for each step's "+2", to the right
-  const x0 = cx - (rowW + tag) / 2 + tag / 2 - size * 0.3;
+  // Room to the right for each step's "+2" and its marks.
+  const marks = Math.max(0, ...steps.map((s) => kindsIn(s.moves).length));
+  const x0 = cx - rowW / 2 - size * 0.3 - marks * size * 0.23;
   const col = (k: number) => x0 + k * (size + gap);
   const rowY = (i: number) => y0 + i * (size + gap);
-  const word = (w: string, i: number) => [...w].forEach((ch, k) => drawWord(ctx, ch, col(k) + size / 2, rowY(i) + size * 0.1, size * 0.4, tiles));
-  word(r.start, 0);
-  r.steps.forEach((s, i) => {
-    const y = rowY(i + 1);
-    stepSquares(s.from, s.to).forEach((n, k) => square(ctx, col(k), y, size, n, colorBlind));
+  ctx.fillStyle = PAPER.muted;
+  ctx.font = `800 26px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('START', x0 + rowW / 2, rowY(0) - 26);
+  ctx.fillText('GOAL', x0 + rowW / 2, rowY(rows - 1) + size + 54);
+  steps.forEach((s, i) => {
+    const y = rowY(i);
+    const { heat, gave } = s.moves ? stepHeat(letters, s.moves) : { heat: stepSquares(s.from, s.to), gave: [] };
+    heat.forEach((n, k) => square(ctx, col(k), y, size, n));
+    // A letter a stroke was carried from: outlined in the carry's colour (the stroke counts where it went).
+    for (const k of gave) {
+      ctx.save();
+      ctx.setLineDash([size * 0.09, size * 0.07]);
+      ctx.lineWidth = Math.max(3, size * 0.05);
+      ctx.strokeStyle = MOVE_COLOURS.carry;
+      roundRect(ctx, col(k) + 2, y + 2, size - 4, size - 4, size * 0.2);
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.fillStyle = PAPER.muted;
     ctx.font = `800 ${Math.max(26, Math.round(size * 0.44))}px ${FONT}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`+${s.cost}`, col(letters) + size * 0.12, y + size / 2 + 1);
+    const tx = col(letters) + size * 0.12;
+    ctx.fillText(`+${s.cost}`, tx, y + size / 2 + 1);
+    const w = ctx.measureText(`+${s.cost}`).width;
+    kindsIn(s.moves).forEach((k, j) => moveMark(ctx, k, tx + w + size * 0.36 + j * size * 0.46, y + size / 2, size * 0.15, MOVE_COLOURS[k]));
   });
-  if (!r.steps.length) {
-    ctx.fillStyle = PAPER.muted;
-    ctx.font = `700 ${Math.round(size * 0.7)}px ${FONT}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('↓', x0 + rowW / 2, rowY(1) + size / 2);
-  }
-  word(r.goal, rows - 1);
 
   // The link.
   ctx.textAlign = 'center';

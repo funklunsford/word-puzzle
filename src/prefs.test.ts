@@ -17,6 +17,11 @@ describe('settings', () => {
     expect(loadPrefs().definitions).toBe(true);
   });
 
+  it('ignores a saved colour-blind squares choice (the setting is gone)', () => {
+    storage({ colorBlind: true, definitions: false });
+    expect(loadPrefs()).toEqual({ ...DEFAULT_PREFS, definitions: false });
+  });
+
   it('keeps a letter guide saved on (saving any setting stored it), and one saved off', () => {
     storage({ motion: 'less', letters: true, definitions: true, colorBlind: false });
     expect(loadPrefs()).toMatchObject({ motion: 'less', letters: true });

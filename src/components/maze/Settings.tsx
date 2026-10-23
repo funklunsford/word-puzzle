@@ -178,15 +178,6 @@ export function Settings({ theme, onTheme, prefs, onPrefs, difficulty, onDifficu
             onChange={(definitions) => onPrefs({ definitions })}
           />
         </div>
-        <div className="setting">
-          <span className="setting-label">Sharing</span>
-          <Toggle
-            label="Colour-blind squares"
-            note="Your result card's squares use yellow, blue and red, so none needs telling orange from red."
-            on={prefs.colorBlind}
-            onChange={(colorBlind) => onPrefs({ colorBlind })}
-          />
-        </div>
         <button className="pill help-go" onClick={onClose}>
           Done
         </button>

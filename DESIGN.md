@@ -1236,3 +1236,20 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - **At 1280 × 800,** the strokes tip and the dots in view (the dots' bottom at 800 px, scrolled 39 px).
   - The skip, returning, ?, off-route and free-return checks on both devices.
   - The ghost caught mid-move (the bar standing up on its way to the C, under a finger and a cursor; the J's curve tapped, and reddening under the cursor), and the still marks with reduced motion.
+
+## No colour-blind squares setting (2026-10-23, branch `no-colour-blind-squares`)
+- **The owner's call:** Settings no longer has Sharing's one switch, "Colour-blind squares", which drew the result card's step squares in yellow, blue and red instead of yellow, orange and red.
+- **Now:** every card's squares are yellow, orange and red (`PAPER.squares` in `src/share.ts`); `drawResultCard` takes the result, then the stroke colours. Settings ends with Playing.
+- **A saved choice** (`colorBlind` in `strokes:prefs`) is ignored, as Swipe to turn's is, and drops out the next time a setting is saved. A test checks it loads as the defaults.
+- The stroke colours' Clear palette is still there for colour blindness, and the result card's strokes follow it.
+
+## The result card: what each step's strokes did, and no words (2026-10-23, branch `share-marks`)
+- **The owner's calls,** from mock-ups drawn with the card's own code: keep the card's look; after each step's strokes ("+2"), a mark for each kind of move it made, each kind in its own colour; and no words, with START and GOAL above and below the rows.
+- **Why no words:** a row lights the letters its step changed, so with the start and goal words a reader could often rebuild the words in between (whenever each letter changes once). Without them, the card alone gives nothing away. The game shows the start and goal, but working the route out from the squares takes some doing.
+- **The marks** (`moveMark` in `src/share.ts`), round-capped like the game's strokes: + added (green, How to play's `--ok`), − removed (red, `--remove`), ↔ moved within its letter (blue), a hop for carried to another letter (purple), ↻ turned (amber). Each kind once per step, in that order. They differ in shape as well as colour.
+- **A carried stroke counts once,** in the letter it went to; the letter it left is outlined, dashed, in the carry's purple. Before, it lit both letters, so a row could look dearer than it was.
+- **What each stroke did** (`src/moves.ts`): the editor reports only the letters after each stroke, so `moveOf` compares the letters before and after, slot by slot (`slotKey`, which ignores how a stroke is drawn).
+  - Only gained: added. Only lost: removed. Left a slot for another: carried if it changed letters, turned if it kept its spot, moved otherwise.
+  - When a step makes a new word, MazeApp lists its strokes from the step's history (`movesOf`) with the step (`Visit.moves`), and the result keeps them (`steps[].moves`). A free return isn't a step, as before, and an undone stroke isn't in the history, so neither is listed.
+  - **Results kept before** have no moves: their rows are lit from the words, as before (`stepSquares`), with no marks. Kept moves are used only if they're sound (`validMoves`).
+- **Checked:** the Oct 16 daily solved in Chrome with the demo video's planned moves (adds, removes and two carries). Each step's moves were kept as made, and the card showed them (13 strokes, an Ace). Tests: each kind of move, a step's list, kept moves checked, a step's squares from its moves, and the marks' order.
