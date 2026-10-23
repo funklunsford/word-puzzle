@@ -1660,9 +1660,14 @@ select,
   opacity: 0.2;
 }
 
+/* A block, square by its own aspect ratio. With height: 100%, Safari made it as tall as the whole
+   tile (padding too) and hung it below the middle, stretching the tile; inline, Chrome left a line's
+   gap under it. Either way the stroke sat off centre. */
 .tray-tile svg {
+  display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 1;
   overflow: visible;
   pointer-events: none;
   transition:

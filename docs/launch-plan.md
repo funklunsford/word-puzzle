@@ -25,7 +25,7 @@ Each with Claude's recommendation.
   - The slots are ready, so adding them later is the flag plus the IDs.
 - [x] **The Puzzle Playlist stays at funklunsford.github.io/playlist/** (owner's call, 2026-10-15): there's no strokes.fun/playlist. On another origin it can't see Strokes' "done" mark, so it ticks Strokes when you come back. funklunsford.com/puzzleplaylist forwards to it.
 - [x] **Existing players' saves: start fresh.** No redirect from the old address, and nothing carried over.
-- [ ] **Public or private source.** See Security below.
+- [x] **Public or private source: public** (owner's call, 2026-10-20). See Security below.
 
 ## 1. Domain and hosting: moving to Cloudflare Pages
 
@@ -40,7 +40,7 @@ Each with Claude's recommendation.
    - The licence notices ship in every build (`public/licenses`).
    - The theme set-up moved from inline to `public/boot.js`, so the security policy allows only the site's own scripts.
    - `public/_headers`:
-     - code cached for a year;
+     - code checked with the site on each visit, by Cloudflare and browsers (it was kept a year until 2026-10-22, when a bad copy stuck; see DESIGN.md);
      - nosniff, a referrer policy, and no camera, microphone or location;
      - no framing;
      - the content security policy, report-only until checked.
@@ -93,7 +93,7 @@ GitHub account.
 
 **To do**
 - [x] **Claude:** Dependabot's security-fix pull requests are on (2026-10-15, after the vitest update reached `main`).
-- [ ] **Owner: public or private source.** `funklunsford/word-puzzle` is public. That shows the whole puzzle pool (`public/pool-5.json`), the runbook and design notes, and your commit email address. With puzzles made two days ahead, it would also show tomorrow's puzzle. Anyone could copy the game wholesale. Making it private hides all that, with two catches:
+- [x] **Owner: public or private source: public** (owner's call, 2026-10-20). Private wouldn't hide the puzzles, since the live site carries the pool and the next two days', and it would cost "Protect main". `funklunsford/word-puzzle` is public. That shows the whole puzzle pool (`public/pool-5.json`), the runbook and design notes, and your commit email address. With puzzles made two days ahead, it would also show tomorrow's puzzle. Anyone could copy the game wholesale. Making it private hides all that, with two catches:
   - On a free personal account, rulesets don't apply to private repos, so "Protect main" would stop working (GitHub Pro keeps it).
   - The nightly run's GitHub access must cover private repos.
 
