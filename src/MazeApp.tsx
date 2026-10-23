@@ -6,6 +6,7 @@ import { STEP_LIMIT, recognize, slotKey, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, walkSteps, type InkPots } from './inkpots';
+import { movesOf, type Move } from './moves';
 import { clue, doorsFrom, hintSays, nextHintLevel, nextStep, type Doors, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { hasStarted } from './hardcore';
@@ -116,6 +117,8 @@ interface Visit {
   used?: number;
   /** The word the step started from (going back is free, so it isn't always the word before it). */
   from?: string;
+  /** What each of its strokes did, for the result card. */
+  moves?: Move[];
 }
 
 /** Layout: the main column's width cap, the side card's width, and the width where the card sits beside it. */
@@ -131,7 +134,7 @@ const COMPACT_MAX = 600;
 const HELP_KEY = 'strokes:seen-help';
 
 /** A path's steps, for sharing: where each began, the word it made, and its strokes. */
-const stepsOf = (trail: Visit[]): ShareResult['steps'] => trail.slice(1).map((v) => ({ from: v.from ?? v.word, to: v.word, cost: v.cost }));
+const stepsOf = (trail: Visit[]): ShareResult['steps'] => trail.slice(1).map((v) => ({ from: v.from ?? v.word, to: v.word, cost: v.cost, ...(v.moves && { moves: v.moves }) }));
 
 /** Storage can be missing or blocked (private windows); then help just opens every time. */
 const seenHelp = () => {
@@ -527,7 +530,8 @@ export function MazeApp() {
         const pot = !!potPlan?.pots.includes(word);
         setSpent((s) => s + paid);
         setInk(ink - used + (pot ? 1 : 0));
-        setTrail((t) => [...t, { word, cost: paid, used, from: room }]);
+        // The step's strokes: from its start, through each stroke's letters (history), to this one.
+        setTrail((t) => [...t, { word, cost: paid, used, from: room, moves: movesOf([...history, cells, next]) }]);
         setLastDoor({ word, cost: paid, used, back: false, pot });
         return true;
       }
@@ -537,7 +541,7 @@ export function MazeApp() {
       setCells(next);
       return true;
     },
-    [won, locked, room, dict, stepEdits, cells, trail, ink, potPlan, hardcore, current, spent],
+    [won, locked, room, dict, stepEdits, history, cells, trail, ink, potPlan, hardcore, current, spent],
   );
 
   // After a step to a new word: ink paid for it pours from the bank into the word, and a pot's ink
