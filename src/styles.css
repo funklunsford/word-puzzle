@@ -1035,157 +1035,355 @@ select,
 }
 
 .help-head h2 {
+  flex: 1;
   margin: 0;
   font-size: 23px;
   color: var(--ink);
 }
 
-.help-lead {
-  margin: 8px 0 4px;
-  color: var(--ink);
+/* How to play (HowToCard), on two cards: the goal and the three rules, then good to know and the
+   way on. Dots say which card it is. */
+.how-back {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 4px 0 -8px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.how-back path {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2.2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.how-lead {
+  margin: 12px 0 0;
   font-size: 17px;
   line-height: 1.4;
 }
 
-/* How to play's practice (HowToTry): a letter cell and a few tray strokes, with a ghost showing each move. */
-.how-try {
-  margin: 12px 0 8px;
-  padding: 10px 12px 12px;
-  background: color-mix(in srgb, var(--ink) 4%, transparent);
-  border: 1.5px solid var(--line);
-  border-radius: 16px;
-}
-
-.how-try-head {
+/* The sample's start and goal, as the path card draws them. */
+.how-example {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
 }
 
-.how-try-label {
+.how-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.how-chip.goal {
+  border: 1.5px dashed var(--gold);
+  background: color-mix(in srgb, var(--gold) 9%, var(--surface));
+}
+
+.how-chip .tag {
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 
-.how-try-dots {
-  display: flex;
-  gap: 5px;
+.how-chip.goal .tag {
+  color: color-mix(in srgb, var(--gold) 70%, var(--ink));
 }
 
-.how-try-dots span {
-  width: 9px;
-  height: 9px;
+.how-arrow path {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The rules, numbered in rings. */
+.how-rules {
+  list-style: none;
+  counter-reset: rule;
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.how-rules li {
+  counter-increment: rule;
+  position: relative;
+  min-height: 26px;
+  padding-left: 38px;
+  line-height: 1.4;
+}
+
+.how-rules li::before {
+  content: counter(rule);
+  position: absolute;
+  top: -1px;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid var(--line);
   border-radius: 50%;
-  border: 1.5px solid color-mix(in srgb, var(--muted) 70%, transparent);
-  transition: background 0.2s, border-color 0.2s;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
 }
 
-.how-try-dots span.now {
-  border-color: var(--ink);
+/* Good to know: short lines, a dot where the rules have numbers. */
+.how-tips {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
 }
 
-.how-try-dots span.done {
-  background: var(--ok);
-  border-color: var(--ok);
+.how-tips li {
+  position: relative;
+  padding-left: 38px;
+  line-height: 1.4;
 }
 
-/* More practice: the letters made so far, in place of the five moves' dots. */
-.how-try-count {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ok);
-  font-variant-numeric: tabular-nums;
+.how-tips li::before {
+  content: '';
+  position: absolute;
+  top: 0.55em;
+  left: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
 }
 
-/* The five moves done: the offer of more letters, over the practice cell. */
-.how-try-more {
+.how-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
+  gap: 2px;
+  margin-top: 20px;
+}
+
+.how-actions .help-go {
+  margin: 0;
+}
+
+/* A quieter way on, a link with a fingertip's room. */
+.how-skip {
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.how-dots {
+  display: flex;
   justify-content: center;
-  gap: 8px 12px;
-  margin: -4px 0 10px;
-  padding: 8px 8px 8px 12px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--ok) 10%, var(--surface));
-  font-size: 15px;
-  font-weight: 600;
+  gap: 7px;
+  margin-top: 12px;
 }
 
-.how-try-say {
-  margin: 6px 0 10px;
-  min-height: 2.9em;
-  font-size: 15px;
-  line-height: 1.45;
+.how-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line);
 }
 
-.how-try-say.done {
-  font-weight: 700;
+.how-dots span.on {
+  background: var(--muted);
 }
 
-.how-try-again {
-  margin: -12px 0 -12px 4px;
-  padding: 12px 6px;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-weight: 700;
-  color: var(--ink);
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.how-try-box {
+/* The sample's ghost hand, over the board's editor: never in the way. */
+.board-editor {
   position: relative;
 }
 
-.how-try .editor {
-  gap: 10px;
-}
-
-.how-try .tray {
-  min-height: 0;
-}
-
-.how-try .tray-tile {
-  flex: 0 0 54px;
-}
-
-/* The ghost doing the move: drawn over the cell and tray, never in the way. */
-.how-try-ghost {
+.ghost-hand {
   position: absolute;
   inset: 0;
   overflow: visible;
   pointer-events: none;
 }
 
-.how-try-finger {
+.ghost-finger {
   fill: color-mix(in srgb, var(--ink) 28%, transparent);
   stroke: color-mix(in srgb, var(--ink) 65%, transparent);
   stroke-width: 1.5;
 }
 
-.how-try-ring {
+.ghost-ring {
   fill: none;
   stroke: color-mix(in srgb, var(--ink) 70%, transparent);
   stroke-width: 2;
 }
 
-.how-try-cursor {
+.ghost-cursor {
   fill: var(--ink);
   stroke: var(--bg);
   stroke-width: 0.06;
 }
 
 /* A mouse's swipe, drawn when the ghost holds still (reduced motion). */
-.how-try-trail {
+.ghost-trail {
   stroke: color-mix(in srgb, var(--ink) 55%, transparent);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: 1 5;
+}
+
+/* Marks, by shape as well as colour: a stroke that comes off gets a ✕ in a red disc, ringed and crossed
+   in the card's own colour so it stands off the ink in either theme; one that goes on, a green ring. */
+.mark-remove circle {
+  fill: var(--remove);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.mark-remove path {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.mark-add-ring {
+  fill: none;
+  stroke: var(--ok);
+  stroke-linecap: round;
+}
+
+/* The sample's coach: a tip at a time, pointing up or down at what it's about. */
+.coach {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px 8px 14px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--surface);
+  text-align: left;
+  --arrow-x: 50%;
+}
+
+.coach.none {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 12px 14px 14px;
+  text-align: center;
+}
+
+.coach-text {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+.coach.none .coach-text {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* Its arrow: a small square turned, at the tip's edge. */
+.coach.up::before,
+.coach.down::before {
+  content: '';
+  position: absolute;
+  left: var(--arrow-x);
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  background: var(--ink);
+  transform: rotate(45deg);
+}
+
+.coach.up::before {
+  top: -5px;
+}
+
+.coach.down::before {
+  bottom: -5px;
+}
+
+.coach-x {
+  flex: none;
+  align-self: flex-start;
+  width: 32px;
+  height: 32px;
+  margin: -6px 0 -6px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+/* The sample solved: on to today's puzzle, in the tip's own colours. */
+.coach-go {
+  align-self: center;
+  margin-top: 10px;
+  background: var(--surface);
+  border-color: var(--surface);
+  color: var(--ink);
+}
+
+/* The coach's place right above the word, where the definition is otherwise: room for a tip of two
+   lines (one on a desktop), so the board doesn't jump as tips come and go. */
+.coach-slot {
+  min-height: 44px;
+  margin: 8px 0 4px;
+}
+
+.maze.compact .coach-slot {
+  min-height: 58px;
+  margin: 14px -39px 4px 0;
+}
+
+/* The goal the first tip points at. */
+.goal-panel.pointed {
+  outline: 3px solid color-mix(in srgb, var(--ink) 35%, transparent);
+  outline-offset: 3px;
+}
+
+/* Skip, at the board's corner for the whole sample: small, with a fingertip's room round it. */
+.skip-sample {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  padding: 3px 12px;
+  font-size: 13px;
+}
+
+.skip-sample::after {
+  content: '';
+  position: absolute;
+  inset: -9px -4px;
+}
+
+.maze .pill.quiet.skip-sample {
+  min-height: 0;
 }
 
 .hardcore-tag {
@@ -1598,15 +1796,6 @@ select,
   animation: none;
 }
 
-.how {
-  margin: 6px 0 0;
-  padding-left: 18px;
-  line-height: 1.45;
-}
-
-.how li + li {
-  margin-top: 4px;
-}
 
 /* After a win the step controls give way to the result: the score, Share, Watch again, and the
    lowest-stroke route. */

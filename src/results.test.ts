@@ -1,0 +1,54 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DAYS_5, localDate } from './daily/daily';
+import { keepWin, loadResult, type Result } from './results';
+
+/** A localStorage that keeps its items in a map. */
+function storage(items = new Map<string, string>()) {
+  vi.stubGlobal('localStorage', { getItem: (k: string) => items.get(k) ?? null, setItem: (k: string, v: string) => items.set(k, v) });
+  return items;
+}
+
+const win = (strokes: number, hints = 0): Result => ({ strokes, best: 5, hints, hardcore: false, steps: [{ from: 'JUICE', to: 'JUDGE', cost: 2 }], seconds: 40 });
+/** Noon on a day with a 5-letter daily. */
+const day = DAYS_5[DAYS_5.length - 1];
+const noon = new Date(`${day}T12:00:00`);
+
+describe('what a win keeps', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('keeps nothing for the sample puzzle: no result, record or done mark', () => {
+    const items = storage();
+    expect(keepWin({ sample: true }, 5, win(5), noon)).toBeNull();
+    // Even were it ever given a date, the sample keeps nothing.
+    expect(keepWin({ sample: true, date: day }, 5, win(5), noon)).toBeNull();
+    expect([...items.keys()]).toEqual([]);
+  });
+
+  it("keeps today's daily, with the Puzzle Playlist's done mark", () => {
+    const items = storage();
+    expect(localDate(noon)).toBe(day);
+    expect(keepWin({ date: day }, 5, win(14), noon)?.strokes).toBe(14);
+    expect(loadResult(day, 5)?.strokes).toBe(14);
+    expect(items.has(`puzzle-done:strokes:${day}`)).toBe(true);
+    // A worse play keeps the better one; a better one replaces it.
+    expect(keepWin({ date: day }, 5, win(16), noon)).toBeNull();
+    expect(keepWin({ date: day }, 5, win(13), noon)?.strokes).toBe(13);
+    expect(loadResult(day, 5)?.strokes).toBe(13);
+  });
+
+  it("keeps an Easycore daily apart, and an earlier day's without the done mark", () => {
+    const items = storage();
+    keepWin({ date: day, easy: true }, 5, win(6), noon);
+    expect(items.has(`strokes:result5e:${day}`)).toBe(true);
+    expect(items.has(`strokes:result5:${day}`)).toBe(false);
+    const earlier = storage();
+    keepWin({ date: DAYS_5[0] }, 5, win(15), noon);
+    expect([...earlier.keys()]).toEqual([`strokes:result5:${DAYS_5[0]}`]);
+  });
+
+  it('keeps nothing for a pool puzzle', () => {
+    const items = storage();
+    expect(keepWin({}, 5, win(9), noon)).toBeNull();
+    expect(items.size).toBe(0);
+  });
+});
