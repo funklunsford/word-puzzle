@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-25",
+  "puzzle": {
+    "start": "SLOPE",
+    "goal": "SCOOP",
+    "best": 15,
+    "path": [
+      "SLOPE",
+      "SPOKE",
+      "SPOIL",
+      "SPOOL",
+      "SLOOP",
+      "SCOOP"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "SLOPE",
+        "door": "SCOPE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SLOPE",
+        "door": "STORE",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "SPOOL",
+        "door": "SPOOK",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.02
+  },
+  "inkPots": {
+    "pots": [
+      "STOOP",
+      "SPOOF"
+    ],
+    "best": 14,
+    "walk": [
+      "SLOPE",
+      "SPOKE",
+      "SPOIL",
+      "SPOOL",
+      "STOOP",
+      "SCOOP"
+    ]
+  },
+  "onRoute": {
+    "SCOOP": 15,
+    "SLOOP": 12,
+    "SLOPE": 0,
+    "SPOIL": 6,
+    "SPOKE": 3,
+    "SPOOL": 9,
+    "STOOP": 12
+  }
+}
