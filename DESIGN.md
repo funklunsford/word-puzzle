@@ -1173,11 +1173,11 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
     2. "Make a real word and you get 3 new strokes."
     3. "Going back to a word you've already made is free: it adds no strokes."
     Then **Next**.
-  - **Good to know** (the first version's More, with a back arrow by its title): the golf names, Hint, Easycore, Hardcore and ink pots.
+  - **Good to know** (the first version's More, cut to a line each when the owner found it dense; a back arrow by its title): "Scored like golf: an Ace is the fewest strokes possible.", "Stuck? Tap Hint for a clue." ("Click" with a mouse), "Easier or harder: choose Easycore or Hardcore in Settings." ("For a challenge, turn on Hardcore in Settings." with the `easycore` flag off), and on a puzzle with ink pots, "Reach an ink pot word to bank a free stroke." The result line names each score, and Settings' notes say what each difficulty does.
   - Two dots say which card it is. Turning moves the focus to the new card's main button, and the card fades in (sliding a little, with full motion).
   - **Buttons,** on Good to know: opened by itself on a first visit, **Try a sample puzzle** and **Skip to today's puzzle**; from **?**, **Play** (closes it) and a small **Try the sample puzzle again** ("Try a sample puzzle" for a player who skipped it, or never had it). × on either card closes it (on a first visit, a skip). The sample isn't offered over a puzzle in progress, which it would lose (`hasStarted`), nor in the 4-letter game, whose words it isn't in.
   - **Gone** with the first version: the step drawing and the four moves' drawings, with `stepChanges` and `moveLines`. The sample teaches dragging a stroke in and removing one; turning is left to the tray (a tile's tooltip, and its wiggle on one tap).
-  - **Fit:** 413 and 452 px tall on a 390 × 844 phone, 424 and 448 at 1280 × 800.
+  - **Fit:** 413 and 340 px tall on a 390 × 844 phone, 424 and 328 at 1280 × 800.
 - **The sample** (`SAMPLE` in `src/tutorial.ts`, the one source for the card's example and the board): **JUICE → JUDGE → FUDGE**, 5 strokes. A bar onto the C (it stands up as G's chin) and the big curve onto the I make JUDGE; the J's curve off and two bars on make FUDGE.
   - **Chosen by a search** of the simple words (`data/simple-5.txt`) for 2-step puzzles of 4 to 6 strokes at the whole maze's lowest. It's the one that also has:
     - every word on every lowest route a simple word (it has only the one route);

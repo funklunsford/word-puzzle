@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { motion } from 'motion/react';
-import { SCORE_KEY } from '../../golf';
 import { SAMPLE } from '../../tutorial';
 import { GlyphWord } from '../Glyph';
 
@@ -107,12 +106,27 @@ export function HowToCard({ touch, compact, firstVisit, canSample, sampled, easy
       ) : (
         <>
           {head('Good to know', true)}
-          <ul className="how">
-            <li>Your score is named like golf: {SCORE_KEY}.</li>
-            <li>Stuck? {touch ? 'Tap' : 'Click'} Hint for the next word's meaning, then the letters to change, then the word.</li>
-            {easycore && <li>Want it easier? Choose Easycore in Settings: shorter puzzles with everyday words, and a daily of their own.</li>}
-            <li>Want a challenge? {easycore ? 'Choose' : 'Turn on'} Hardcore in Settings (it starts the puzzle over): only words on a lowest-stroke route count, and no hints.</li>
-            {inkPots && <li>Ink pots: the first time you reach a pot word, you bank a free stroke for a later step.</li>}
+          <ul className="how-tips">
+            <li>
+              Scored like golf: an <strong>Ace</strong> is the fewest strokes possible.
+            </li>
+            <li>
+              Stuck? {touch ? 'Tap' : 'Click'} <strong>Hint</strong> for a clue.
+            </li>
+            {easycore ? (
+              <li>
+                Easier or harder: choose <strong>Easycore</strong> or <strong>Hardcore</strong> in Settings.
+              </li>
+            ) : (
+              <li>
+                For a challenge, turn on <strong>Hardcore</strong> in Settings.
+              </li>
+            )}
+            {inkPots && (
+              <li>
+                Reach an <strong>ink pot</strong> word to bank a free stroke.
+              </li>
+            )}
           </ul>
           <div className="how-actions">
             {firstVisit && canSample ? (

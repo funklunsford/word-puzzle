@@ -1145,6 +1145,32 @@ select,
   color: var(--muted);
 }
 
+/* Good to know: short lines, a dot where the rules have numbers. */
+.how-tips {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.how-tips li {
+  position: relative;
+  padding-left: 38px;
+  line-height: 1.4;
+}
+
+.how-tips li::before {
+  content: '';
+  position: absolute;
+  top: 0.55em;
+  left: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
 .how-actions {
   display: flex;
   flex-direction: column;
@@ -1770,15 +1796,6 @@ select,
   animation: none;
 }
 
-.how {
-  margin: 6px 0 0;
-  padding-left: 18px;
-  line-height: 1.45;
-}
-
-.how li + li {
-  margin-top: 4px;
-}
 
 /* After a win the step controls give way to the result: the score, Share, Watch again, and the
    lowest-stroke route. */
