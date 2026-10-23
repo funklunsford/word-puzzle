@@ -7,7 +7,7 @@ import { TRAY_TURN, type Placement } from './glyphs';
 import { nextSteps, type Doors } from './hints';
 import { EMPTY_CELL_X, STEP_LIMIT, oneWayCost, recognize, slotKey, slotsFor } from './strokes';
 import { restingTurn } from './turns';
-import { SAMPLE, SAMPLE_STEP, applyMove, coachPlan, moveLines, planStep, sayMove, spell, stepChanges, trayLands, wordCells, type WordMove } from './tutorial';
+import { SAMPLE, applyMove, coachPlan, planStep, sayMove, spell, trayLands, wordCells, type WordMove } from './tutorial';
 import { parseWordList } from './wordlist';
 import type { DailyPuzzle } from './daily/daily';
 
@@ -194,23 +194,5 @@ describe("the sample's coach", () => {
       return next;
     }, wordCells('JUICE'));
     expect(planStep(wordCells('JUICE'), 'JUDGE', 2, { touch: true, stops })).toBeNull();
-  });
-});
-
-describe("How to play's card", () => {
-  it('tells a finger to tap and double-tap, and a mouse to click and swipe', () => {
-    expect(moveLines(true)).toEqual(['Drag a stroke in from the tray', 'Tap one to remove it', 'Drag one to move it', 'Double-tap one to turn it']);
-    expect(moveLines(false)).toEqual(['Drag a stroke in from the tray', 'Click one to remove it', 'Drag one to move it', 'To turn one, swipe it as you place it']);
-  });
-
-  it("shows the sample's step with the strokes that come off and go on: the J's curve off, two bars on for F", () => {
-    const from = SAMPLE.path[SAMPLE_STEP];
-    const to = SAMPLE.path[SAMPLE_STEP + 1];
-    const changes = stepChanges(from, to);
-    expect(changes.slice(1).every((c) => !c.removed.length && !c.added.length)).toBe(true);
-    expect(changes[0].removed.map((p) => p.tile)).toEqual(['P']);
-    expect(changes[0].added.map((p) => `${p.tile}@${p.y}`)).toEqual(['H@0', 'H@1']);
-    // As many strokes as the step costs.
-    expect(changes[0].removed.length + changes[0].added.length).toBe(oneWayCost(from, to));
   });
 });

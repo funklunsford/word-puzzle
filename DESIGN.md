@@ -1164,22 +1164,26 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - The C's outline sits 2.3 px high on phones (1.5 px on desktop), as its centring by eye intends: its broad lower curve balances it.
 - **Checked** in Chrome and in this Mac's WebKit (Safari 18.4, through a WKWebView), at 430 × 932 and 1280 × 800, with the same measurements in both. The stroke colour tiles in Settings (a block drawing in a span) were already right.
 
-## How to play: a card and a guided sample (2026-10-22, branch `howto-card`)
+## How to play: two cards and a guided sample (2026-10-22, branch `howto-card`)
 - **Why** (the owner): the reverted try (`howto-word-step`) put a demo, a word practice, a turn drill and the rules all in the dialog: too much at once, the demo wasn't clear, and the goal still wasn't obvious. Before it, How to play taught gestures on single letters (I → T…), and the key rule was one line in a list.
-- **Now:** a short, still card, then a sample puzzle on the real board, coached a tip at a time. No daily is shown anywhere.
-- **The card** (`HowToCard`): no animation; drawn with the game's own strokes (`GlyphWord`, `TileStroke`, `PlacedStrokes`, the path card's chips), so it follows the theme and the stroke colours (`data-palette`).
-  - **The goal:** the sample's route as the path card draws one: "start JUICE", "+2 JUDGE", "+3 goal FUDGE" (dashed gold, as the path's goal chip), and "5 strokes". Then: "Turn the start word into the goal word, one real word at a time. Fewest strokes wins."
-  - **Each step:** JUDGE → FUDGE, letter by letter, "3 strokes" under the arrow. A stroke that comes off is red and crossed out with the reverted design's ✕ disc (the J's curve); one that goes on is ringed in green (the F's two bars), so they differ by shape as well as colour. Then: "Change up to 3 strokes. Every step must make a real word."
-  - **The moves,** each with a drawing marked the same way (a bar from a tray tile onto a T; E's bottom bar crossed out; L's foot bar, moved down from the top; a V turned over): "Drag a stroke in from the tray", "Tap one to remove it", "Drag one to move it", "Double-tap one to turn it". A mouse gets "Click one to remove it" and "To turn one, swipe it as you place it" (`moveLines`).
-  - **More,** folded (one tap): the old list's going back free, the golf names, Hint, Easycore, Hardcore and ink pots. Its first two lines (change up to 3 strokes; the controls) are the card's sections now.
-  - **Buttons:** opened by itself on a first visit, **Try a sample puzzle** and **Skip to today's puzzle**; from **?**, **Play** (closes it) and a small **Try the sample puzzle again** ("Try a sample puzzle" for a player who skipped it, or never had it). The sample isn't offered over a puzzle in progress, which it would lose (`hasStarted`), nor in the 4-letter game, whose words it isn't in.
-  - **Fit,** More folded: 672 px tall on a 390 × 844 phone (room for 812), 688 at 1280 × 800 (768): neither scrolls. More open, it scrolls (954 and 964 px).
-- **The sample** (`SAMPLE` in `src/tutorial.ts`, the one source for the card and the board): **JUICE → JUDGE → FUDGE**, 5 strokes. A bar onto the C (it stands up as G's chin) and the big curve onto the I make JUDGE; the J's curve off and two bars on make FUDGE.
+- **Now:** two short, still cards, then a sample puzzle on the real board, coached a tip at a time. No daily is shown anywhere.
+- **Two cards** (`HowToCard`). The owner found the first version, one card with the route, a marked step, the four moves' drawings and More folded, "quite bad", and asked for it greatly simplified and split in two:
+  - **How to play:** "Turn the start word into the goal word in as few strokes as you can.", then the sample's start and goal as the path card's chips ("start JUICE" → "goal FUDGE", in the game's strokes and the player's colours), then three numbered rules:
+    1. "Change up to 3 strokes at a time: add, remove, move or turn them."
+    2. "Make a real word and you get 3 new strokes."
+    3. "Going back to a word you've already made is free: it adds no strokes."
+    Then **Next**.
+  - **Good to know** (the first version's More, with a back arrow by its title): the golf names, Hint, Easycore, Hardcore and ink pots.
+  - Two dots say which card it is. Turning moves the focus to the new card's main button, and the card fades in (sliding a little, with full motion).
+  - **Buttons,** on Good to know: opened by itself on a first visit, **Try a sample puzzle** and **Skip to today's puzzle**; from **?**, **Play** (closes it) and a small **Try the sample puzzle again** ("Try a sample puzzle" for a player who skipped it, or never had it). × on either card closes it (on a first visit, a skip). The sample isn't offered over a puzzle in progress, which it would lose (`hasStarted`), nor in the 4-letter game, whose words it isn't in.
+  - **Gone** with the first version: the step drawing and the four moves' drawings, with `stepChanges` and `moveLines`. The sample teaches dragging a stroke in and removing one; turning is left to the tray (a tile's tooltip, and its wiggle on one tap).
+  - **Fit:** 413 and 452 px tall on a 390 × 844 phone, 424 and 448 at 1280 × 800.
+- **The sample** (`SAMPLE` in `src/tutorial.ts`, the one source for the card's example and the board): **JUICE → JUDGE → FUDGE**, 5 strokes. A bar onto the C (it stands up as G's chin) and the big curve onto the I make JUDGE; the J's curve off and two bars on make FUDGE.
   - **Chosen by a search** of the simple words (`data/simple-5.txt`) for 2-step puzzles of 4 to 6 strokes at the whole maze's lowest. It's the one that also has:
     - every word on every lowest route a simple word (it has only the one route);
     - neither step in any daily's or pool puzzle's route or ink-pot walk, either way round (and so never an Easycore daily, which come from that pool);
     - a bar dragged in from the tray for its first move;
-    - a step with a stroke off and strokes on (JUDGE → FUDGE, all 3 strokes), for the card;
+    - a step with a stroke off and strokes on (JUDGE → FUDGE, all 3 strokes), for the first card's step drawing (since gone);
     - no turn to make (the editor turns the bar and the curve to fit as they land).
   - **Turned down:** PILLS → PILES → TILES (its other route stops at TILLS, "unstratified soil deposited by a glacier", and both steps are on Easycore routes); BOOKS → BOOTS → ROOTS (ROOKS; Easycore's SOCKS → ROOTS goes BOOTS → ROOTS); SCARF → SCARE → SCALE (the classic pool's SHARP → SCALE has its second step); GIANT → GRANT → GRAND and LOCKS → LOOKS → BOOKS (steps on pool routes). The reverted demo's CRUMB → GRUMP was a step of No. 11's route.
   - Doing the J first strands the step: J → F takes 3 strokes and FUICE isn't a word. The coach says it's out of strokes, as for any step.

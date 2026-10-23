@@ -45,7 +45,7 @@ export function measureGeo(el: HTMLElement, tray: readonly TileId[]): Geo | null
 }
 
 /** A point on a stroke to press: the middle of a bar, partway along a chevron's arm. */
-export function grabPoint(p: Placement) {
+function grabPoint(p: Placement) {
   const pts = strokeCenterline(p.tile, p.rot ?? 0);
   const [x, y] = pts[Math.round((pts.length - 1) * (p.tile === 'BV' ? 0.3 : 0.5))];
   return { x: p.x + x, y: p.y + y };
@@ -58,7 +58,7 @@ const CURSOR = 'M0 0 L0 0.78 L0.2 0.6 L0.36 0.92 L0.48 0.86 L0.32 0.55 L0.58 0.5
  * strokes are a deep red already, and red-green colour blindness can't tell them apart). At (x, y),
  * sized by the letters' unit `k` (px).
  */
-export function RemoveMark({ x, y, k }: { x: number; y: number; k: number }) {
+function RemoveMark({ x, y, k }: { x: number; y: number; k: number }) {
   const r = Math.max(6.5, 0.34 * k);
   const a = 0.4 * r;
   return (
@@ -73,7 +73,7 @@ export function RemoveMark({ x, y, k }: { x: number; y: number; k: number }) {
  * A stroke that goes on, outlined: a ring round its line (in units, at `k` px a unit), open in the
  * middle so the stroke shows through. The same mark for How to play's step and the coach's still ghost.
  */
-export function AddMark({ p, k }: { p: Placement; k: number }) {
+function AddMark({ p, k }: { p: Placement; k: number }) {
   // (React's ids carry characters a url(#…) reference may not take.)
   const id = `add${useId().replace(/[^\w-]/g, '')}`;
   const hole = 0.46;

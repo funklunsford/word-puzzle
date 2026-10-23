@@ -12,8 +12,6 @@ import { restingTurn } from './turns';
  * no daily or pool puzzle has either of its steps (a test checks), and it has no other lowest route.
  */
 export const SAMPLE = { start: 'JUICE', goal: 'FUDGE', best: 5, path: ['JUICE', 'JUDGE', 'FUDGE'] };
-/** The step How to play's card shows: JUDGE → FUDGE, a stroke off and two on. */
-export const SAMPLE_STEP = 1;
 
 /** A move to show: carry a stroke (from the tray, or from its spot) to a spot; turn one on its spot; or remove one. */
 export type Ghost =
@@ -205,47 +203,4 @@ export function sayMove(cells: Placement[][], m: WordMove, touch: boolean): stri
   if (g.from === 'tray') return `Drag the ${TRAY_NAMES[g.tile]} from the tray ${onto}${makes}.`;
   const what = strokeRef(cells, m.from ?? m.cell, g.from);
   return m.from === undefined || m.from === m.cell ? `Drag ${what} to its new spot${makes}.` : `Drag ${what} ${onto}${makes}.`;
-}
-
-/** How to play's four moves, for a finger or a mouse (a finger taps and double-taps; a mouse clicks, and swipes a stroke as it places it). */
-export const moveLines = (touch: boolean): [string, string, string, string] =>
-  touch
-    ? ['Drag a stroke in from the tray', 'Tap one to remove it', 'Drag one to move it', 'Double-tap one to turn it']
-    : ['Drag a stroke in from the tray', 'Click one to remove it', 'Drag one to move it', 'To turn one, swipe it as you place it'];
-
-// ---------- The card's step ----------
-
-const shifted = (p: Placement, dx: number): Placement => ({ ...p, x: Math.round((p.x + dx) * 100) / 100 });
-/** The strokes of `a` that aren't in `b` (by slot). */
-function minus(a: Placement[], b: Placement[]) {
-  const rest = b.map((p) => slotKey(p));
-  return a.filter((p) => {
-    const i = rest.indexOf(slotKey(p));
-    if (i < 0) return true;
-    rest.splice(i, 1);
-    return false;
-  });
-}
-
-/**
- * What a step changes, letter by letter: the strokes that come off each letter (where they sit in
- * the word before) and go on (where they sit in the word after), lined up the way that changes least.
- */
-export function stepChanges(from: string, to: string): { removed: Placement[]; added: Placement[] }[] {
-  return [...from].map((a, i) => {
-    if (a === to[i]) return { removed: [], added: [] };
-    const A = LETTERS[a].parts;
-    const B = LETTERS[to[i]].parts;
-    let best = { removed: A, added: B };
-    for (const pa of A)
-      for (const pb of B) {
-        if (pa.tile !== pb.tile) continue;
-        const dx = pb.x - pa.x;
-        const As = A.map((p) => shifted(p, dx));
-        const removed = minus(As, B).map((p) => shifted(p, -dx));
-        const added = minus(B, As);
-        if (removed.length + added.length < best.removed.length + best.added.length) best = { removed, added };
-      }
-    return best;
-  });
 }

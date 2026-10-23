@@ -1035,66 +1035,53 @@ select,
 }
 
 .help-head h2 {
+  flex: 1;
   margin: 0;
   font-size: 23px;
   color: var(--ink);
 }
 
-/* How to play (HowToCard): the goal, a step and the four moves, all still and in the game's own
-   strokes and the player's colours; More folded under them; then the way on. */
-.how-part {
-  margin-top: 14px;
+/* How to play (HowToCard), on two cards: the goal and the three rules, then good to know and the
+   way on. Dots say which card it is. */
+.how-back {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 4px 0 -8px;
+  border: 0;
+  background: none;
+  cursor: pointer;
 }
 
-.how-label-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
+.how-back path {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2.2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.how-label {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.how-total {
-  font-size: 13px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.how-text {
-  margin: 8px 0 0;
+.how-lead {
+  margin: 12px 0 0;
+  font-size: 17px;
   line-height: 1.4;
 }
 
-/* The sample's route as the path card draws one: the start, each step's strokes and word, the goal. */
-.how-ladder {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.how-rung {
+/* The sample's start and goal, as the path card draws them. */
+.how-example {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .how-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 9px;
+  gap: 6px;
+  padding: 6px 11px;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -1105,42 +1092,17 @@ select,
   background: color-mix(in srgb, var(--gold) 9%, var(--surface));
 }
 
-.how-chip .tag,
-.how-rung .cost {
+.how-chip .tag {
   font-size: 12px;
   font-weight: 700;
   color: var(--muted);
-  font-variant-numeric: tabular-nums;
 }
 
 .how-chip.goal .tag {
   color: color-mix(in srgb, var(--gold) 70%, var(--ink));
 }
 
-/* A step, letter by letter: the word before (a stroke coming off crossed out) and after (one going
-   on outlined), the step's strokes under the arrow between. */
-.how-step {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.how-step-arrow {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.how-step-arrow path,
-.how-move-arrow path,
-.how-move-path {
+.how-arrow path {
   fill: none;
   stroke: var(--muted);
   stroke-width: 2px;
@@ -1149,80 +1111,38 @@ select,
   vector-effect: non-scaling-stroke;
 }
 
-/* The four moves, each with its drawing. */
-.how-moves {
+/* The rules, numbered in rings. */
+.how-rules {
   list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
+  counter-reset: rule;
   display: grid;
-  gap: 4px;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
 }
 
-.how-moves li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 40px;
+.how-rules li {
+  counter-increment: rule;
+  position: relative;
+  min-height: 26px;
+  padding-left: 38px;
+  line-height: 1.4;
 }
 
-.how-move-pic {
-  flex: none;
-  width: 104px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
-
-.how-move-pic svg {
-  overflow: visible;
-}
-
-.maze.compact .how-move-pic {
-  width: 88px;
-}
-
-.how-tile rect {
-  fill: color-mix(in srgb, var(--tile) 12%, var(--surface));
-  stroke: color-mix(in srgb, var(--tile) 30%, var(--line));
-  stroke-width: 0.1;
-}
-
-/* The rest, folded: one tap opens it. */
-.how-more {
-  margin-top: 12px;
-  border-top: 1.5px solid var(--line);
-  padding-top: 4px;
-}
-
-.how-more summary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  font-weight: 700;
-  cursor: pointer;
-  list-style: none;
-}
-
-.how-more summary::-webkit-details-marker {
-  display: none;
-}
-
-/* A chevron that turns down when it's open. */
-.how-more summary::after {
-  content: '';
-  width: 7px;
-  height: 7px;
-  margin-top: -3px;
-  border: solid var(--muted);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
-.how-more:not([open]) summary::after {
-  margin-top: 1px;
-  transform: rotate(-45deg);
+.how-rules li::before {
+  content: counter(rule);
+  position: absolute;
+  top: -1px;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
 }
 
 .how-actions {
@@ -1230,7 +1150,7 @@ select,
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  margin-top: 10px;
+  margin-top: 20px;
 }
 
 .how-actions .help-go {
@@ -1243,6 +1163,24 @@ select,
   padding: 0 12px;
   font-size: 15px;
   color: var(--muted);
+}
+
+.how-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.how-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.how-dots span.on {
+  background: var(--muted);
 }
 
 /* The sample's ghost hand, over the board's editor: never in the way. */
