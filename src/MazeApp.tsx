@@ -195,6 +195,8 @@ export function MazeApp() {
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
+  /** On a phone, Your path folds to a line; tapping it opens the words. */
+  const [pathOpen, setPathOpen] = useState(false);
   // The difficulty (Settings): Easycore, Classic or Hardcore. Easycore takes the easycore flag and
   // the 5-letter game; without them a stored Easycore plays Classic (see src/easycore.ts).
   const [difficulty, setDifficulty] = useState<Difficulty>(loadDifficulty);
@@ -1109,79 +1111,101 @@ export function MazeApp() {
           )}
         </main>
 
-        <aside className="side-card">
-          <span className="label">Your path</span>
-          <ol className="trail">
-            {trail.map((v, i) => {
-              const isHere = v.word === room;
-              return (
-                <motion.li
-                  key={i}
-                  className={isHere ? 'here' : ''}
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-                >
-                  <button
-                    className="trail-word"
-                    aria-pressed={peek === v.word}
-                    aria-label={`${v.word}: show its definition`}
-                    onClick={() => setPeek((p) => (p === v.word ? null : v.word))}
+        <aside className={`side-card${compact ? ` folds${pathOpen ? ' open' : ''}` : ''}`}>
+          {compact ? (
+            // On a phone: how many words and strokes so far, and Restart, on one line.
+            <div className="path-summary">
+              <button className="path-fold" aria-expanded={pathOpen} aria-controls="your-path" onClick={() => setPathOpen((o) => !o)}>
+                <span className="label">Your path</span>
+                <span className="path-count">
+                  {trail.length} {trail.length === 1 ? 'word' : 'words'} · {spent} {spent === 1 ? 'stroke' : 'strokes'}
+                </span>
+                <svg viewBox="0 0 14 14" width={14} height={14} aria-hidden="true">
+                  <path d={pathOpen ? 'M3 9 L7 5 L11 9' : 'M3 5 L7 9 L11 5'} />
+                </svg>
+              </button>
+              <button className="pill quiet" onClick={restart}>
+                Restart
+              </button>
+            </div>
+          ) : (
+            <span className="label">Your path</span>
+          )}
+          <div className="path-words" id="your-path" hidden={compact && !pathOpen}>
+            <ol className="trail">
+              {trail.map((v, i) => {
+                const isHere = v.word === room;
+                return (
+                  <motion.li
+                    key={i}
+                    className={isHere ? 'here' : ''}
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
                   >
-                    {i > 0 && <span className="cost">+{v.cost}</span>}
-                    {!!v.used && (
-                      <motion.span
-                        className="ink-used"
-                        aria-label={`${v.used} paid in ink`}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', bounce: 0.4, duration: 0.4, delay: 0.5 }}
-                      >
-                        <InkDrop size={9} />
-                        {v.used}
-                      </motion.span>
-                    )}
-                    <GlyphWord word={v.word} size={14} />
-                    {potPlan?.pots.includes(v.word) && <InkPot full={false} size={13} />}
-                    {isHere && <span className="meta">{won ? 'goal' : 'here'}</span>}
-                  </button>
-                </motion.li>
-              );
-            })}
-            {!won && (
-              <li className="goal-chip" aria-label={`Goal: ${puzzle.goal}`}>
-                <span className="cost">goal</span>
-                <GlyphWord word={puzzle.goal} size={14} />
-              </li>
+                    <button
+                      className="trail-word"
+                      aria-pressed={peek === v.word}
+                      aria-label={`${v.word}: show its definition`}
+                      onClick={() => setPeek((p) => (p === v.word ? null : v.word))}
+                    >
+                      {i > 0 && <span className="cost">+{v.cost}</span>}
+                      {!!v.used && (
+                        <motion.span
+                          className="ink-used"
+                          aria-label={`${v.used} paid in ink`}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', bounce: 0.4, duration: 0.4, delay: 0.5 }}
+                        >
+                          <InkDrop size={9} />
+                          {v.used}
+                        </motion.span>
+                      )}
+                      <GlyphWord word={v.word} size={14} />
+                      {potPlan?.pots.includes(v.word) && <InkPot full={false} size={13} />}
+                      {isHere && <span className="meta">{won ? 'goal' : 'here'}</span>}
+                    </button>
+                  </motion.li>
+                );
+              })}
+              {!won && (
+                <li className="goal-chip" aria-label={`Goal: ${puzzle.goal}`}>
+                  <span className="cost">goal</span>
+                  <GlyphWord word={puzzle.goal} size={14} />
+                </li>
+              )}
+            </ol>
+            {potPlan && (
+              <div className="pots" aria-label="Ink pots">
+                <span className="label">Ink pots</span>
+                <ul>
+                  {potPlan.pots.map((p) => {
+                    const got = visited.has(p);
+                    const near = potsNear.includes(p);
+                    return (
+                      <li key={p} className={got ? 'got' : near ? 'near' : ''} aria-label={`${p}${got ? ' (collected)' : near ? ' (within reach)' : ''}`}>
+                        <InkPot full={!got} near={near} size={18} />
+                        <GlyphWord word={p} size={13} />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             )}
-          </ol>
-          {potPlan && (
-            <div className="pots" aria-label="Ink pots">
-              <span className="label">Ink pots</span>
-              <ul>
-                {potPlan.pots.map((p) => {
-                  const got = visited.has(p);
-                  const near = potsNear.includes(p);
-                  return (
-                    <li key={p} className={got ? 'got' : near ? 'near' : ''} aria-label={`${p}${got ? ' (collected)' : near ? ' (within reach)' : ''}`}>
-                      <InkPot full={!got} near={near} size={18} />
-                      <GlyphWord word={p} size={13} />
-                    </li>
-                  );
-                })}
-              </ul>
+            {peek && defs?.[peek] && (
+              <p className="definition peek">
+                <Definition word={peek} def={defs[peek]} />
+              </p>
+            )}
+          </div>
+          {!compact && (
+            <div className="pill-row">
+              <button className="pill quiet" onClick={restart}>
+                Restart
+              </button>
             </div>
           )}
-          {peek && defs?.[peek] && (
-            <p className="definition peek">
-              <Definition word={peek} def={defs[peek]} />
-            </p>
-          )}
-          <div className="pill-row">
-            <button className="pill quiet" onClick={restart}>
-              Restart
-            </button>
-          </div>
           {import.meta.env.DEV && (
             <div className="dev-tools">
               <span className="label">Dev</span>

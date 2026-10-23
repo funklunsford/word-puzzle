@@ -1253,3 +1253,9 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - When a step makes a new word, MazeApp lists its strokes from the step's history (`movesOf`) with the step (`Visit.moves`), and the result keeps them (`steps[].moves`). A free return isn't a step, as before, and an undone stroke isn't in the history, so neither is listed.
   - **Results kept before** have no moves: their rows are lit from the words, as before (`stepSquares`), with no marks. Kept moves are used only if they're sound (`validMoves`).
 - **Checked:** the Oct 16 daily solved in Chrome with the demo video's planned moves (adds, removes and two carries). Each step's moves were kept as made, and the card showed them (13 strokes, an Ace). Tests: each kind of move, a step's list, kept moves checked, a step's squares from its moves, and the marks' order.
+
+## Your path folds on phones (2026-10-23, branch `path-fold`)
+- **The owner's call,** from three mock-ups in the app at 390 × 844 (one line, a header line, folded): on a phone, Your path takes less room and Restart stays in view.
+- **Folded** (a phone, `compact`): one line, "YOUR PATH  3 words · 5 strokes ⌄" and Restart. Tapping the line opens the path's words, its ink pots and a word's meaning (`.path-words`), and the chevron turns up; it stays as left, through a restart too. 54 px tall where the card was 174, so two steps into the Oct 16 daily the game fits a 390 × 844 screen without scrolling (it scrolled 12 px).
+- The line is a button (`aria-expanded`, `aria-controls="your-path"`); the words stay in the page, `hidden`, while folded.
+- **Desktop** and the side card are as before: the words always shown, Restart under them.
