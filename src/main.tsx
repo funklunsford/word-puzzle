@@ -1,15 +1,20 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
 import { MazeApp } from './MazeApp';
-import { GlyphGallery } from './components/GlyphGallery';
 import './styles.css';
 
-const views: Record<string, () => React.ReactElement> = {
-  '#gallery': () => <GlyphGallery />,
-  '#smush': () => <App />,
-};
+// The glyph gallery (every letter and stroke, for design work) is on the dev server only, at /#gallery:
+// the site has just the game.
+const GlyphGallery = import.meta.env.DEV ? lazy(() => import('./components/GlyphGallery').then((m) => ({ default: m.GlyphGallery }))) : null;
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>{(views[location.hash] ?? (() => <MazeApp />))()}</StrictMode>,
+  <StrictMode>
+    {GlyphGallery && location.hash === '#gallery' ? (
+      <Suspense>
+        <GlyphGallery />
+      </Suspense>
+    ) : (
+      <MazeApp />
+    )}
+  </StrictMode>,
 );
