@@ -1267,3 +1267,15 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - Its styles: the stylesheet's old Game section, 326 lines. Only `.meta` there was still in use (Your path's "here" and "goal", an ad's label), and it stays.
   - Screenshots of six states (phone and desktop, light and dark: How to play, Settings, Your path, the game) came out the same pixel for pixel without the rest.
 - **The glyph gallery** (`/#gallery`) is on the dev server only. `main.tsx` loads it lazily under `import.meta.env.DEV`, so the built site has none of it, and `/#gallery` (or `/#smush`) there opens the game.
+
+## The game centred on desktop, Your path folded under it (2026-10-23, branch `path-below`)
+- **The owner's call,** from four mock-ups at 1512 × 945 and 1280 × 800 (path below, path in the margin, path in the top card, folded like phones): on desktop too, the game is one column centred under the title, with Your path folded to a line under it, as on phones.
+  - Before, the path card sat beside the column. The title was centred over both, so the game sat 142 px left of the page's centre (at 1512 wide).
+  - Now the title, the game and the window share one centre line.
+- **Folded,** as on phones: "YOUR PATH 3 words · 5 strokes ⌄" and Restart. Tapping the line opens the words, their ink pots and a word's meaning.
+  - At 1512 × 945, two steps into the Oct 16 daily, the whole game fits.
+  - At 1280 × 800 the line is 80 px below the window, where the side card was in view. That's the cost of one centre line.
+- **Gone:** the side layout (`.maze.side`, `SIDE_W`, `SIDE_MIN`, `SIDE_MIN_5`), and Restart's own row.
+- **Ad rails** (the `ads` flag, off) now sit beside the column alone, so they fit narrower windows. `railWidth` and `railsMin` no longer take a card's width, and the tests follow.
+  - 160 px rails from 1180 px wide (was 1464), and 300 px from 1460 (was 1744).
+  - For the 4-letter game: 1060 and 1340.

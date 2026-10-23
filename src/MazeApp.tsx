@@ -121,13 +121,10 @@ interface Visit {
   moves?: Move[];
 }
 
-/** Layout: the main column's width cap, the side card's width, and the width where the card sits beside it. */
+/** Layout: the column's width cap (the game is one column, centred, with Your path under it). */
 const COLUMN_W = 640;
-const SIDE_W = 260;
-const SIDE_MIN = 1000;
-/** The 5-letter game's wider column (so five letters keep the size four have), and where the card fits beside it. */
+/** The 5-letter game's wider column (so five letters keep the size four have). */
 const COLUMN_W_5 = 760;
-const SIDE_MIN_5 = 1100;
 /** Below this width the layout is the phone one: compact header and score, bigger word (see .maze.compact). */
 const COMPACT_MAX = 600;
 
@@ -195,7 +192,7 @@ export function MazeApp() {
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
-  /** On a phone, Your path folds to a line; tapping it opens the words. */
+  /** Your path folds to a line under the game; tapping it opens the words. */
   const [pathOpen, setPathOpen] = useState(false);
   // The difficulty (Settings): Easycore, Classic or Hardcore. Easycore takes the easycore flag and
   // the 5-letter game; without them a stored Easycore plays Classic (see src/easycore.ts).
@@ -637,14 +634,13 @@ export function MazeApp() {
 
   /** The daily at this difficulty (for Dev to go back to). */
   const modeDaily = mode === 'easy' ? easyDaily : daily;
-  // The main column (score, board, step controls) with the path card beside it when there's room.
+  // The column: score, board, step controls, and Your path under them.
   const columnW = letters === 5 ? COLUMN_W_5 : COLUMN_W;
-  const side = width >= (letters === 5 ? SIDE_MIN_5 : SIDE_MIN);
   const column = Math.min(width - 32, columnW);
   // Ads (the ads flag): a banner over the header on phones, and a rail either side of the game
   // where both fit beside it at its full width (see railWidth). Tablets and middle widths get none.
   const banner = flags.ads && compact;
-  const rail = flags.ads && side ? railWidth(width, columnW, SIDE_W) : 0;
+  const rail = flags.ads && !compact ? railWidth(width, columnW) : 0;
   // Board padding, the gaps between letter tiles (10 px) and their own padding (12 px) come off
   // before sizing the word, whose letters are CELL_W units wide each.
   const n = puzzle.start.length;
@@ -724,10 +720,8 @@ export function MazeApp() {
     <PrefsContext.Provider value={prefs}>
     <MotionConfig reducedMotion={motionConfig(prefs.motion)}>
       <div
-        className={`maze${side ? ' side' : ''}${compact ? ' compact' : ''}${letters === 5 ? ' five' : ''}${banner ? ' ad-top' : ''}${rail ? ' rails' : ''}`}
-        style={
-          side ? { gridTemplateColumns: rail ? `${rail}px minmax(0, ${columnW}px) ${SIDE_W}px ${rail}px` : `minmax(0, ${columnW}px) ${SIDE_W}px` } : undefined
-        }
+        className={`maze${compact ? ' compact' : ''}${letters === 5 ? ' five' : ''}${banner ? ' ad-top' : ''}${rail ? ' rails' : ''}`}
+        style={rail ? { gridTemplateColumns: `${rail}px minmax(0, ${columnW}px) ${rail}px` } : undefined}
       >
         <Masthead
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
@@ -1111,27 +1105,23 @@ export function MazeApp() {
           )}
         </main>
 
-        <aside className={`side-card${compact ? ` folds${pathOpen ? ' open' : ''}` : ''}`}>
-          {compact ? (
-            // On a phone: how many words and strokes so far, and Restart, on one line.
-            <div className="path-summary">
-              <button className="path-fold" aria-expanded={pathOpen} aria-controls="your-path" onClick={() => setPathOpen((o) => !o)}>
-                <span className="label">Your path</span>
-                <span className="path-count">
-                  {trail.length} {trail.length === 1 ? 'word' : 'words'} · {spent} {spent === 1 ? 'stroke' : 'strokes'}
-                </span>
-                <svg viewBox="0 0 14 14" width={14} height={14} aria-hidden="true">
-                  <path d={pathOpen ? 'M3 9 L7 5 L11 9' : 'M3 5 L7 9 L11 5'} />
-                </svg>
-              </button>
-              <button className="pill quiet" onClick={restart}>
-                Restart
-              </button>
-            </div>
-          ) : (
-            <span className="label">Your path</span>
-          )}
-          <div className="path-words" id="your-path" hidden={compact && !pathOpen}>
+        <aside className={`side-card folds${pathOpen ? ' open' : ''}`}>
+          {/* How many words and strokes so far, and Restart, on one line. */}
+          <div className="path-summary">
+            <button className="path-fold" aria-expanded={pathOpen} aria-controls="your-path" onClick={() => setPathOpen((o) => !o)}>
+              <span className="label">Your path</span>
+              <span className="path-count">
+                {trail.length} {trail.length === 1 ? 'word' : 'words'} · {spent} {spent === 1 ? 'stroke' : 'strokes'}
+              </span>
+              <svg viewBox="0 0 14 14" width={14} height={14} aria-hidden="true">
+                <path d={pathOpen ? 'M3 9 L7 5 L11 9' : 'M3 5 L7 9 L11 5'} />
+              </svg>
+            </button>
+            <button className="pill quiet" onClick={restart}>
+              Restart
+            </button>
+          </div>
+          <div className="path-words" id="your-path" hidden={!pathOpen}>
             <ol className="trail">
               {trail.map((v, i) => {
                 const isHere = v.word === room;
@@ -1199,13 +1189,6 @@ export function MazeApp() {
               </p>
             )}
           </div>
-          {!compact && (
-            <div className="pill-row">
-              <button className="pill quiet" onClick={restart}>
-                Restart
-              </button>
-            </div>
-          )}
           {import.meta.env.DEV && (
             <div className="dev-tools">
               <span className="label">Dev</span>
