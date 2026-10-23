@@ -206,7 +206,7 @@ export function MazeApp() {
   const themeRef = useRef(theme);
   themeRef.current = theme;
   useEffect(() => followSystemTheme(() => themeRef.current), []);
-  // The rest of the settings: the stroke colours, motion, the letter guide, definitions, colour-blind squares.
+  // The rest of the settings: the stroke colours, motion, the letter guide, definitions.
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;

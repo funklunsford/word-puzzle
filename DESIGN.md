@@ -1236,3 +1236,9 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - **At 1280 × 800,** the strokes tip and the dots in view (the dots' bottom at 800 px, scrolled 39 px).
   - The skip, returning, ?, off-route and free-return checks on both devices.
   - The ghost caught mid-move (the bar standing up on its way to the C, under a finger and a cursor; the J's curve tapped, and reddening under the cursor), and the still marks with reduced motion.
+
+## No colour-blind squares setting (2026-10-23, branch `no-colour-blind-squares`)
+- **The owner's call:** Settings no longer has Sharing's one switch, "Colour-blind squares", which drew the result card's step squares in yellow, blue and red instead of yellow, orange and red.
+- **Now:** every card's squares are yellow, orange and red (`PAPER.squares` in `src/share.ts`); `drawResultCard` takes the result, then the stroke colours. Settings ends with Playing.
+- **A saved choice** (`colorBlind` in `strokes:prefs`) is ignored, as Swipe to turn's is, and drops out the next time a setting is saved. A test checks it loads as the defaults.
+- The stroke colours' Clear palette is still there for colour blindness, and the result card's strokes follow it.

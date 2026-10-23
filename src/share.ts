@@ -71,9 +71,6 @@ const PAPER = {
   easy: '#497c38',
   squares: ['#efeae0', '#f2c65a', '#e8913a', '#d9542f'],
   squareLedges: ['#ddd6c8', '#d6a63a', '#c9752a', '#b54224'],
-  /** Colour-blind: yellow, blue, red (light, middle, dark to red-green colour blindness too). */
-  squaresCB: ['#efeae0', '#f2c65a', '#3f7fd6', '#b8402a'],
-  squareLedgesCB: ['#ddd6c8', '#d6a63a', '#2f63ad', '#8f2f1e'],
 };
 
 const FONT = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif';
@@ -137,14 +134,14 @@ function cardBase(ctx: CanvasRenderingContext2D, w: number, h: number, m: number
 }
 
 /** A heat square: the game's tile shape, with its ledge. */
-function square(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, heat: number, colorBlind = false) {
+function square(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, heat: number) {
   const r = size * 0.22;
   const ledge = Math.max(3, size * 0.07);
   roundRect(ctx, x, y + ledge, size, size, r);
-  ctx.fillStyle = (colorBlind ? PAPER.squareLedgesCB : PAPER.squareLedges)[heat];
+  ctx.fillStyle = PAPER.squareLedges[heat];
   ctx.fill();
   roundRect(ctx, x, y, size, size, r);
-  ctx.fillStyle = (colorBlind ? PAPER.squaresCB : PAPER.squares)[heat];
+  ctx.fillStyle = PAPER.squares[heat];
   ctx.fill();
 }
 
@@ -153,7 +150,7 @@ function square(ctx: CanvasRenderingContext2D, x: number, y: number, size: numbe
  * word in ink, a row of squares per step under the letters it changed, the goal word in ink), and
  * the link.
  */
-export async function drawResultCard(r: ShareResult, colorBlind = false, strokes: PaletteChoice = 'earth', canvas = document.createElement('canvas')): Promise<HTMLCanvasElement> {
+export async function drawResultCard(r: ShareResult, strokes: PaletteChoice = 'earth', canvas = document.createElement('canvas')): Promise<HTMLCanvasElement> {
   await document.fonts?.ready;
   const tiles = palette(strokes).light;
   const W = 1080;
@@ -227,7 +224,7 @@ export async function drawResultCard(r: ShareResult, colorBlind = false, strokes
   word(r.start, 0);
   r.steps.forEach((s, i) => {
     const y = rowY(i + 1);
-    stepSquares(s.from, s.to).forEach((n, k) => square(ctx, col(k), y, size, n, colorBlind));
+    stepSquares(s.from, s.to).forEach((n, k) => square(ctx, col(k), y, size, n));
     ctx.fillStyle = PAPER.muted;
     ctx.font = `800 ${Math.max(26, Math.round(size * 0.44))}px ${FONT}`;
     ctx.textAlign = 'left';

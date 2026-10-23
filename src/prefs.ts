@@ -1,6 +1,7 @@
 // The player's settings (the gear), beyond light or dark (see theme.ts): the stroke colours,
-// motion, the letter guide, definitions, and colour-blind squares. Kept in this browser. (Swipe to
-// turn was one until 2026-10-08: a mouse always swipes now, a finger never does; a saved choice is
+// motion, the letter guide and definitions. Kept in this browser. (Swipe to turn was one until
+// 2026-10-08: a mouse always swipes now, a finger never does. Colour-blind squares was one until
+// 2026-10-23: the result card's squares are always yellow, orange and red. A saved choice is
 // ignored.)
 
 import { createContext, useContext } from 'react';
@@ -18,13 +19,11 @@ export interface Prefs {
   letters: boolean;
   /** The current word's meaning under it. */
   definitions: boolean;
-  /** The result card's squares in yellow, blue and red, so none has to be told from another by red and orange alone. */
-  colorBlind: boolean;
 }
 
 // The letter guide ships off (since 2026-10-09). Saving any setting stores them all, so a player
 // who changed one before then keeps the guide as it was (on), whether or not they chose it.
-export const DEFAULT_PREFS: Prefs = { palette: 'earth', motion: 'system', letters: false, definitions: true, colorBlind: false };
+export const DEFAULT_PREFS: Prefs = { palette: 'earth', motion: 'system', letters: false, definitions: true };
 
 const KEY = 'strokes:prefs';
 const REDUCE = '(prefers-reduced-motion: reduce)';
@@ -35,7 +34,7 @@ export function loadPrefs(): Prefs {
     const p = { ...DEFAULT_PREFS };
     if (isPalette(saved.palette)) p.palette = saved.palette;
     if (['system', 'less', 'full'].includes(saved.motion)) p.motion = saved.motion;
-    for (const k of ['letters', 'definitions', 'colorBlind'] as const) if (typeof saved[k] === 'boolean') p[k] = saved[k];
+    for (const k of ['letters', 'definitions'] as const) if (typeof saved[k] === 'boolean') p[k] = saved[k];
     return p;
   } catch {
     return { ...DEFAULT_PREFS };

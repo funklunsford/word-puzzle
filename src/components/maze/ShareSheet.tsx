@@ -11,7 +11,7 @@ import { usePrefs } from '../../prefs';
  */
 export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  const { colorBlind, palette } = usePrefs();
+  const { palette } = usePrefs();
   const [image, setImage] = useState<string | null>(null);
   const file = useRef<File | null>(null);
   const [copied, setCopied] = useState(false);
@@ -28,7 +28,7 @@ export function ShareSheet({ result, onClose }: { result: ShareResult; onClose: 
   }, [onClose]);
   useEffect(() => {
     let live = true;
-    drawResultCard(result, colorBlind, palette).then((canvas) => {
+    drawResultCard(result, palette).then((canvas) => {
       if (!live) return;
       setImage(canvas.toDataURL('image/png'));
       canvas.toBlob((blob) => {
