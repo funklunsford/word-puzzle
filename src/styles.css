@@ -246,13 +246,6 @@ body {
   grid-template-columns: minmax(0, 760px);
 }
 
-/* Wide screens: the path card sits beside the main column. */
-.maze.side {
-  grid-template-areas:
-    'mast mast'
-    'main side';
-}
-
 .maze.loading {
   display: block;
   color: var(--muted);
@@ -1602,8 +1595,8 @@ body {
   display: none;
 }
 
-/* On a phone, Your path folds to one line: how many words and strokes, which opens the words, and
-   Restart. */
+/* Your path, under the game, folds to one line: how many words and strokes, which opens the words,
+   and Restart. */
 .path-summary {
   display: flex;
   align-items: center;
@@ -1647,11 +1640,6 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-}
-
-.maze.side .trail {
-  flex-direction: column;
-  align-items: flex-start;
 }
 
 .trail li,
@@ -2158,8 +2146,16 @@ body {
   border-radius: 18px;
 }
 
-.maze.compact .side-card.folds {
+.side-card.folds {
   gap: 8px;
+  padding: 8px 10px 8px 18px;
+}
+
+.side-card.folds.open {
+  padding-bottom: 16px;
+}
+
+.maze.compact .side-card.folds {
   padding: 6px 8px 6px 14px;
 }
 
@@ -2288,12 +2284,13 @@ body {
   justify-self: center;
 }
 
-/* Wide desktops: a rail either side of the game and its path card, level with the header. */
+/* Wide desktops: a rail either side of the game, level with the header. */
 .maze.rails {
   max-width: none;
   grid-template-areas:
-    'rail-l mast mast rail-r'
-    'rail-l main side rail-r';
+    'rail-l mast rail-r'
+    'rail-l main rail-r'
+    'rail-l side rail-r';
 }
 
 .ad-rail.left {

@@ -34,16 +34,16 @@ const PAD = 16;
 const SCROLLBAR = 20;
 
 /**
- * How wide each rail is in a window this wide (0: no rails), beside a game of these columns (the
- * main column and the path card, at their full widths). Both rails fit beside the game, each with
- * a gap, or neither shows: the game is never squeezed to make room.
+ * How wide each rail is in a window this wide (0: no rails), beside the game's column at its full
+ * width. Both rails fit beside it, each with a gap, or neither shows: the game is never squeezed to
+ * make room.
  */
-export function railWidth(windowW: number, column: number, side: number): RailWidth {
-  return RAIL_WIDTHS.find((rail) => windowW >= railsMin(column, side, rail)) ?? 0;
+export function railWidth(windowW: number, column: number): RailWidth {
+  return RAIL_WIDTHS.find((rail) => windowW >= railsMin(column, rail)) ?? 0;
 }
 
 /** The narrowest window with room for rails this wide either side of the game. */
-export const railsMin = (column: number, side: number, rail: number) => column + GAP + side + 2 * (rail + GAP) + 2 * PAD + SCROLLBAR;
+export const railsMin = (column: number, rail: number) => column + 2 * (rail + GAP) + 2 * PAD + SCROLLBAR;
 
 /*
  * The AdSense script, loaded once and only with the flag on and real IDs filled in above (so the
