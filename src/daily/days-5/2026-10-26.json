@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-26",
+  "puzzle": {
+    "start": "SHELL",
+    "goal": "STEAK",
+    "best": 15,
+    "path": [
+      "SHELL",
+      "SPELL",
+      "SPELT",
+      "SPLIT",
+      "SPLAT",
+      "SPEAK",
+      "STEAK"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 4,
+    "traps": [
+      {
+        "at": "SPELT",
+        "door": "SLEPT",
+        "loses": 6,
+        "pocket": true
+      },
+      {
+        "at": "SPELT",
+        "door": "SMELT",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SPELT",
+        "door": "SPEED",
+        "loses": 6,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": true,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "SPILT",
+      "SHILL",
+      "SMELL"
+    ],
+    "best": 14,
+    "walk": [
+      "SHELL",
+      "SHILL",
+      "SPILL",
+      "SPILT",
+      "SPLIT",
+      "SPLAT",
+      "SPEAK",
+      "STEAK"
+    ]
+  },
+  "onRoute": {
+    "SHELL": 0,
+    "SPEAK": 13,
+    "SPELL": 3,
+    "SPELT": 4,
+    "SPLAT": 10,
+    "SPLIT": 7,
+    "STEAK": 15
+  }
+}
