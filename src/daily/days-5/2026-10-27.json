@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-27",
+  "puzzle": {
+    "start": "CHAMP",
+    "goal": "DRINK",
+    "best": 13,
+    "path": [
+      "CHAMP",
+      "CLAMP",
+      "CLANK",
+      "CRANK",
+      "DRANK",
+      "DRINK"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "CLANK",
+        "door": "CLINK",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "CHAMP",
+        "door": "CHIMP",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "CRAMP",
+        "door": "CRIMP",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.05
+  },
+  "inkPots": {
+    "pots": [
+      "CRAMP",
+      "PRANK"
+    ],
+    "best": 12,
+    "walk": [
+      "CHAMP",
+      "CLAMP",
+      "CRAMP",
+      "CRANK",
+      "DRANK",
+      "DRINK"
+    ]
+  },
+  "onRoute": {
+    "CHAMP": 0,
+    "CLAMP": 2,
+    "CLANK": 5,
+    "CRAMP": 5,
+    "CRANK": 8,
+    "DRANK": 10,
+    "DRINK": 13
+  }
+}
