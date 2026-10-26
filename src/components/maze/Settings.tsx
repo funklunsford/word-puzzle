@@ -23,7 +23,7 @@ const DIFFICULTIES: { choice: Difficulty; label: string }[] = [
   { choice: 'classic', label: 'Classic' },
   { choice: 'hard', label: 'Hardcore' },
 ];
-const HARDCORE_NOTE = 'Only words on a lowest-stroke route count, and there are no hints. Turning it on starts the puzzle over.';
+const HARDCORE_NOTE = 'Only words on a lowest-stroke route count, and there are no hints. Turning it on starts the puzzle over, or picks up the Hardcore game you left.';
 /** What the chosen difficulty means, under the choice. */
 const DIFFICULTY_NOTES: Record<Difficulty, string> = {
   easy: 'Shorter puzzles with everyday words: its own daily.',
