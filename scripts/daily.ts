@@ -14,9 +14,9 @@
 // it: never a pair already used (either way round), no start or goal word from the last 30 days, a
 // third of the pool by difficulty picked at random for the day (by how often a simulated player
 // makes par and how many words a search from both ends must look at: see src/difficulty.ts), and
-// the kind of route (see classifyNeed in src/maze.ts) the last week has had least of. From
-// PAR_RULE_FROM (2026-10-28), it also leaves out puzzles with a word a player must find to make Par
-// (mustFind in src/difficulty.ts), and won't check one in. The same date and history always give
+// the kind of route (see classifyNeed in src/maze.ts) the last week has had least of. At 5 letters,
+// from PAR_RULE_FROM (2026-10-28), it also leaves out puzzles with a word a player must find to make
+// Par (mustFind in src/difficulty.ts), and won't check one in. The same date and history always give
 // the same candidates.
 //
 // Checking in writes src/daily/days-5/{DATE}.json (with --letters 4, src/daily/days/{DATE}.json and
@@ -128,8 +128,8 @@ if (!start) {
   const owed = (n: Need) => MIX[n] * (week.length + 1) - week.filter((d) => d.need === n).length;
   const need = needs.reduce((a, b) => (owed(b) > owed(a) ? b : a));
   const unused = puzzles.filter((p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal));
-  // From PAR_RULE_FROM, none with a word a player must find to make Par.
-  const parRule = date >= PAR_RULE_FROM;
+  // From PAR_RULE_FROM, none with a word a player must find to make Par (5 letters only).
+  const parRule = LETTERS === 5 && date >= PAR_RULE_FROM;
   const fresh = parRule ? unused.filter((p) => !mustFind(data.words, adj, p.puzzle).length) : unused;
   const shuffled = (xs: PoolEntry[]) => xs.map((x) => ({ x, r: random() })).sort((a, b) => a.r - b.r).map((o) => o.x);
   // The day's band and kind first; then the day's band of other kinds; then anything fresh.
@@ -184,7 +184,7 @@ if (!start) {
     entry = { puzzle: { ...solved, path }, need, tricky, difficulty, inkPots, onRoute: routeWords(words, adj, S, G) };
   }
 
-  if (date >= PAR_RULE_FROM) {
+  if (LETTERS === 5 && date >= PAR_RULE_FROM) {
     const must = mustFind(data.words, adj, entry.puzzle);
     if (must.length) throw new Error(`${S} → ${G} can't make Par without ${must.join(', ')}: from ${PAR_RULE_FROM} no daily has a word a player must find (see mustFind in src/difficulty.ts)`);
   }
