@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../../public/mazes.json';
 import maze5Json from '../../public/mazes-5.json';
+import { mustFind } from '../difficulty';
 import { potRoute, walkSteps } from '../inkpots';
 import { PUZZLE_SHAPES, buildGraph, classifyNeed, isObvious, routeWords, solve } from '../maze';
 import { STEP_LIMIT, wordDistance } from '../strokes';
-import { DAYS, DAYS_5, LAUNCH, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
+import { DAYS, DAYS_5, LAUNCH, PAR_RULE_FROM, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
 
 /** 5-letter days picked while the pool's puzzles ran 15–18 strokes (2026-10-09), with that range. */
 const EARLIER_FIVE: Record<string, readonly [number, number]> = { '2026-10-08': [15, 18], '2026-10-09': [15, 18] };
@@ -51,6 +52,10 @@ describe('the daily puzzles', () => {
     for (const { days } of games) for (const { file, day } of days) expect(file).toBe(`${day.date}.json`);
   });
 
+  it('has 5-letter days from the par rule’s first date on, for the rule’s own test to check', () => {
+    expect(DAYS_5.filter((d) => d >= PAR_RULE_FROM).length).toBeGreaterThan(0);
+  });
+
   for (const { letters, days, words } of games) {
     const adj = buildGraph(words);
     describe(`${letters} letters`, () => {
@@ -86,6 +91,12 @@ describe('the daily puzzles', () => {
           it('has ink pots that still give the best it says', () => {
             expect(potRoute(words, adj, start, goal, day.inkPots.pots).best).toBe(day.inkPots.best);
           });
+
+          // From PAR_RULE_FROM no daily has a word a player must find to make Par; earlier ones stay as they were.
+          if (letters === 5 && day.date >= PAR_RULE_FROM)
+            it('has no word a player must find to make Par (4 strokes over the lowest)', () => {
+              expect(mustFind(words, adj, day.puzzle)).toEqual([]);
+            });
 
           if (letters === 5)
             it('shows a route after the win whose steps add up to its best, with ink pots or without', () => {

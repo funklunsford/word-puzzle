@@ -1280,6 +1280,47 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - 160 px rails from 1180 px wide (was 1464), and 300 px from 1460 (was 1744).
   - For the 4-letter game: 1060 and 1340.
 
+## Par without any one word (2026-10-26, branch `par-rule`)
+- **The owner's call,** after playtesting found puzzles that hang on one particular word (miss it and you're stuck, or you take a hint): no puzzle may have a word you must find to make Par.
+- **The rule** (`mustFind` in `src/difficulty.ts`): for each word on the puzzle's lowest-stroke route (`puzzle.path`, between the start and the goal), the cheapest route from the start to the goal that avoids that word costs at most the lowest + 4. If any word fails, the puzzle is turned down.
+  - +4 is Par (`src/golf.ts`): a player who never thinks of a word can still make Par without it, though not an Ace.
+  - Checking the lowest route's words is enough: a word every route within +4 needs is on the lowest route too. So it doesn't matter which lowest route a puzzle stores.
+  - `bestWithout` gives a word's way round; `distancesFrom` can now avoid a word.
+- **Examples** (tested in `src/difficulty.test.ts`):
+  - CURLY → JELLY, the Oct 28 daily as first picked, fails. Lowest 14: CURLY → SURLY → SULLY → BILLY → BELLY → JELLY. Without SURLY the cheapest is +9; without BILLY or BELLY +21 (13 steps, round through DOLLY and DEITY); without SULLY +1.
+  - CRUMB → SLINK, Oct 16's, passes. Lowest 13: CRUMB → GRUMP → CLUMP → CLUNK → CLINK → SLINK. Without GRUMP or CLUMP +1 (through CRIMP and BLIMP); without CLUNK or CLINK +0.
+- **How many pass,** by the strokes over the lowest a way round may cost:
+
+  | | +0 | +2 | **+4 (Par)** | +6 |
+  |---|---|---|---|---|
+  | the classic pool (1,200) | 29 | 269 | **487** | 618 |
+  | Easycore's pool (1,100) | 288 | 601 | **802** | 910 |
+
+  - Of the 22 5-letter dailies from Oct 7 to Oct 28, 12 fail: Oct 8, 9, 14, 15, 20, 21 and 23–28.
+  - Classic, by lowest strokes: 148 of 300 at 12, 117 at 13, 116 at 14, 106 at 15. By third: the hardest 216 of 400, the middle 132, the easiest 139. Par chance hardly differs (median 1% passing, 2% failing).
+  - Easycore, by lowest strokes: 239 of 304 at 5, 195 of 304 at 6, 153 of 187 at 7, 215 of 305 at 8.
+- **What it doesn't promise:**
+  - It's checked from the start only. A player some way along the lowest route can still hang on a later word from there. A stricter rule, checked from every word along the route, passes only 137 of the 1,200 classic puzzles, so it's out for now.
+  - One word at a time: missing two words can cost more than Par.
+  - A way round within +4 can still be hard to see. And an Ace can still hang on one word: +0 passes only 29 classic puzzles.
+- **One switch-over date,** `PAR_RULE_FROM` (2026-10-28, in `src/daily/daily.ts`), for classic and Easycore. Earlier dailies stay as they were.
+- **Classic dailies:**
+  - `npm run daily` leaves failing puzzles out of the candidates, says how many it left out of the day's third, and won't check one in, even with `--any`. The thirds are still ranked over the whole pool, so they keep their meaning.
+  - `docs/daily-prompt.md` has the rule in its checklist, for `/daily` and the nightly routine.
+  - `src/daily/daily.test.ts` checks every 5-letter day from the switch-over on.
+  - **Supply:** 477 unused puzzles pass (131 in the middle third, 134 in the easiest, 212 in the hardest). That's about 16 months at one a day, where the whole pool was over three years. The middle and easiest thirds run low first, and the script's low-pool warning says so. Rebuilding the pool with the rule in `scripts/mazes.ts` would refill it; not done here.
+- **Easycore** (`easyIndex` in `src/easycore.ts`): from the same date, a date whose puzzle fails takes the next passing one in the existing order.
+  - So later dates move up: from the switch-over, each date takes the next passing puzzle in the orders (the rest of the first round, then each round after it, without the failing ones). Nothing comes back within a round, and a round is the 802 passing puzzles.
+  - Only the failing dates changing can't be done: a round already plays every puzzle once, so a stand-in would repeat one.
+  - Dates before the switch-over keep their puzzles (a test pins all 22, Oct 6 to Oct 27).
+  - Oct 28 to Nov 1 keep theirs too. Nov 2's GRABS → GRASP (no Par without GRASS) gives way to GRAND → TRAIN, Nov 3's until now, and every date after moves up likewise. Of the dates from Oct 28 to the end of 2029, 5 keep the puzzle they had.
+  - Rounds are shorter: the first puzzle to come back is SHORT → SPOUT (Oct 31, 2026) on 2028-12-20, about 26 months on, where nothing came back for three years.
+  - Which puzzles fail is worked out ahead: `src/easycore-must-find.json` lists the 298, by place in the pool (1.2 KB, 620 bytes gzipped, in the game's code), so a phone needn't search the maze. The pool file is unchanged. A test recomputes the list from the pool and the maze.
+- **Oct 28 re-picked** by the runbook, with the rule, from `npm run daily -- 2026-10-28` (the easiest third; 119 unused puzzles left in it, 214 left out by the rule): **RULER → SHRED**, lowest 12, RULER → RIPER → PIPER → BIPED → SIRED → SHRED. Without any one word on it: RIPER +2, PIPER +2, BIPED +4, SIRED +3.
+  - Why: a ruler torn to a shred is a clear, concrete picture of change, with two plain base words.
+  - Passed over: STAFF → SPOKE, the runner-up (SPOKE reads as the past of speak); PLANT → TRUMP (political); CRANK → SPUNK (vulgar slang in British English); FADED → DRIFT (an inflection); BRAWL → TRIBE (an awkward pairing); and four with no clear picture.
+  - Oct 27 and earlier are as they were: Oct 27 was already being played in some time zones.
+
 ## Past puzzles (2026-10-26, branch `past-puzzles`)
 - **The owner's calls:**
   - An archive: a Past puzzles button beside ? and ⚙ lists the dailies at the difficulty being played, newest first and never one still to come, each with how the player did. Tapping one plays it.

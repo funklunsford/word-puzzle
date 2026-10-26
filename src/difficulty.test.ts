@@ -5,6 +5,7 @@ import poolText from '../public/pool.json?raw';
 import pool5Text from '../public/pool-5.json?raw';
 import {
   STRATEGIES,
+  bestWithout,
   distancesFrom,
   findPockets,
   goalSide,
@@ -13,6 +14,7 @@ import {
   keep,
   measure,
   meetDepth,
+  mustFind,
   parChance,
   planChance,
   planningDepth,
@@ -183,6 +185,50 @@ describe('walkChance', () => {
         expect(near.near2, label).toBeGreaterThanOrEqual(near.near1);
       }
     }
+  });
+});
+
+describe('mustFind', () => {
+  it('turns down a word with no way round it within Par (4 over the lowest), and one with no way round at all', () => {
+    // A → D in 2 through B; round B through C at 6, exactly Par.
+    const words = ['A', 'B', 'C', 'D'];
+    const puzzle: Puzzle = { start: 'A', goal: 'D', best: 2, path: ['A', 'B', 'D'] };
+    const ring = weighted(4, [
+      [0, 1, 1],
+      [1, 3, 1],
+      [0, 2, 3],
+      [2, 3, 3],
+    ]);
+    expect(bestWithout(words, ring, puzzle, 'B')).toBe(6);
+    expect(mustFind(words, ring, puzzle)).toEqual([]);
+    expect(mustFind(words, ring, puzzle, 3)).toEqual(['B']);
+    const chain = weighted(4, [
+      [0, 1, 1],
+      [1, 3, 1],
+    ]);
+    expect(bestWithout(words, chain, puzzle, 'B')).toBe(Infinity);
+    expect(mustFind(words, chain, puzzle)).toEqual(['B']);
+  });
+
+  const words5 = maze5.words;
+  const adj5 = doorsOf(maze5);
+  const over = (puzzle: Puzzle) => Object.fromEntries(puzzle.path.slice(1, -1).map((w) => [w, bestWithout(words5, adj5, puzzle, w) - puzzle.best]));
+
+  it('finds the words CURLY → JELLY can’t make Par without (the daily first picked for 2026-10-28)', () => {
+    const puzzle: Puzzle = { start: 'CURLY', goal: 'JELLY', best: 14, path: ['CURLY', 'SURLY', 'SULLY', 'BILLY', 'BELLY', 'JELLY'] };
+    expect(distancesFrom(adj5, words5.indexOf('CURLY'))[words5.indexOf('JELLY')]).toBe(14);
+    expect(over(puzzle)).toEqual({ SURLY: 9, SULLY: 1, BILLY: 21, BELLY: 21 });
+    expect(mustFind(words5, adj5, puzzle)).toEqual(['SURLY', 'BILLY', 'BELLY']);
+    // SURLY's way round is 9 over: a slack of 9 lets it through.
+    expect(mustFind(words5, adj5, puzzle, 9)).toEqual(['BILLY', 'BELLY']);
+  });
+
+  it('passes CRUMB → SLINK (2026-10-16): every word on its route has a way round within a stroke', () => {
+    const puzzle: Puzzle = { start: 'CRUMB', goal: 'SLINK', best: 13, path: ['CRUMB', 'GRUMP', 'CLUMP', 'CLUNK', 'CLINK', 'SLINK'] };
+    expect(distancesFrom(adj5, words5.indexOf('CRUMB'))[words5.indexOf('SLINK')]).toBe(13);
+    expect(over(puzzle)).toEqual({ GRUMP: 1, CLUMP: 1, CLUNK: 0, CLINK: 0 });
+    expect(mustFind(words5, adj5, puzzle)).toEqual([]);
+    expect(mustFind(words5, adj5, puzzle, 0)).toEqual(['GRUMP', 'CLUMP']);
   });
 });
 

@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import maze5Json from '../public/mazes-5.json';
 import poolText from '../public/pool-5-easy.json?raw';
-import { DAYS_5, LAUNCH, dayNumber } from './daily/daily';
-import { easyDayFor, easyDays, easyIndex, isEasyDay, loadDifficulty, saveDifficulty } from './easycore';
+import { DAYS_5, LAUNCH, PAR_RULE_FROM, dayNumber } from './daily/daily';
+import { mustFind } from './difficulty';
+import { MUST_FIND, easyDayFor, easyDays, easyIndex, isEasyDay, loadDifficulty, saveDifficulty } from './easycore';
+import type { Graph, Puzzle } from './maze';
 import { dailyRecord, resultKey, type Solved } from './stats';
 
 /** A localStorage that keeps its items in a map (or one that throws, as when blocked). */
@@ -60,8 +63,9 @@ describe("Easycore's daily", () => {
     expect(easyIndex('2027-03-01', 40)).toBe(easyIndex('2027-03-01', 40));
   });
 
-  it('plays every puzzle in the pool once before any comes back, in a new order each time round', () => {
-    const round = (k: number) => Array.from({ length: size }, (_, i) => easyIndex(day(k * size + i), size));
+  it('plays every puzzle in the pool once before any comes back, in a new order each time round (with none passed over)', () => {
+    const none = new Set<number>();
+    const round = (k: number) => Array.from({ length: size }, (_, i) => easyIndex(day(k * size + i), size, none));
     const first = round(0);
     expect(new Set(first).size).toBe(size);
     expect(Math.min(...first)).toBe(0);
@@ -91,6 +95,59 @@ describe("Easycore's daily", () => {
     expect(puzzles.length).toBe(size);
     expect(on('2026-10-22')).toMatchObject({ start: 'MIXED', goal: 'LINED' });
     expect(on(LAUNCH)).toMatchObject({ start: 'DINED', goal: 'TIMER' });
+  });
+});
+
+describe("Easycore's daily and the par rule", () => {
+  const { puzzles } = JSON.parse(poolText) as { puzzles: { puzzle: Puzzle }[] };
+  const size = puzzles.length;
+  const pair = (i: number) => `${puzzles[i].puzzle.start} → ${puzzles[i].puzzle.goal}`;
+  /** Days before the rule's first date, and how many puzzles a round keeps. */
+  const from = dayNumber(PAR_RULE_FROM) - 1;
+  const kept = size - MUST_FIND.size;
+  const maze = maze5Json as { words: string[]; doors: number[][] };
+  const adj: Graph = maze.doors.map((flat) => Array.from({ length: flat.length / 2 }, (_, k) => ({ to: flat[2 * k], cost: flat[2 * k + 1] })));
+
+  it('passes over exactly the pool’s puzzles with a word a player must find to make Par', () => {
+    const failing = puzzles.flatMap(({ puzzle }, i) => (mustFind(maze.words, adj, puzzle).length ? [i] : []));
+    expect([...MUST_FIND]).toEqual(failing);
+    expect(kept).toBe(802);
+  }, 60_000);
+
+  it('keeps every date before the rule’s first as it was', () => {
+    const before = Array.from({ length: from }, (_, n) => pair(easyIndex(day(n), size)));
+    expect(before).toEqual([
+      'DINED → TIMER', 'TOOLS → HOOKS', 'ITEMS → HILLS', 'DIVED → LIKED', 'RANTS → BINDS', 'FAILS → BILLS', 'DITCH → PINCH', 'NIGHT → RIGHT',
+      'SHELF → SPEED', 'STOOD → SPOOF', 'SEATS → CELLS', 'RIDES → POLLS', 'PANTS → HINTS', 'GROSS → DROPS', 'PAINS → RACKS', 'DITCH → BATCH',
+      'MIXED → LINED', 'STILL → STATE', 'HACKS → RAIDS', 'BILLS → PATHS', 'RACKS → RANTS', 'SPOIL → SPITE',
+    ]);
+    expect(day(from - 1)).toBe('2026-10-27');
+    for (let n = 0; n < from; n++) expect(easyIndex(day(n), size), day(n)).toBe(easyIndex(day(n), size, new Set()));
+  });
+
+  it('from its first date, plays no puzzle with a word a player must find, and nothing twice in a round', () => {
+    const before = Array.from({ length: from }, (_, n) => easyIndex(day(n), size));
+    const after = Array.from({ length: 3 * kept }, (_, n) => easyIndex(day(from + n), size));
+    expect(day(from)).toBe(PAR_RULE_FROM);
+    expect(after.filter((i) => MUST_FIND.has(i))).toEqual([]);
+    // The first round: the dates before the rule, then the kept puzzles they didn't play, each once.
+    const left = kept - before.filter((i) => !MUST_FIND.has(i)).length;
+    const first = [...before, ...after.slice(0, left)];
+    expect(new Set(first).size).toBe(first.length);
+    expect(first.filter((i) => !MUST_FIND.has(i)).length).toBe(kept);
+    // Then each round is every kept puzzle once, in a new order.
+    const second = after.slice(left, left + kept);
+    const third = after.slice(left + kept, left + 2 * kept);
+    expect(new Set(second).size).toBe(kept);
+    expect(new Set(third).size).toBe(kept);
+    expect(third).not.toEqual(second);
+  });
+
+  it('plays puzzles a player can make Par on without any one word, from the rule’s first date', () => {
+    for (let n = from; n < from + 60; n++) expect(mustFind(maze.words, adj, puzzles[easyIndex(day(n), size)].puzzle), day(n)).toEqual([]);
+    // Its first five dates keep their puzzles. 2 November's was GRABS → GRASP, which can't make Par
+    // without GRASS, so it takes the next in the order (3 November's until now).
+    expect([0, 1, 2, 3, 4, 5].map((n) => pair(easyIndex(day(from + n), size)))).toEqual(['FILLS → BALLS', 'EVILS → HILLS', 'CHEAT → CLEAR', 'SHORT → SPOUT', 'BAKES → TYPES', 'GRAND → TRAIN']);
   });
 });
 

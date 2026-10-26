@@ -36,6 +36,12 @@ export const daysFor = (letters: WordLength) => (letters === 5 ? DAYS_5 : DAYS);
 /** The first daily; puzzle numbers count from it. */
 export const LAUNCH = '2026-10-06';
 
+/**
+ * The first date whose dailies, classic and Easycore, have no word a player must find to make Par
+ * (see mustFind in src/difficulty.ts). Earlier days stay as they were.
+ */
+export const PAR_RULE_FROM = '2026-10-28';
+
 /** A date as YYYY-MM-DD, in the player's own time zone. */
 export const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
