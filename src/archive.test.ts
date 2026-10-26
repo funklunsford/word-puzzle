@@ -52,10 +52,10 @@ describe("the calendar's months", () => {
     expect(october.length).toBe(35);
     expect(october.slice(0, 5)).toEqual([null, null, null, null, '2026-10-01']);
     expect(october.at(-1)).toBe('2026-10-31');
-    // November 2026 starts on a Sunday; February 2027 fills exactly four weeks.
+    // November 2026 starts on a Sunday; February 2026, starting on a Sunday, fills exactly four weeks.
     expect(monthGrid('2026-11')[0]).toBe('2026-11-01');
     expect(monthGrid('2026-11').slice(29)).toEqual(['2026-11-30', null, null, null, null, null]);
-    expect(monthGrid('2027-02')).toHaveLength(28);
+    expect(monthGrid('2026-02')).toHaveLength(28);
     expect(monthGrid('2028-02').filter(Boolean)).toHaveLength(29);
   });
 
