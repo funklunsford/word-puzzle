@@ -275,7 +275,7 @@ body {
   position: relative;
 }
 
-/* The toolbar, in the header's top-right corner: How to play and settings in one bar. */
+/* The toolbar, in the header's top-right corner: past puzzles, How to play and settings in one bar. */
 .masthead-actions {
   position: absolute;
   top: 0;
@@ -330,7 +330,8 @@ body {
     background: color-mix(in srgb, var(--ink) 7%, var(--surface));
   }
 
-  .gear-btn:hover .gear-icon {
+  .gear-btn:hover .gear-icon,
+  .past-btn:hover .calendar-icon {
     stroke: var(--ink);
   }
 
@@ -344,13 +345,18 @@ body {
   color: var(--muted);
 }
 
-.gear-icon {
+.gear-icon,
+.calendar-icon {
   width: 20px;
   height: 20px;
   fill: none;
   stroke: var(--muted);
   stroke-width: 2;
   stroke-linecap: round;
+}
+
+.calendar-icon {
+  stroke-linejoin: round;
 }
 
 /* Settings: a setting's name, its choices side by side, and a line of explanation. */
@@ -498,9 +504,9 @@ body {
   outline-offset: 2px;
 }
 
-/* (Narrower windows shrink it to leave the toolbar room on either side: it's about 86 px wide.) */
+/* (Narrower windows shrink it to leave the toolbar room on either side: it's about 126 px wide.) */
 .masthead-art {
-  width: min(520px, calc(100% - 200px));
+  width: min(520px, calc(100% - 280px));
   height: auto;
   overflow: visible;
 }
@@ -518,6 +524,15 @@ body {
 .maze.compact .dateline {
   margin-top: -6px;
   font-size: 11px;
+}
+
+/* An earlier day's puzzle: "Past puzzle · No. 11 · …", then the way back to today's, never split. */
+.dateline .back-today {
+  color: var(--ink);
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
 }
 
 /* The parts row: each stroke type on a tile tinted in its colour, like the tray. */
@@ -1575,6 +1590,128 @@ body {
   color: var(--muted);
 }
 
+/* Past puzzles (the calendar): the dailies so far, newest first, each a row to tap with its number,
+   its date and how it went, in the path card's chips. The list scrolls under the card's title. */
+.archive-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.archive-whose {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.past-days {
+  list-style: none;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 12px -8px 0;
+  padding: 2px 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.past-day {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1px 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 10px 8px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.past-day:active {
+  transform: scale(0.985);
+}
+
+/* The one being played. */
+.past-day[aria-current] {
+  border-color: var(--ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .past-day:hover {
+    border-color: color-mix(in srgb, var(--ink) 35%, var(--line));
+  }
+
+  .past-day[aria-current]:hover {
+    border-color: var(--ink);
+  }
+}
+
+.past-no {
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.past-date {
+  grid-column: 1;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.past-today {
+  margin-left: 8px;
+  vertical-align: 0.1em;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+}
+
+/* How it went, as a chip: quiet when not played, dashed gold part-way (like the goal's chip), plain
+   once solved, gold for an Ace. */
+.past-how {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.past-how.new {
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.past-how.started {
+  border: 1.5px dashed var(--gold);
+  background: color-mix(in srgb, var(--gold) 9%, var(--surface));
+}
+
+.past-how.ace {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 16%, var(--surface));
+}
+
+.archive-note {
+  margin-top: 12px;
+}
+
 /* Side card: the path so far, and game controls. */
 .side-card {
   grid-area: side;
@@ -1918,7 +2055,7 @@ body {
 
 /* Less motion (Settings, or the device's setting; see prefs.ts): no slides, springs or scaling;
    keep colour and opacity changes. */
-:root[data-motion='less'] :is(.tray-tile, .tray-tile.taken, .tray-tile svg, .pill) {
+:root[data-motion='less'] :is(.tray-tile, .tray-tile.taken, .tray-tile svg, .pill, .past-day) {
   transition: none;
   transform: none !important;
 }
@@ -2203,6 +2340,7 @@ body {
   .pill,
   .tool-btn,
   .trail-word,
+  .past-day,
   .help-card .close {
     touch-action: manipulation;
   }

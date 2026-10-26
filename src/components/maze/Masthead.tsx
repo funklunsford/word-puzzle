@@ -62,7 +62,7 @@ const setOff = (i: number) => 0.2 + i * 0.045;
  * the game.
  */
 /** The wordmark, with an optional line under it (the daily's number and date), and buttons in its corner (the gear). */
-export function Masthead({ compact = false, dateline, actions }: { compact?: boolean; dateline?: string; actions?: React.ReactNode }) {
+export function Masthead({ compact = false, dateline, actions }: { compact?: boolean; dateline?: React.ReactNode; actions?: React.ReactNode }) {
   const top = compact ? -PAD : PART_Y - PART / 2 - PAD;
   return (
     <header className="masthead">
