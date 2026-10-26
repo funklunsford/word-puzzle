@@ -873,8 +873,9 @@ export function MazeApp() {
               ? 'Sample puzzle'
               : current?.date && (
                   <>
-                    {past && 'Past puzzle · '}
-                    {`No. ${dayNumber(current.date)}${current.easy ? ' · Easycore' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`}
+                    {/* On a phone an earlier day's is shortened ("Past · No. 11 · Fri, Oct 16"), so it wraps less. */}
+                    {past && (compact ? 'Past · ' : 'Past puzzle · ')}
+                    {`No. ${dayNumber(current.date)}${current.easy ? ' · Easycore' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, past && compact ? { weekday: 'short', month: 'short', day: 'numeric' } : { weekday: 'long', month: 'long', day: 'numeric' })}`}
                     {past && (
                       <>
                         {' · '}
@@ -1151,8 +1152,8 @@ export function MazeApp() {
                     >
                       Share
                     </button>
-                    {/* An earlier day's, solved: on to another from Past puzzles. */}
-                    {past && (
+                    {/* A daily solved, today's or an earlier day's: on to another from Past puzzles. */}
+                    {letters === 5 && !!current?.date && (
                       <button className="pill quiet" aria-haspopup="dialog" onClick={() => setArchive(true)}>
                         Play another
                       </button>

@@ -1324,7 +1324,7 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 ## Past puzzles (2026-10-26, branch `past-puzzles`)
 - **The owner's calls:**
   - An archive: a Past puzzles button beside ? and ⚙ lists the dailies at the difficulty being played, newest first and never one still to come, each with how the player did. Tapping one plays it.
-  - A past day plays as `?day=` does, says it's a past puzzle, and has a way back to today's. After its win, "Play another". Its win is kept and shared as today's is; only today's writes the Puzzle Playlist's done mark.
+  - A past day plays as `?day=` does, says it's a past puzzle, and has a way back to today's. After a daily's win (today's too), "Play another". Its win is kept and shared as today's is; only today's writes the Puzzle Playlist's done mark.
   - A streak counts only dailies solved on their own date.
   - A game left part-way is kept, per date and difficulty, and carries on exactly where it was.
 - **Past puzzles** (`Archive.tsx`, its rows from `pastDays` in `src/archive.ts`):
@@ -1336,8 +1336,8 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - **The toolbar is wider** (about 126 px, was 86), so the wordmark leaves it more room (`calc(100% - 280px)`, was 200): on desktop it's 480 px wide, where it was 520, about 25 px clear of the toolbar at every width. At 520 its parts row came within 8 px of the toolbar, and in 600 to 830 px windows it overlapped it.
 - **Playing a past day** (`playDay` in MazeApp):
   - It loads that day's daily as `?day=` does, and the address follows the puzzle being played (`history.replaceState`): `?day=2026-10-16` for an earlier day's, none for today's (a `?day=` that isn't playable is dropped too). A reload plays it again.
-  - The dateline: "Past puzzle · No. 11 · Friday, October 16 · Back to today", the link in ink and never split. Two lines on a 390 px phone, Easycore's too; Easycore's takes four at 320 px, with no sideways scroll.
-  - After its win, "Play another" beside Share opens Past puzzles; "A new puzzle comes at midnight." is left out. A return to a solved past day says "Solved in 13" for "Solved today in 13".
+  - The dateline: "Past puzzle · No. 11 · Friday, October 16 · Back to today", the link in ink and never split. On a phone it's shortened, "Past · No. 11 · Fri, Oct 16 · Back to today" (the owner's call: in full, Easycore's took four lines at 320 px).
+  - After a daily's win, today's too (the owner's call), "Play another" beside Share opens Past puzzles. After a past day's, "A new puzzle comes at midnight." is left out. A return to a solved past day says "Solved in 13" for "Solved today in 13".
   - Switching difficulty plays the other difficulty's daily for the same date if it has one (the classic dailies start on October 7), else today's. A game kept there carries on (see below), so the Easycore section's "from its start" now holds only when there's none. A row picked during the sample leaves it as Skip does.
 - **The streak** (`dailyRecord` in `src/stats.ts`, `keepWin` in `src/results.ts`):
   - A kept result has `on`, the player's date when it was first solved. A better play later keeps the first date, so a daily solved on the day stays so.
@@ -1352,7 +1352,7 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - A win clears it, and so does Restart. The sample and pool puzzles keep none, and nor does a game with nothing done, so opening a puzzle doesn't mark it In progress.
   - **Checked as it's loaded** (storage can hold anything): each field's shape (words of the puzzle's letters, strokes on real tiles at finite places, at most 3 strokes this step, whole numbers, a hint's level) and the game as a whole (it begins at the start, visits each word once, the player's in one of them short of the goal, the strokes add up). A save that fails is ignored and the puzzle starts afresh. Past puzzles only looks for one (`hasProgress`).
   - **A new field** (the earned-hints branch adds whether an earned hint is waiting): in `Progress`, with its check in `CHECKS` and its value for older saves in `LATER`; then MazeApp's `startOf` and `progress`, which TypeScript asks for, and `setGame`, which sets it back.
-  - **Classic and Hardcore keep a game each.** Switching to one carries on its game for that date, if there is one ("Hardcore on, back where you left it: …"). Otherwise, as before, Hardcore on starts a puzzle in progress over and Hardcore off lets it go on, from then on kept as Classic's. Leaving one keeps its game. (Settings' note, "Turning it on starts the puzzle over", is true unless a hardcore game of that day is waiting.)
+  - **Classic and Hardcore keep a game each.** Switching to one carries on its game for that date, if there is one ("Hardcore on, back where you left it: …"). Otherwise, as before, Hardcore on starts a puzzle in progress over and Hardcore off lets it go on, from then on kept as Classic's. Leaving one keeps its game. (Settings' note says so: "Turning it on starts the puzzle over, or picks up the Hardcore game you left.")
   - Ink pots turned on or off start the puzzle over, as before, dropping the game kept the other way.
   - A day left unfinished keeps its game (a few KB) until it's won or restarted.
 - **Unchanged:** today's puzzle and its done mark; `?day=` (now how the address keeps a past day); How to play opening only on a first visit, and the sample keeping nothing; Hardcore's rules; the share card.
