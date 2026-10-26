@@ -1620,8 +1620,9 @@ body {
   color: var(--muted);
 }
 
-/* Past puzzles (the calendar): the dailies so far, newest first, each a row to tap with its number,
-   its date and how it went, in the path card's chips. The list scrolls under the card's title. */
+/* Past puzzles (the calendar): the dailies so far, a month at a time. Each day is a tile in the
+   path card's chip colours: outlined when not played, dashed gold part-way (like the goal's chip),
+   filled once solved, gold with a star for an Ace. Dates with no daily are just their number. */
 .archive-card {
   display: flex;
   flex-direction: column;
@@ -1633,113 +1634,183 @@ body {
   color: var(--muted);
 }
 
-.past-days {
-  list-style: none;
-  min-height: 0;
-  overflow-y: auto;
-  margin: 12px -8px 0;
-  padding: 2px 8px 4px;
+.month-head {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
 }
 
-.past-day {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1px 12px;
-  width: 100%;
-  min-height: 56px;
-  padding: 8px 10px 8px 16px;
+.month-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.month-turn {
+  width: 36px;
+  height: 36px;
   border: 1.5px solid var(--line);
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--bg);
   color: var(--ink);
   font: inherit;
-  text-align: left;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.month-turn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.month {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.weekday {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--muted);
+}
+
+.past-day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 44px;
+  padding: 0;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition: transform 0.1s ease-out;
 }
 
 .past-day:active {
-  transform: scale(0.985);
+  transform: scale(0.94);
+}
+
+.past-day.none {
+  border-color: transparent;
+  background: none;
+  color: color-mix(in srgb, var(--muted) 55%, transparent);
+  font-weight: 600;
+  cursor: default;
+}
+
+.past-day.started {
+  border: 1.5px dashed var(--gold);
+  background: color-mix(in srgb, var(--gold) 9%, var(--bg));
+}
+
+.past-day.solved {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--ink) 16%, var(--bg));
+}
+
+.past-day.ace {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 26%, var(--bg));
+}
+
+.past-star {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 10px;
+  color: var(--gold);
+}
+
+/* Today's: a green bar under its number. */
+.past-day.today::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ok);
 }
 
 /* The one being played. */
 .past-day[aria-current] {
-  border-color: var(--ink);
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .past-day:hover {
+  .past-day:not(.none):hover {
+    border-color: color-mix(in srgb, var(--ink) 45%, var(--line));
+  }
+
+  .month-turn:not(:disabled):hover {
     border-color: color-mix(in srgb, var(--ink) 35%, var(--line));
   }
-
-  .past-day[aria-current]:hover {
-    border-color: var(--ink);
-  }
 }
 
-.past-no {
-  font-size: 15px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.past-date {
-  grid-column: 1;
+/* The day pointed at, or the month summed up. */
+.month-detail {
+  margin: 12px 0 0;
   font-size: 13px;
-  color: var(--muted);
-}
-
-.past-today {
-  margin-left: 8px;
-  vertical-align: 0.1em;
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ok);
-  background: color-mix(in srgb, var(--ok) 14%, transparent);
-}
-
-/* How it went, as a chip: quiet when not played, dashed gold part-way (like the goal's chip), plain
-   once solved, gold for an Ace. */
-.past-how {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  padding: 5px 11px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  font-size: 12px;
   font-weight: 700;
-  white-space: nowrap;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-.past-how.new {
-  border-color: transparent;
-  background: none;
+.past-key {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 12px;
   color: var(--muted);
-  font-weight: 600;
 }
 
-.past-how.started {
+.past-key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.past-swatch {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.past-swatch.started {
   border: 1.5px dashed var(--gold);
-  background: color-mix(in srgb, var(--gold) 9%, var(--surface));
 }
 
-.past-how.ace {
+.past-swatch.solved {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--ink) 16%, var(--bg));
+}
+
+.past-swatch.ace {
   border-color: var(--gold);
-  background: color-mix(in srgb, var(--gold) 16%, var(--surface));
+  background: color-mix(in srgb, var(--gold) 26%, var(--bg));
 }
 
 .archive-note {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 /* Side card: the path so far, and game controls. */
@@ -2371,6 +2442,7 @@ body {
   .tool-btn,
   .trail-word,
   .past-day,
+  .month-turn,
   .help-card .close {
     touch-action: manipulation;
   }
