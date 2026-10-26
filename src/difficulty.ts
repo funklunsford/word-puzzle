@@ -21,8 +21,11 @@
 import { isObvious, seededRandom, type Graph, type Puzzle } from './maze';
 import { strokeDiff } from './strokes';
 
-/** Cheapest strokes from `src` to every word (door costs are small whole numbers, so a bucket queue). */
-export function distancesFrom(adj: Graph, src: number): Float64Array {
+/**
+ * Cheapest strokes from `src` to every word, never passing through `avoid` (a word's index; none by
+ * default). Door costs are small whole numbers, so a bucket queue.
+ */
+export function distancesFrom(adj: Graph, src: number, avoid = -1): Float64Array {
   const dist = new Float64Array(adj.length).fill(Infinity);
   dist[src] = 0;
   const buckets: number[][] = [[src]];
@@ -30,6 +33,7 @@ export function distancesFrom(adj: Graph, src: number): Float64Array {
     for (const u of buckets[d] ?? []) {
       if (dist[u] !== d) continue;
       for (const { to, cost } of adj[u]) {
+        if (to === avoid) continue;
         const nd = d + cost;
         if (nd < dist[to]) {
           dist[to] = nd;
@@ -580,6 +584,23 @@ export function planChance(words: string[], adj: Graph, puzzle: Puzzle, plan: Pl
   }
   const share = (x: number) => Math.round((100 * x) / games) / 100;
   return { par: share(tally.par), near1: share(tally.near1), near2: share(tally.near2) };
+}
+
+// ---------- Par without any one word ----------
+
+/** The cheapest route from the puzzle's start to its goal that never passes `word`, in strokes (Infinity if there's none). */
+export const bestWithout = (words: string[], adj: Graph, puzzle: Puzzle, word: string) =>
+  distancesFrom(adj, words.indexOf(puzzle.start), words.indexOf(word))[words.indexOf(puzzle.goal)];
+
+/**
+ * The words a player must find to make Par: those on the puzzle's lowest-stroke route (between its
+ * start and goal) with no way round them within `slack` strokes of the lowest (4: Par, in
+ * src/golf.ts). A player who doesn't see such a word must take a hint or finish over Par, so from
+ * PAR_RULE_FROM (src/daily/daily.ts) no daily has one. Checking the lowest route's words is enough: a
+ * word every route within the slack needs is on the lowest one too. Checked from the start only.
+ */
+export function mustFind(words: string[], adj: Graph, puzzle: Puzzle, slack = 4): string[] {
+  return puzzle.path.slice(1, -1).filter((w) => bestWithout(words, adj, puzzle, w) > puzzle.best + slack);
 }
 
 /** What the pool and the day files keep of a puzzle's difficulty: the worst few traps describe it. */
