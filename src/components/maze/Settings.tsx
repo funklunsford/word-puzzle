@@ -27,7 +27,7 @@ const HARDCORE_NOTE = 'Only words on a lowest-stroke route count, and there are 
 /** What the chosen difficulty means, under the choice. */
 const DIFFICULTY_NOTES: Record<Difficulty, string> = {
   easy: 'Shorter puzzles with everyday words: its own daily.',
-  classic: 'The daily puzzle, with hints if you need them.',
+  classic: 'The daily puzzle, with hints you earn as you go.',
   hard: HARDCORE_NOTE,
 };
 

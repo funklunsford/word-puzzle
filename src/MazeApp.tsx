@@ -188,7 +188,7 @@ export function MazeApp() {
   const startedAt = useRef<number | null>(null);
   const [seconds, setSeconds] = useState<number | null>(null);
   /** The door just walked through (cost 0 when it led back to a word already visited). */
-  const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
+  const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean; earned?: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   /** A lowest-stroke route is shown, once the puzzle's solved (after the win, or from the "Solved today" note). */
   const [reveal, setReveal] = useState(false);
@@ -549,7 +549,9 @@ export function MazeApp() {
         setInk(ink - used + (pot ? 1 : 0));
         // The step's strokes: from its start, through each stroke's letters (history), to this one.
         setTrail((t) => [...t, { word, cost: paid, used, from: room, moves: movesOf([...history, cells, next]) }]);
-        setLastDoor({ word, cost: paid, used, back: false, pot });
+        // A hint earned by this word (none if one was already waiting), which the step line says.
+        const earned = !earnedRef.current && earnHint(false, true, hardcore);
+        setLastDoor({ word, cost: paid, used, back: false, pot, earned });
         setHintEarned((e) => earnHint(e, true, hardcore));
         return true;
       }
@@ -1127,7 +1129,11 @@ export function MazeApp() {
                       ? lastDoor!.back
                         ? `Back in ${room}: free, you've been here before.`
                         : `New word: ${room} (+${lastDoor!.cost}${lastDoor!.used ? `, ${lastDoor!.used} paid in ink` : ''}).${
-                            lastDoor!.pot ? ' Ink pot! You banked a free stroke.' : ' Find the next one.'
+                            lastDoor!.pot
+                              ? ` Ink pot! You banked a free stroke.${lastDoor!.earned ? ' Hint earned.' : ''}`
+                              : lastDoor!.earned
+                                ? ' You earned a hint.'
+                                : ' Find the next one.'
                           }`
                       : hintAt === 'locked'
                         ? EARN_HINT

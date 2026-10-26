@@ -1294,8 +1294,9 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - **Lit** (one waiting): the bulb's glass gold, as before, with a gold border and ring (as round a hinted letter), and a gold dot on its edge that springs in. "Hint, earned"; tooltip "You've earned a hint for this step".
   - **Open:** as the button was (the bulb lit, an ink border). **Shown:** greyed.
   - Undo, Reset and Hint still share one row at 320 px.
-- **How to play:** "Stuck? Tap Hint for a clue." is now "Each new word earns a Hint for your next step.", for touch and mouse alike (`HowToCard` no longer takes `touch`). No coach line mentions Hint. In the sample, hints are earned as in the game: locked until JUDGE.
-- **Unchanged:** what a hint shows and says, the count of hints, Hardcore's "No hints" note, and Settings' notes (Classic: "with hints if you need them").
+- **How to play:** "Stuck? Tap Hint for a clue." is now "Each new word earns a Hint." (short enough for one line on a phone), for touch and mouse alike (`HowToCard` no longer takes `touch`). No coach line mentions Hint. In the sample, hints are earned as in the game: locked until JUDGE.
+- **Saying so:** a word that earns a hint says it in the step line, which screen readers announce: "New word: GRUMP (+2). You earned a hint." in place of "Find the next one." (not when one was already waiting; after an ink pot, "Hint earned." is added). Settings' Classic note is now "The daily puzzle, with hints you earn as you go."
+- **Unchanged:** what a hint shows and says, the count of hints, and Hardcore's "No hints" note.
 - **Tests:** locked at the start; earned by a new word, not a free return; two new words, one hint; one earned hint gives all three levels, then nothing; locked after moving on, back in the word asked in too; kept through free returns until used; none in hardcore.
 - **Checked in headless Chrome** (the built site, `?day=2026-10-16`, real drags; 390 × 844 and 1512 × 945, light and dark):
   - Locked at the start, with its line; a tap shows no hint. Lit at GRUMP. Three asks from one earned hint (the meaning, the 1st and 2nd letters, CLUMP), then greyed.
