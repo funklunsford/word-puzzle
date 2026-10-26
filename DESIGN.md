@@ -1280,6 +1280,90 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - 160 px rails from 1180 px wide (was 1464), and 300 px from 1460 (was 1744).
   - For the 4-letter game: 1060 and 1340.
 
+## Par without any one word (2026-10-26, branch `par-rule`)
+- **The owner's call,** after playtesting found puzzles that hang on one particular word (miss it and you're stuck, or you take a hint): no puzzle may have a word you must find to make Par.
+- **The rule** (`mustFind` in `src/difficulty.ts`): for each word on the puzzle's lowest-stroke route (`puzzle.path`, between the start and the goal), the cheapest route from the start to the goal that avoids that word costs at most the lowest + 4. If any word fails, the puzzle is turned down.
+  - +4 is Par (`src/golf.ts`): a player who never thinks of a word can still make Par without it, though not an Ace.
+  - Checking the lowest route's words is enough: a word every route within +4 needs is on the lowest route too. So it doesn't matter which lowest route a puzzle stores.
+  - `bestWithout` gives a word's way round; `distancesFrom` can now avoid a word.
+- **Examples** (tested in `src/difficulty.test.ts`):
+  - CURLY → JELLY, the Oct 28 daily as first picked, fails. Lowest 14: CURLY → SURLY → SULLY → BILLY → BELLY → JELLY. Without SURLY the cheapest is +9; without BILLY or BELLY +21 (13 steps, round through DOLLY and DEITY); without SULLY +1.
+  - CRUMB → SLINK, Oct 16's, passes. Lowest 13: CRUMB → GRUMP → CLUMP → CLUNK → CLINK → SLINK. Without GRUMP or CLUMP +1 (through CRIMP and BLIMP); without CLUNK or CLINK +0.
+- **How many pass,** by the strokes over the lowest a way round may cost:
+
+  | | +0 | +2 | **+4 (Par)** | +6 |
+  |---|---|---|---|---|
+  | the classic pool (1,200) | 29 | 269 | **487** | 618 |
+  | Easycore's pool (1,100) | 288 | 601 | **802** | 910 |
+
+  - Of the 22 5-letter dailies from Oct 7 to Oct 28, 12 fail: Oct 8, 9, 14, 15, 20, 21 and 23–28.
+  - Classic, by lowest strokes: 148 of 300 at 12, 117 at 13, 116 at 14, 106 at 15. By third: the hardest 216 of 400, the middle 132, the easiest 139. Par chance hardly differs (median 1% passing, 2% failing).
+  - Easycore, by lowest strokes: 239 of 304 at 5, 195 of 304 at 6, 153 of 187 at 7, 215 of 305 at 8.
+- **What it doesn't promise:**
+  - It's checked from the start only. A player some way along the lowest route can still hang on a later word from there. A stricter rule, checked from every word along the route, passes only 137 of the 1,200 classic puzzles, so it's out for now.
+  - One word at a time: missing two words can cost more than Par.
+  - A way round within +4 can still be hard to see. And an Ace can still hang on one word: +0 passes only 29 classic puzzles.
+- **One switch-over date,** `PAR_RULE_FROM` (2026-10-28, in `src/daily/daily.ts`), for classic and Easycore. Earlier dailies stay as they were.
+- **Classic dailies:**
+  - `npm run daily` leaves failing puzzles out of the candidates, says how many it left out of the day's third, and won't check one in, even with `--any`. The thirds are still ranked over the whole pool, so they keep their meaning.
+  - `docs/daily-prompt.md` has the rule in its checklist, for `/daily` and the nightly routine.
+  - `src/daily/daily.test.ts` checks every 5-letter day from the switch-over on.
+  - **Supply:** 477 unused puzzles pass (131 in the middle third, 134 in the easiest, 212 in the hardest). That's about 16 months at one a day, where the whole pool was over three years. The middle and easiest thirds run low first, and the script's low-pool warning says so. Rebuilding the pool with the rule in `scripts/mazes.ts` would refill it; not done here.
+- **Easycore** (`easyIndex` in `src/easycore.ts`): from the same date, a date whose puzzle fails takes the next passing one in the existing order.
+  - So later dates move up: from the switch-over, each date takes the next passing puzzle in the orders (the rest of the first round, then each round after it, without the failing ones). Nothing comes back within a round, and a round is the 802 passing puzzles.
+  - Only the failing dates changing can't be done: a round already plays every puzzle once, so a stand-in would repeat one.
+  - Dates before the switch-over keep their puzzles (a test pins all 22, Oct 6 to Oct 27).
+  - Oct 28 to Nov 1 keep theirs too. Nov 2's GRABS → GRASP (no Par without GRASS) gives way to GRAND → TRAIN, Nov 3's until now, and every date after moves up likewise. Of the dates from Oct 28 to the end of 2029, 5 keep the puzzle they had.
+  - Rounds are shorter: the first puzzle to come back is SHORT → SPOUT (Oct 31, 2026) on 2028-12-20, about 26 months on, where nothing came back for three years.
+  - Which puzzles fail is worked out ahead: `src/easycore-must-find.json` lists the 298, by place in the pool (1.2 KB, 620 bytes gzipped, in the game's code), so a phone needn't search the maze. The pool file is unchanged. A test recomputes the list from the pool and the maze.
+- **Oct 28 re-picked** by the runbook, with the rule, from `npm run daily -- 2026-10-28` (the easiest third; 119 unused puzzles left in it, 214 left out by the rule): **RULER → SHRED**, lowest 12, RULER → RIPER → PIPER → BIPED → SIRED → SHRED. Without any one word on it: RIPER +2, PIPER +2, BIPED +4, SIRED +3.
+  - Why: a ruler torn to a shred is a clear, concrete picture of change, with two plain base words.
+  - Passed over: STAFF → SPOKE, the runner-up (SPOKE reads as the past of speak); PLANT → TRUMP (political); CRANK → SPUNK (vulgar slang in British English); FADED → DRIFT (an inflection); BRAWL → TRIBE (an awkward pairing); and four with no clear picture.
+  - Oct 27 and earlier are as they were: Oct 27 was already being played in some time zones.
+
+## Past puzzles (2026-10-26, branch `past-puzzles`)
+- **The owner's calls:**
+  - An archive: a Past puzzles button beside ? and ⚙ lists the dailies at the difficulty being played, newest first and never one still to come, each with how the player did. Tapping one plays it.
+  - A past day plays as `?day=` does, says it's a past puzzle, and has a way back to today's. After its win, "Play another". Its win is kept and shared as today's is; only today's writes the Puzzle Playlist's done mark.
+  - A streak counts only dailies solved on their own date.
+  - A game left part-way is kept, per date and difficulty, and carries on exactly where it was.
+- **Past puzzles** (`Archive.tsx`, its rows from `pastDays` in `src/archive.ts`):
+  - A calendar drawn in strokes like the gear (`CalendarIcon`), first in the toolbar, labelled "Past puzzles". The 4-letter game has none.
+  - A card like Settings: "Past puzzles", whose they are ("Classic dailies, newest first"; Easycore's; "Classic dailies, in Hardcore"), then a row for each daily up to today's. "No. 21" over its date ("Monday, October 26"), a green TODAY tag on today's, and how it went as a chip in the path card's style: Not played (quiet text), In progress (dashed gold, as the goal's chip), Solved in 15, Ace ★ (gold). A note closes it: "Solved on a later day, a puzzle counts towards dailies solved and aces, but not your streak."
+  - The list scrolls under the title. The daily being played has an ink border (`aria-current`) and is scrolled into view; tapping it just closes the list. Each row is a button read as "No. 11, Friday, October 16: solved in 13 strokes, an Ace". Escape, × or a tap outside closes it, back to the calendar.
+  - Classic and Hardcore list the classic dailies (In progress is the difficulty's own game); Easycore lists its own, 21 today, from October 6. A solved daily being played again shows its result.
+  - Today's is the daily the game plays today (`todaysDaily`: the latest up to the player's date, as `keepWin` has it), so a late nightly run doesn't leave today's unmarked.
+  - **The toolbar is wider** (about 126 px, was 86), so the wordmark leaves it more room (`calc(100% - 280px)`, was 200): on desktop it's 480 px wide, where it was 520, about 25 px clear of the toolbar at every width. At 520 its parts row came within 8 px of the toolbar, and in 600 to 830 px windows it overlapped it.
+- **Playing a past day** (`playDay` in MazeApp):
+  - It loads that day's daily as `?day=` does, and the address follows the puzzle being played (`history.replaceState`): `?day=2026-10-16` for an earlier day's, none for today's (a `?day=` that isn't playable is dropped too). A reload plays it again.
+  - The dateline: "Past puzzle · No. 11 · Friday, October 16 · Back to today", the link in ink and never split. Two lines on a 390 px phone, Easycore's too; Easycore's takes four at 320 px, with no sideways scroll.
+  - After its win, "Play another" beside Share opens Past puzzles; "A new puzzle comes at midnight." is left out. A return to a solved past day says "Solved in 13" for "Solved today in 13".
+  - Switching difficulty plays the other difficulty's daily for the same date if it has one (the classic dailies start on October 7), else today's. A game kept there carries on (see below), so the Easycore section's "from its start" now holds only when there's none. A row picked during the sample leaves it as Skip does.
+- **The streak** (`dailyRecord` in `src/stats.ts`, `keepWin` in `src/results.ts`):
+  - A kept result has `on`, the player's date when it was first solved. A better play later keeps the first date, so a daily solved on the day stays so.
+  - Dailies solved and Aces count every result. The streak and best streak count only dailies solved on their own date: one solved later breaks a run as a day missed does. Results kept before have no date and count as on the day; a date that isn't one is ignored.
+  - The record runs up to today's daily, not the day being played, so after a past day's win it's the player's record now. While today's isn't solved yet, the streak is the run up to yesterday's (it can still go on). Before, the record showed only after the day being played was won, so that never came up.
+  - A game won after midnight is solved on the next date, so it doesn't count towards the streak (the done mark already wasn't written for it).
+- **Save and resume** (`src/progress.ts`):
+  - A daily's game is kept in this browser once it's started (a stroke, a word or a hint) until it's won: `strokes:progress5:{date}` for Classic, `progress5h` for Hardcore, `progress5e` for Easycore. It's written as the board changes, again when the page is hidden or left (so the time played is up to date), and before another puzzle opens.
+  - **Kept:** the word the player's in and its letters as they are; the step's strokes so far (Undo's history, so Undo still works); each word visited, with its cost and moves; strokes spent; free returns; ink banked; hints taken and the hint showing; the time played. With them, what it's of: the start, goal, lowest strokes, and whether ink pots are on. A save that doesn't match is dropped.
+  - Coming back to the puzzle (from Past puzzles, Back to today, a reload or a new tab) carries on exactly there. The clock carries on from the time played when it was left, so the time between leaving and coming back doesn't count. A tab left open in the background still counts, as before.
+  - **Not kept:** the step line's message, the lowest-stroke route shown, a meaning opened in Your path, Your path open or folded.
+  - A win clears it, and so does Restart. The sample and pool puzzles keep none, and nor does a game with nothing done, so opening a puzzle doesn't mark it In progress.
+  - **Checked as it's loaded** (storage can hold anything): each field's shape (words of the puzzle's letters, strokes on real tiles at finite places, at most 3 strokes this step, whole numbers, a hint's level) and the game as a whole (it begins at the start, visits each word once, the player's in one of them short of the goal, the strokes add up). A save that fails is ignored and the puzzle starts afresh. Past puzzles only looks for one (`hasProgress`).
+  - **A new field** (the earned-hints branch adds whether an earned hint is waiting): in `Progress`, with its check in `CHECKS` and its value for older saves in `LATER`; then MazeApp's `startOf` and `progress`, which TypeScript asks for, and `setGame`, which sets it back.
+  - **Classic and Hardcore keep a game each.** Switching to one carries on its game for that date, if there is one ("Hardcore on, back where you left it: …"). Otherwise, as before, Hardcore on starts a puzzle in progress over and Hardcore off lets it go on, from then on kept as Classic's. Leaving one keeps its game. (Settings' note, "Turning it on starts the puzzle over", is true unless a hardcore game of that day is waiting.)
+  - Ink pots turned on or off start the puzzle over, as before, dropping the game kept the other way.
+  - A day left unfinished keeps its game (a few KB) until it's won or restarted.
+- **Unchanged:** today's puzzle and its done mark; `?day=` (now how the address keeps a past day); How to play opening only on a first visit, and the sample keeping nothing; Hardcore's rules; the share card.
+- **Tests:** the record (on the day, late, on the day: best streak 1; no date counts as on the day; the run up to yesterday's); the date kept (today's, the first one when bettered, an old result bettered staying on the day, one that isn't a date); a game saved, loaded, cleared, with storage blocked, junk, another puzzle or ink pots, each field's checks, and games that don't add up; the list (newest first, nothing after today's, each status, a solved one being replayed) and today's daily.
+- **Checked in headless Chrome** (the built site, and the dev server for StrictMode; 1512 × 945 and 390 × 844):
+  - Past puzzles with every kind of row, light and dark, on both, and Easycore's.
+  - Oct 16 from the list, played with real drags: two steps, a hint, a stroke into the third. Left for Oct 20 (Oct 16 then In progress) and back; reloaded; opened in a new page: each time the same path, strokes, step's dots, letters and hint line, and Undo took back the kept stroke.
+  - Won in 13 (an Ace): kept with `on: 2026-10-26`, its game cleared, no `puzzle-done:strokes:2026-10-26`. With Oct 15 and 17 solved on their days: 3 dailies solved, 1 Ace, streak 0, best streak 1 (not 3). Play another opened the list, Oct 16 now Ace ★. Today's row and Back to today drop `?day=`.
+  - Classic → Hardcore (over) → a hardcore step → Classic (back where it was) → Hardcore (back to its own) → reload (still there) → Restart (cleared).
+  - The sample: a stroke kept nothing, a row picked from it skipped it, and How to play didn't open again, nor for a returning player with a game kept. Easycore: a hint taken kept `strokes:progress5e:2026-10-06`, restored on a reload.
+
 ## Hints are earned (2026-10-26, branch `earned-hints`)
 - **The owner's calls:** hints are earned, one at a time, with no bank. Before any word is made there's no hint, and the game says so. Each new word made earns one for the next step. They don't stack, and a free return earns none. One earned hint covers the whole step: its first ask uses it, and the letters, then the word, come with it. Moving to another word ends the step's hint. Hardcore still has none; Easycore earns them as Classic does.
 - **The rules** (`hintGate`, `afterAsk` and `earnHint` in `src/hints.ts`; MazeApp keeps one more field, `hintEarned`):
@@ -1296,6 +1380,7 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - Undo, Reset and Hint still share one row at 320 px.
 - **How to play:** "Stuck? Tap Hint for a clue." is now "Each new word earns a Hint." (short enough for one line on a phone), for touch and mouse alike (`HowToCard` no longer takes `touch`). No coach line mentions Hint. In the sample, hints are earned as in the game: locked until JUDGE.
 - **Saying so:** a word that earns a hint says it in the step line, which screen readers announce: "New word: GRUMP (+2). You earned a hint." in place of "Find the next one." (not when one was already waiting; after an ink pot, "Hint earned." is added). Settings' Classic note is now "The daily puzzle, with hints you earn as you go."
+- **Saved** with a game left part-way (see Past puzzles): `hintEarned` in `Progress`, false in a save made before it.
 - **Unchanged:** what a hint shows and says, the count of hints, and Hardcore's "No hints" note.
 - **Tests:** locked at the start; earned by a new word, not a free return; two new words, one hint; one earned hint gives all three levels, then nothing; locked after moving on, back in the word asked in too; kept through free returns until used; none in hardcore.
 - **Checked in headless Chrome** (the built site, `?day=2026-10-16`, real drags; 390 × 844 and 1512 × 945, light and dark):

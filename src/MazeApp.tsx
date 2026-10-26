@@ -6,7 +6,7 @@ import { STEP_LIMIT, recognize, slotKey, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, walkSteps, type InkPots } from './inkpots';
-import { movesOf, type Move } from './moves';
+import { movesOf } from './moves';
 import { afterAsk, clue, doorsFrom, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { hasStarted } from './hardcore';
@@ -25,13 +25,16 @@ import { ShareSheet } from './components/maze/ShareSheet';
 import type { ShareResult } from './share';
 import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
 import { Celebration, inkSources } from './celebration/Celebration';
-import { dayFor, dayNumber, daysFor, loadDaily, localDate } from './daily/daily';
+import { dayFor, dayNumber, daysFor, loadDaily, localDate, type DailyPuzzle } from './daily/daily';
 import { CELL_W, WordEditor } from './components/maze/WordEditor';
 import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
 import { dailyRecord, formatTime } from './stats';
 import { scoreName } from './golf';
 import { keepWin, loadResult, type Result } from './results';
+import { hasProgress, loadProgress, progressKey, useKeptProgress, type Progress, type SaveOf, type Visit } from './progress';
+import { pastDays, todaysDaily } from './archive';
+import { Archive, CalendarIcon } from './components/maze/Archive';
 import { SAMPLE } from './tutorial';
 import { isFirstVisit, loadOnboarded, saveOnboarded } from './onboarding';
 import { AD_SLOTS, BANNER, RAIL_H, loadAdSense, railWidth } from './ads';
@@ -94,6 +97,8 @@ function loadPool(file: string): Promise<Pick[]> {
 const poolFile = (letters: WordLength, easy: boolean) => (easy ? 'pool-5-easy.json' : letters === 5 ? 'pool-5.json' : 'pool.json');
 /** Easycore's puzzle for `date`, from its pool (none if the pool didn't load). */
 const easyPick = (pool: Pick[], date: string): Pick | null => (pool.length ? { ...pool[easyIndex(date, pool.length)], date, easy: true } : null);
+/** A classic daily, as a puzzle to play. */
+const dailyPick = (day: DailyPuzzle): Pick => ({ puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date, onRoute: day.onRoute });
 
 /** How to play's sample puzzle, as a puzzle to play: no date, so no result, record or done mark (see keepWin), and no ink pots. */
 const SAMPLE_PICK: Pick = {
@@ -107,18 +112,6 @@ function pickPuzzle(pool: Pick[], data: MazeData, current?: Puzzle): Pick {
   const from = pool.length ? pool : [{ puzzle: data.puzzle, inkPots: data.inkPots, onRoute: data.onRoute }];
   const options = from.length > 1 ? from.filter((p) => p.puzzle.start !== current?.start || p.puzzle.goal !== current?.goal) : from;
   return options[Math.floor(Math.random() * options.length)];
-}
-
-interface Visit {
-  word: string;
-  /** Strokes charged for reaching it (after any ink). */
-  cost: number;
-  /** Ink spent on that step. */
-  used?: number;
-  /** The word the step started from (going back is free, so it isn't always the word before it). */
-  from?: string;
-  /** What each of its strokes did, for the result card. */
-  moves?: Move[];
 }
 
 /** Layout: the column's width cap (the game is one column, centred, with Your path under it). */
@@ -160,6 +153,20 @@ const markHelpSeen = () => {
 };
 
 const cellsFor = (word: string): Placement[][] => [...word].map((ch) => LETTERS[ch].parts.map((p) => ({ ...p })));
+/** A game at its puzzle's start: in the start word, nothing done. */
+const startOf = (start: string): Progress => ({
+  room: start,
+  cells: cellsFor(start),
+  history: [],
+  trail: [{ word: start, cost: 0 }],
+  spent: 0,
+  backs: 0,
+  ink: 0,
+  hintsUsed: 0,
+  hint: null,
+  hintEarned: false,
+  seconds: null,
+});
 
 function useWindowSize() {
   const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
@@ -313,7 +320,7 @@ export function MazeApp() {
       easy ? loadPool(poolFile(letters, true)) : null,
     ]).then(([d, day, pool, easyPool]) => {
       if (!live) return;
-      const pick: Pick = { puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date, onRoute: day.onRoute };
+      const pick = dailyPick(day);
       // (Should Easycore's pool not load, the classic daily is played.)
       const easyDay = easyPool && easyPick(easyPool, easyDate.current);
       setData(d);
@@ -389,36 +396,101 @@ export function MazeApp() {
     });
   };
 
-  /** Each start of a puzzle (the coach starts the sample afresh on each). */
+  /** Each start of a puzzle, or return to one (the coach starts the sample afresh on each). */
   const [run, setRun] = useState(0);
-  const restart = useCallback(() => {
-    if (!puzzle) return;
+  /** Where the game being played is kept (see src/progress.ts): none for the sample or a pool puzzle. */
+  const [keptAs, setKeptAs] = useState<SaveOf | null>(null);
+  /** Where a puzzle's game is kept: a daily's, by its date and difficulty (Hardcore's apart from Classic's), with the puzzle as it begins. */
+  const saveOf = (pick: Pick | null, hard: boolean): SaveOf | null => {
+    if (!pick?.date || pick.sample) return null;
+    const pots = flags.inkPots ? pick.inkPots : null;
+    const { start, goal } = pick.puzzle;
+    return { key: progressKey(pick.date, letters, pick.easy ? 'easy' : hard ? 'hard' : 'classic'), start, goal, best: pots?.best ?? pick.puzzle.best, inkPots: !!pots };
+  };
+  /**
+   * Sets the board to a game, kept as `of`: a puzzle's start (startOf), or where it was left (its
+   * saved progress). Everything a game carries on with is set here, and kept by `progress` below.
+   */
+  const setGame = useCallback((g: Progress, of: SaveOf | null) => {
     setRun((r) => r + 1);
-    setRoom(puzzle.start);
-    setCells(cellsFor(puzzle.start));
-    setHistory([]);
-    setTrail([{ word: puzzle.start, cost: 0 }]);
-    setSpent(0);
-    setBacks(0);
-    startedAt.current = null;
+    setKeptAs(of);
+    setRoom(g.room);
+    setCells(g.cells);
+    setHistory(g.history);
+    setTrail(g.trail);
+    setSpent(g.spent);
+    setBacks(g.backs);
+    // The clock carries on from the time played so far (it starts at the first stroke).
+    startedAt.current = g.seconds === null ? null : Date.now() - g.seconds * 1000;
     setSeconds(null);
     setLastDoor(null);
-    setInk(0);
+    setInk(g.ink);
     setInFlight(0);
     setReveal(false);
-    setHint(null);
-    setHintsUsed(0);
-    setHintEarned(false);
+    setHint(g.hint);
+    setHintsUsed(g.hintsUsed);
+    setHintEarned(g.hintEarned);
     setPeek(null);
     setRefused(null);
     setNotice(null);
-  }, [puzzle, potPlan]);
-  useEffect(restart, [restart]);
+  }, []);
+  // Each puzzle begins where it was left, if it was, else at its start. So does turning ink pots on
+  // or off (only a game begun that way carries on), so ink and the best score never mix.
+  useEffect(() => {
+    if (!current) return;
+    const of = saveOf(current, mode === 'hard');
+    setGame((of && loadProgress(of)) ?? startOf(current.puzzle.start), of);
+  }, [current, potPlan]);
+  /** Restart: the puzzle from its start (the game kept goes with it). */
+  const restart = () => {
+    if (puzzle) setGame(startOf(puzzle.start), keptAs);
+  };
+  /** Today's daily at a difficulty (Easycore's, or the classic one), on the player's date. */
+  const todays = (easy: boolean) => todaysDaily(localDate(), letters, easy);
+  /** An earlier day's daily is being played (from Past puzzles, or ?day=). */
+  const past = !!current?.date && current.date !== todays(!!current.easy);
+  // The address keeps an earlier day's date (?day=), so a reload plays it again; today's has none.
+  useEffect(() => {
+    if (!current?.date) return;
+    const url = new URL(location.href);
+    if (past) url.searchParams.set('day', current.date);
+    else url.searchParams.delete('day');
+    if (url.href !== location.href) window.history.replaceState(window.history.state, '', url);
+  }, [current, past]);
+
+  /** The latest daily asked for (a row tapped after another plays the second). */
+  const asked = useRef(0);
+  /**
+   * Plays a daily at the difficulty being played: an earlier day's (Past puzzles), or today's (null).
+   * The game left keeps its progress. (Should Easycore's pool not load, the classic daily is played.)
+   */
+  const playDay = (date: string | null) => {
+    keepProgress();
+    if (sample) saveOnboarded(won ? 'done' : 'skipped');
+    const today = localDate();
+    const days = daysFor(letters);
+    const allowed = (d: string | null): d is string => !!d && (import.meta.env.DEV || d <= today);
+    const classic = allowed(date) && days.includes(date) ? date : dayFor(today, days);
+    easyDate.current = allowed(date) && isEasyDay(date) ? date : easyDayFor(today);
+    const easy = mode === 'easy';
+    const ask = ++asked.current;
+    Promise.all([loadDaily(classic, letters), easy ? loadPool(poolFile(letters, true)) : null]).then(([day, pool]) => {
+      if (ask !== asked.current) return;
+      const pick = dailyPick(day);
+      // (Easycore's is left to playMode, for this date, until Easycore is chosen.)
+      const easyDay = pool && easyPick(pool, easyDate.current);
+      setDaily(pick);
+      setEasyDaily(easyDay);
+      setCurrent(easyDay || pick);
+    });
+  };
 
   /**
    * The difficulty is chosen in Settings (the Hardcore switch, without the easycore flag). To or from
-   * Easycore plays that difficulty's daily. Turning Hardcore on starts a puzzle in progress over (no
-   * stroke, word or hint carries into a hardcore result); turning it off lets the puzzle go on.
+   * Easycore plays that difficulty's daily. Classic and Hardcore each keep their own game of a daily:
+   * arriving at one carries on its game, if it has one. Else turning Hardcore on starts a puzzle in
+   * progress over (no stroke, word or hint carries into a hardcore result), and turning it off lets
+   * the puzzle go on.
    */
   const changeDifficulty = (next: Difficulty) => {
     const now: Difficulty = next === 'easy' && !easyOn ? 'classic' : next;
@@ -432,10 +504,16 @@ export function MazeApp() {
     }
     const on = now === 'hard';
     if (on === hardcore) return;
-    const over = on && hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed });
-    if (over) restart();
+    keepProgress();
+    const of = saveOf(current, on);
+    const left = of && loadProgress(of);
+    const over = !left && on && hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed });
+    if (left) setGame(left, of);
+    else if (over && puzzle) setGame(startOf(puzzle.start), of);
+    else setKeptAs(of);
     setRefused(null);
-    setNotice(on ? `Hardcore on${over ? ', so the puzzle starts over' : ''}: only lowest-stroke words count, and no hints.` : 'Hardcore off.');
+    const back = left ? ', back where you left it' : '';
+    setNotice(on ? `Hardcore on${back}${over ? ', so the puzzle starts over' : ''}: only lowest-stroke words count, and no hints.` : `Hardcore off${back}.`);
   };
 
   // The maze's doors, shipped with it (worked out from the words only if they're missing).
@@ -479,12 +557,31 @@ export function MazeApp() {
   /** Today's result from an earlier visit (or this one), if any. */
   const [saved, setSaved] = useState<Result | null>(null);
   useEffect(() => setSaved(current?.date ? loadResult(current.date, letters, current.easy) : null), [current?.date, current?.easy, letters]);
-  /** The player's record over the dailies (Easycore's over its own), for the end of a daily (worked out again once its result is kept). */
-  const record = useMemo(
-    () =>
-      current?.date ? dailyRecord(current.easy ? easyDays(current.date) : daysFor(letters), (d) => loadResult(d, letters, current.easy), current.date) : null,
-    [current?.date, current?.easy, letters, saved],
-  );
+  /**
+   * The player's record over the dailies (Easycore's over its own), up to today's (or, in
+   * development, a later day being played), for the end of a daily: worked out again once its result
+   * is kept.
+   */
+  const record = useMemo(() => {
+    if (!current?.date) return null;
+    const today = todays(!!current.easy);
+    const upTo = current.date > today ? current.date : today;
+    return dailyRecord(current.easy ? easyDays(upTo) : daysFor(letters), (d) => loadResult(d, letters, current.easy), upTo);
+  }, [current?.date, current?.easy, letters, saved]);
+  // The game so far, kept in this browser so leaving it part-way loses nothing (see src/progress.ts):
+  // a daily's, once started, until it's won. It's set back in setGame.
+  const progress = useMemo<Omit<Progress, 'seconds'> | null>(() => {
+    if (!keptAs || room === keptAs.goal || !hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed })) return null;
+    return { room, cells, history, trail, spent, backs, ink, hintsUsed, hint: hint?.room === room ? hint : null, hintEarned };
+  }, [keptAs, room, cells, history, trail, spent, backs, ink, hintsUsed, hint, hintEarned]);
+  const keepProgress = useKeptProgress(keptAs, progress, () => (startedAt.current === null ? null : (Date.now() - startedAt.current) / 1000));
+  // Past puzzles (the calendar): every daily so far at this difficulty, to play any of them.
+  const [archive, setArchive] = useState(false);
+  const archiveBtn = useRef<HTMLButtonElement>(null);
+  const closeArchive = useCallback(() => {
+    setArchive(false);
+    archiveBtn.current?.focus();
+  }, []);
   /** The result being shared (the share sheet is open). */
   const [sharing, setSharing] = useState<ShareResult | null>(null);
   const shareBtn = useRef<HTMLButtonElement>(null);
@@ -655,6 +752,8 @@ export function MazeApp() {
 
   /** The daily at this difficulty (for Dev to go back to). */
   const modeDaily = mode === 'easy' ? easyDaily : daily;
+  /** The daily being played, of those Past puzzles lists (this difficulty's). */
+  const playing = current?.date && !!current.easy === (mode === 'easy') ? current.date : undefined;
   // The column: score, board, step controls, and Your path under them.
   const columnW = letters === 5 ? COLUMN_W_5 : COLUMN_W;
   const column = Math.min(width - 32, columnW);
@@ -754,8 +853,13 @@ export function MazeApp() {
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
           compact={compact || height < 500}
           actions={
-            // The game's buttons in one bar: How to play and settings (hardcore is a setting).
+            // The game's buttons in one bar: past puzzles (the 5-letter game's), How to play and settings (hardcore is a setting).
             <div className="toolbar">
+              {letters === 5 && (
+                <button ref={archiveBtn} className="tool-btn past-btn" aria-label="Past puzzles" aria-haspopup="dialog" aria-expanded={archive} onClick={() => setArchive(true)}>
+                  <CalendarIcon />
+                </button>
+              )}
               <button ref={helpBtn} className="tool-btn help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
                 ?
               </button>
@@ -767,8 +871,20 @@ export function MazeApp() {
           dateline={
             sample
               ? 'Sample puzzle'
-              : current?.date &&
-                `No. ${dayNumber(current.date)}${current.easy ? ' · Easycore' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
+              : current?.date && (
+                  <>
+                    {past && 'Past puzzle · '}
+                    {`No. ${dayNumber(current.date)}${current.easy ? ' · Easycore' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`}
+                    {past && (
+                      <>
+                        {' · '}
+                        <button className="link-btn back-today" onClick={() => playDay(null)}>
+                          Back to today
+                        </button>
+                      </>
+                    )}
+                  </>
+                )
           }
         />
 
@@ -1035,6 +1151,12 @@ export function MazeApp() {
                     >
                       Share
                     </button>
+                    {/* An earlier day's, solved: on to another from Past puzzles. */}
+                    {past && (
+                      <button className="pill quiet" aria-haspopup="dialog" onClick={() => setArchive(true)}>
+                        Play another
+                      </button>
+                    )}
                     {spent <= best && !reduce && (
                       <button className="pill quiet" onClick={() => celebrate()}>
                         Watch again
@@ -1045,7 +1167,7 @@ export function MazeApp() {
                     </button>
                   </div>
                   {bestRoute}
-                  {current?.date && <p className="result-next">A new puzzle comes at midnight.</p>}
+                  {current?.date && !past && <p className="result-next">A new puzzle comes at midnight.</p>}
                 </>
               )}
             </section>
@@ -1054,7 +1176,7 @@ export function MazeApp() {
             {saved && stepEdits === 0 && trail.length === 1 && (
               <>
                 <p className="solved-before">
-                  Solved today in {saved.strokes}
+                  Solved{past ? '' : ' today'} in {saved.strokes}
                   {saved.strokes <= saved.best ? ' · perfect ⭐' : ''}. Play it again any time,{' '}
                   <button ref={shareBtn} className="link-btn" aria-haspopup="dialog" onClick={() => share(saved)}>
                     share it
@@ -1281,6 +1403,26 @@ export function MazeApp() {
             onDifficulty={changeDifficulty}
             easycore={easyOn}
             onClose={closeSettings}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {archive && (
+          <Archive
+            days={pastDays(
+              mode === 'easy' ? easyDays(todays(true)) : daysFor(letters),
+              todays(mode === 'easy'),
+              (d) => loadResult(d, letters, mode === 'easy'),
+              (d) => hasProgress(progressKey(d, letters, mode)),
+            )}
+            whose={mode === 'easy' ? 'Easycore dailies' : mode === 'hard' ? 'Classic dailies, in Hardcore' : 'Classic dailies'}
+            playing={playing}
+            onPlay={(date) => {
+              closeArchive();
+              // (The one being played just closes the list.)
+              if ((date ?? todays(mode === 'easy')) !== playing) playDay(date);
+            }}
+            onClose={closeArchive}
           />
         )}
       </AnimatePresence>
