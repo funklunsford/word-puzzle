@@ -1279,3 +1279,46 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Ad rails** (the `ads` flag, off) now sit beside the column alone, so they fit narrower windows. `railWidth` and `railsMin` no longer take a card's width, and the tests follow.
   - 160 px rails from 1180 px wide (was 1464), and 300 px from 1460 (was 1744).
   - For the 4-letter game: 1060 and 1340.
+
+## Past puzzles (2026-10-26, branch `past-puzzles`)
+- **The owner's calls:**
+  - An archive: a Past puzzles button beside ? and ⚙ lists the dailies at the difficulty being played, newest first and never one still to come, each with how the player did. Tapping one plays it.
+  - A past day plays as `?day=` does, says it's a past puzzle, and has a way back to today's. After its win, "Play another". Its win is kept and shared as today's is; only today's writes the Puzzle Playlist's done mark.
+  - A streak counts only dailies solved on their own date.
+  - A game left part-way is kept, per date and difficulty, and carries on exactly where it was.
+- **Past puzzles** (`Archive.tsx`, its rows from `pastDays` in `src/archive.ts`):
+  - A calendar drawn in strokes like the gear (`CalendarIcon`), first in the toolbar, labelled "Past puzzles". The 4-letter game has none.
+  - A card like Settings: "Past puzzles", whose they are ("Classic dailies, newest first"; Easycore's; "Classic dailies, in Hardcore"), then a row for each daily up to today's. "No. 21" over its date ("Monday, October 26"), a green TODAY tag on today's, and how it went as a chip in the path card's style: Not played (quiet text), In progress (dashed gold, as the goal's chip), Solved in 15, Ace ★ (gold). A note closes it: "Solved on a later day, a puzzle counts towards dailies solved and aces, but not your streak."
+  - The list scrolls under the title. The daily being played has an ink border (`aria-current`) and is scrolled into view; tapping it just closes the list. Each row is a button read as "No. 11, Friday, October 16: solved in 13 strokes, an Ace". Escape, × or a tap outside closes it, back to the calendar.
+  - Classic and Hardcore list the classic dailies (In progress is the difficulty's own game); Easycore lists its own, 21 today, from October 6. A solved daily being played again shows its result.
+  - Today's is the daily the game plays today (`todaysDaily`: the latest up to the player's date, as `keepWin` has it), so a late nightly run doesn't leave today's unmarked.
+  - **The toolbar is wider** (about 126 px, was 86), so the wordmark leaves it more room (`calc(100% - 280px)`, was 200): on desktop it's 480 px wide, where it was 520, about 25 px clear of the toolbar at every width. At 520 its parts row came within 8 px of the toolbar, and in 600 to 830 px windows it overlapped it.
+- **Playing a past day** (`playDay` in MazeApp):
+  - It loads that day's daily as `?day=` does, and the address follows the puzzle being played (`history.replaceState`): `?day=2026-10-16` for an earlier day's, none for today's (a `?day=` that isn't playable is dropped too). A reload plays it again.
+  - The dateline: "Past puzzle · No. 11 · Friday, October 16 · Back to today", the link in ink and never split. Two lines on a 390 px phone, Easycore's too; Easycore's takes four at 320 px, with no sideways scroll.
+  - After its win, "Play another" beside Share opens Past puzzles; "A new puzzle comes at midnight." is left out. A return to a solved past day says "Solved in 13" for "Solved today in 13".
+  - Switching difficulty plays the other difficulty's daily for the same date if it has one (the classic dailies start on October 7), else today's. A row picked during the sample leaves it as Skip does.
+- **The streak** (`dailyRecord` in `src/stats.ts`, `keepWin` in `src/results.ts`):
+  - A kept result has `on`, the player's date when it was first solved. A better play later keeps the first date, so a daily solved on the day stays so.
+  - Dailies solved and Aces count every result. The streak and best streak count only dailies solved on their own date: one solved later breaks a run as a day missed does. Results kept before have no date and count as on the day; a date that isn't one is ignored.
+  - The record runs up to today's daily, not the day being played, so after a past day's win it's the player's record now. While today's isn't solved yet, the streak is the run up to yesterday's (it can still go on). Before, the record showed only after the day being played was won, so that never came up.
+  - A game won after midnight is solved on the next date, so it doesn't count towards the streak (the done mark already wasn't written for it).
+- **Save and resume** (`src/progress.ts`):
+  - A daily's game is kept in this browser once it's started (a stroke, a word or a hint) until it's won: `strokes:progress5:{date}` for Classic, `progress5h` for Hardcore, `progress5e` for Easycore. It's written as the board changes, again when the page is hidden or left (so the time played is up to date), and before another puzzle opens.
+  - **Kept:** the word the player's in and its letters as they are; the step's strokes so far (Undo's history, so Undo still works); each word visited, with its cost and moves; strokes spent; free returns; ink banked; hints taken and the hint showing; the time played. With them, what it's of: the start, goal, lowest strokes, and whether ink pots are on. A save that doesn't match is dropped.
+  - Coming back to the puzzle (from Past puzzles, Back to today, a reload or a new tab) carries on exactly there. The clock carries on from the time played, so time away doesn't count.
+  - **Not kept:** the step line's message, the lowest-stroke route shown, a meaning opened in Your path, Your path open or folded.
+  - A win clears it, and so does Restart. The sample and pool puzzles keep none, and nor does a game with nothing done, so opening a puzzle doesn't mark it In progress.
+  - **Checked as it's loaded** (storage can hold anything): each field's shape (words of the puzzle's letters, strokes on real tiles at finite places, at most 3 strokes this step, whole numbers, a hint's level) and the game as a whole (it begins at the start, visits each word once, the player's in one of them short of the goal, the strokes add up). A save that fails is ignored and the puzzle starts afresh. Past puzzles only looks for one (`hasProgress`).
+  - **A new field** (the earned-hints branch adds whether an earned hint is waiting): in `Progress`, with its check in `CHECKS` and its value for older saves in `LATER`; then MazeApp's `startOf` and `progress`, which TypeScript asks for, and `setGame`, which sets it back.
+  - **Classic and Hardcore keep a game each.** Switching to one carries on its game for that date, if there is one ("Hardcore on, back where you left it: …"). Otherwise, as before, Hardcore on starts a puzzle in progress over and Hardcore off lets it go on, from then on kept as Classic's. Leaving one keeps its game. (Settings' note, "Turning it on starts the puzzle over", is true unless a hardcore game of that day is waiting.)
+  - Ink pots turned on or off start the puzzle over, as before, dropping the game kept the other way.
+  - A day left unfinished keeps its game (a few KB) until it's won or restarted.
+- **Unchanged:** today's puzzle and its done mark; `?day=` (now how the address keeps a past day); How to play opening only on a first visit, and the sample keeping nothing; Hardcore's rules; the share card.
+- **Tests:** the record (on the day, late, on the day: best streak 1; no date counts as on the day; the run up to yesterday's); the date kept (today's, the first one when bettered, an old result bettered staying on the day, one that isn't a date); a game saved, loaded, cleared, with storage blocked, junk, another puzzle or ink pots, each field's checks, and games that don't add up; the list (newest first, nothing after today's, each status, a solved one being replayed) and today's daily.
+- **Checked in headless Chrome** (the built site, and the dev server for StrictMode; 1512 × 945 and 390 × 844):
+  - Past puzzles with every kind of row, light and dark, on both, and Easycore's.
+  - Oct 16 from the list, played with real drags: two steps, a hint, a stroke into the third. Left for Oct 20 (Oct 16 then In progress) and back; reloaded; opened in a new page: each time the same path, strokes, step's dots, letters and hint line, and Undo took back the kept stroke.
+  - Won in 13 (an Ace): kept with `on: 2026-10-26`, its game cleared, no `puzzle-done:strokes:2026-10-26`. With Oct 15 and 17 solved on their days: 3 dailies solved, 1 Ace, streak 0, best streak 1 (not 3). Play another opened the list, Oct 16 now Ace ★. Today's row and Back to today drop `?day=`.
+  - Classic → Hardcore (over) → a hardcore step → Classic (back where it was) → Hardcore (back to its own) → reload (still there) → Restart (cleared).
+  - The sample: a stroke kept nothing, a row picked from it skipped it, and How to play didn't open again, nor for a returning player with a game kept. Easycore: a hint taken kept `strokes:progress5e:2026-10-06`, restored on a reload.

@@ -5,9 +5,9 @@
 //
 // A save is the board as it stands (Progress) and what it's of (SaveOf: the puzzle as it was begun,
 // so a save that no longer fits is dropped). Storage can hold anything, so every field is checked as
-// it's loaded. A new field goes in four places: `Progress` and its check in CHECKS here (with a
-// default in LATER, for saves made before it), and in MazeApp, where the save is built (`progress`)
-// and set back (`setGame`).
+// it's loaded. A new field goes in `Progress`, with its check in CHECKS (and its value in LATER, for
+// saves made before it); then in MazeApp, a game's start (`startOf`) and the save as it's built
+// (`progress`) need it too, which TypeScript asks for, and `setGame` sets it back.
 
 import { useCallback, useEffect, useRef } from 'react';
 import { TILE_IDS, type Placement } from './glyphs';

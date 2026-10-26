@@ -459,11 +459,12 @@ export function MazeApp() {
     const ask = ++asked.current;
     Promise.all([loadDaily(classic, letters), easy ? loadPool(poolFile(letters, true)) : null]).then(([day, pool]) => {
       if (ask !== asked.current) return;
+      const pick = dailyPick(day);
       // (Easycore's is left to playMode, for this date, until Easycore is chosen.)
       const easyDay = pool && easyPick(pool, easyDate.current);
-      setDaily(dailyPick(day));
+      setDaily(pick);
       setEasyDaily(easyDay);
-      setCurrent(easyDay || dailyPick(day));
+      setCurrent(easyDay || pick);
     });
   };
 
