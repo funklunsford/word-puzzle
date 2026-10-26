@@ -1,68 +1,67 @@
 {
   "date": "2026-10-28",
   "puzzle": {
-    "start": "CURLY",
-    "goal": "JELLY",
-    "best": 14,
+    "start": "RULER",
+    "goal": "SHRED",
+    "best": 12,
     "path": [
-      "CURLY",
-      "SURLY",
-      "SULLY",
-      "BILLY",
-      "BELLY",
-      "JELLY"
+      "RULER",
+      "RIPER",
+      "PIPER",
+      "BIPED",
+      "SIRED",
+      "SHRED"
     ]
   },
   "need": "stone",
   "tricky": true,
   "difficulty": {
     "depth": 2,
-    "pocketsBeside": 0,
+    "pocketsBeside": 2,
     "traps": [
       {
-        "at": "CURLY",
-        "door": "GIRLY",
+        "at": "RULER",
+        "door": "JULEP",
         "loses": 6,
+        "pocket": true
+      },
+      {
+        "at": "RULER",
+        "door": "PURER",
+        "loses": 2,
         "pocket": false
       },
       {
-        "at": "CURLY",
-        "door": "GUPPY",
-        "loses": 6,
-        "pocket": false
-      },
-      {
-        "at": "SULLY",
-        "door": "SILLY",
-        "loses": 1,
+        "at": "RULER",
+        "door": "RUDER",
+        "loses": 2,
         "pocket": false
       }
     ],
-    "pocketTrap": false,
-    "parChance": 0.03
+    "pocketTrap": true,
+    "parChance": 0.04
   },
   "inkPots": {
     "pots": [
-      "BULLY",
-      "SILLY",
-      "SULKY"
+      "PIPED",
+      "RUDER"
     ],
-    "best": 14,
+    "best": 12,
     "walk": [
-      "CURLY",
-      "SURLY",
-      "SULLY",
-      "BILLY",
-      "BELLY",
-      "JELLY"
+      "RULER",
+      "RIPER",
+      "PIPER",
+      "BIPED",
+      "SIRED",
+      "SHRED"
     ]
   },
   "onRoute": {
-    "BELLY": 12,
-    "BILLY": 9,
-    "CURLY": 0,
-    "JELLY": 14,
-    "SULLY": 6,
-    "SURLY": 3
+    "BIPED": 7,
+    "PIPER": 4,
+    "RIPER": 3,
+    "RULER": 0,
+    "SHRED": 12,
+    "SIRED": 10
   }
 }
