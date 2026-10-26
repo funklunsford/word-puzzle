@@ -1320,3 +1320,21 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - Why: a ruler torn to a shred is a clear, concrete picture of change, with two plain base words.
   - Passed over: STAFF → SPOKE, the runner-up (SPOKE reads as the past of speak); PLANT → TRUMP (political); CRANK → SPUNK (vulgar slang in British English); FADED → DRIFT (an inflection); BRAWL → TRIBE (an awkward pairing); and four with no clear picture.
   - Oct 27 and earlier are as they were: Oct 27 was already being played in some time zones.
+
+## Easy first steps (2026-10-26, branch `first-step`)
+- **The owner's call,** with earned hints: the first hint comes with the first word, so the first step is the one a player takes with no hint to fall back on (and in Hardcore, every step is). A playtest simulation had players stuck at the start of GONER → DIVER 55% of the time, and of SHAKE → TRAIT 1%.
+- **The rule** (`firstSteps` in `src/difficulty.ts`): the start has at least 2 words (`FIRST_STEPS`) a player can reach for 1–2 strokes. Those are the easiest to spot; a 3-stroke word takes the whole turn.
+  - Every such word keeps Par in reach: going back to a word is free, so a player can try one, go back to the start and still take the lowest route, 2 strokes over. Counting only words that lead on to the goal within Par without coming back through the start would be stricter: 215 classic puzzles, not 264, and SHELL → STEAK would fail (SHELF only leads back).
+- **Examples** (tested in `src/difficulty.test.ts`):
+  - SHELL → STEAK, Oct 26's, passes: SHELF and SMELL, 2 strokes each.
+  - CHAMP → DRINK, Oct 27's, fails: CLAMP is the only word within 2 strokes; CHAIR and CHIMP are 3.
+  - RULER → SHRED, Oct 28's, fails: RUDER only; its lowest route starts with RIPER, 3 strokes.
+  - GONER → DIVER has none: LONER, OCHER and TONER are 3 strokes each. SHAKE → TRAIT has 7.
+  - Of the eight dailies from Oct 21 to Oct 28, two pass: Oct 21 and Oct 26.
+- **How many pass,** of the puzzles that pass the par rule: 264 of the classic pool's 487, and 510 of Easycore's 802.
+- **Classic dailies only,** from `FIRST_STEP_FROM` (2026-10-29, in `src/daily/daily.ts`). Earlier days stay as they were.
+  - `npm run daily` leaves failing puzzles out of the candidates (its count of those left out now covers both rules) and won't check one in, even with `--any`.
+  - `docs/daily-prompt.md` has the rule in its checklist, for `/daily` and the nightly routine.
+  - `src/daily/daily.test.ts` checks every 5-letter day from the switch-over on.
+  - **Supply:** for Oct 29, the hardest third has 100 unused puzzles that pass both rules, the easiest 58 and the middle 51 (not counting those resting for 30 days). The middle and easiest thirds will show the low-pool warning within a few months. When a third runs out, the script takes the day's puzzle from the others, so nothing stops. Rebuilding the pool with both rules in `scripts/mazes.ts` would refill it; not done here.
+- **Easycore is unchanged:** its order is frozen, and changing it again would move every date after the switch-over a second time. Its puzzles are short (5–8 strokes), and a simulated player solved 98% of them with earned hints.

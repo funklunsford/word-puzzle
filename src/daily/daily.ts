@@ -42,6 +42,12 @@ export const LAUNCH = '2026-10-06';
  */
 export const PAR_RULE_FROM = '2026-10-28';
 
+/**
+ * The first date whose classic dailies have at least FIRST_STEPS easy first steps (see firstSteps in
+ * src/difficulty.ts). Easycore's are as they were, and so are earlier days.
+ */
+export const FIRST_STEP_FROM = '2026-10-29';
+
 /** A date as YYYY-MM-DD, in the player's own time zone. */
 export const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 

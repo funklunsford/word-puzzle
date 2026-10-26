@@ -603,6 +603,23 @@ export function mustFind(words: string[], adj: Graph, puzzle: Puzzle, slack = 4)
   return puzzle.path.slice(1, -1).filter((w) => bestWithout(words, adj, puzzle, w) > puzzle.best + slack);
 }
 
+// ---------- Easy first steps ----------
+
+/** How many easy first steps (firstSteps) a daily needs from FIRST_STEP_FROM (src/daily/daily.ts). */
+export const FIRST_STEPS = 2;
+
+/**
+ * The puzzle's easy first steps: the words a player can reach from the start for at most `most`
+ * strokes, the ones easiest to spot. The first step comes before any hint is earned, so from
+ * FIRST_STEP_FROM no daily has fewer than FIRST_STEPS: a start with one is a word to spot before
+ * anything else, the way mustFind's words are further along. Every one keeps Par in reach: going
+ * back to a word is free, so a player can try one, go back to the start and still take the lowest
+ * route, 2 strokes over.
+ */
+export function firstSteps(words: string[], adj: Graph, puzzle: Puzzle, most = 2): string[] {
+  return adj[words.indexOf(puzzle.start)].filter(({ cost }) => cost <= most).map(({ to }) => words[to]);
+}
+
 /** What the pool and the day files keep of a puzzle's difficulty: the worst few traps describe it. */
 export interface KeptDifficulty {
   depth: number;
