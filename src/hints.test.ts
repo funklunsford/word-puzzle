@@ -5,7 +5,7 @@ import poolText from '../public/pool.json?raw';
 import defs4 from '../public/definitions.json';
 import defs5 from '../public/definitions-5.json';
 import type { Def } from './components/maze/Definition';
-import { clue, hintSays, nextHintLevel, nextStep, type Doors, type NextStep } from './hints';
+import { afterAsk, clue, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
 import { buildGraph, solve } from './maze';
 import { wordDistance } from './strokes';
 
@@ -108,5 +108,83 @@ describe('what a hint shows, ask by ask', () => {
         expect(clue(w, def).toUpperCase().split(/[^A-Z]+/), w).not.toContain(w);
       }
     }
+  });
+});
+
+describe('earning hints', () => {
+  // A game as MazeApp plays it: whether an earned hint is waiting, the word the player is in, and
+  // how much of that step's hint is shown. Moving to any word ends the step's hint.
+  const play = (hardcore = false) => {
+    let earned = false;
+    let shown: HintLevel | null = null;
+    const game = {
+      gate: (): HintGate => hintGate(earned, shown, hardcore),
+      /** A new word made, or a free return (a word visited before). */
+      reach(newWord: boolean) {
+        earned = earnHint(earned, newWord, hardcore);
+        shown = null;
+        return game;
+      },
+      /** Asking, with a meaning to give: the level it shows, or null for none. */
+      ask(): HintLevel | null {
+        const after = afterAsk(game.gate(), earned);
+        earned = after.earned;
+        if (after.shows) shown = nextHintLevel(shown, true);
+        return after.shows ? shown : null;
+      },
+    };
+    return game;
+  };
+
+  it('is locked at the start, and asking then shows nothing', () => {
+    const game = play();
+    expect(game.gate()).toBe('locked');
+    expect(game.ask()).toBeNull();
+    expect(game.gate()).toBe('locked');
+  });
+
+  it('is earned by a new word, not by a free return', () => {
+    expect(play().reach(true).gate()).toBe('ready');
+    expect(play().reach(false).gate()).toBe('locked');
+  });
+
+  it("doesn't stack: two new words, one hint", () => {
+    const game = play().reach(true).reach(true);
+    expect(game.gate()).toBe('ready');
+    expect(game.ask()).toBe(1);
+    game.reach(false);
+    expect(game.gate()).toBe('locked');
+  });
+
+  it("gives all three of a step's levels for one earned hint, then no more", () => {
+    const game = play().reach(true);
+    expect([game.ask(), game.gate(), game.ask(), game.gate(), game.ask(), game.gate()]).toEqual([1, 'open', 2, 'open', 3, 'shown']);
+    expect(game.ask()).toBeNull();
+  });
+
+  it('is locked again after moving on without a new word, back to a word asked in too', () => {
+    const game = play().reach(true);
+    game.ask();
+    game.reach(false); // back to the start
+    expect(game.gate()).toBe('locked');
+    game.reach(false); // and back to the word asked in: its hint doesn't pick up where it was
+    expect(game.gate()).toBe('locked');
+    expect(game.ask()).toBeNull();
+    game.reach(true);
+    expect(game.gate()).toBe('ready');
+  });
+
+  it('keeps an unused earned hint through free returns, until it is used', () => {
+    const game = play().reach(true).reach(false).reach(false);
+    expect(game.gate()).toBe('ready');
+    expect(game.ask()).toBe(1);
+  });
+
+  it('has none in hardcore, earned or not', () => {
+    const game = play(true).reach(true);
+    expect(game.gate()).toBe('none');
+    expect(game.ask()).toBeNull();
+    expect(hintGate(true, null, true)).toBe('none');
+    expect(earnHint(false, true, true)).toBe(false);
   });
 });

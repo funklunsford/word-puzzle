@@ -7,7 +7,7 @@ import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, walkSteps, type InkPots } from './inkpots';
 import { movesOf, type Move } from './moves';
-import { clue, doorsFrom, hintSays, nextHintLevel, nextStep, type Doors, type HintLevel, type NextStep } from './hints';
+import { afterAsk, clue, doorsFrom, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { hasStarted } from './hardcore';
 import { easyDayFor, easyDays, easyIndex, isEasyDay, loadDifficulty, saveDifficulty, type Difficulty } from './easycore';
@@ -20,7 +20,7 @@ import { Masthead } from './components/maze/Masthead';
 import { HowToCard } from './components/maze/HowToCard';
 import { BoardGhost, CoachTip, useArrowTo, useCoach } from './components/maze/Coach';
 import { GearIcon, Settings } from './components/maze/Settings';
-import { HintIcon, ResetIcon, UndoIcon } from './components/maze/StepIcons';
+import { HintIcon, LockIcon, ResetIcon, UndoIcon } from './components/maze/StepIcons';
 import { ShareSheet } from './components/maze/ShareSheet';
 import type { ShareResult } from './share';
 import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
@@ -130,6 +130,16 @@ const COMPACT_MAX = 600;
 
 const HELP_KEY = 'strokes:seen-help';
 
+/** The step line, when the Hint button is locked (at the start, or tapped). */
+const EARN_HINT = 'Make a new word to earn a hint.';
+/** The Hint button's name and tooltip, as it stands (see hintGate); hardcore has a note instead. */
+const HINT_BUTTON: Record<Exclude<HintGate, 'none'>, { label: string; title: string }> = {
+  locked: { label: 'Hint, locked', title: 'Make a new word to earn a hint' },
+  ready: { label: 'Hint, earned', title: "You've earned a hint for this step" },
+  open: { label: 'Hint', title: "More of this step's hint" },
+  shown: { label: 'Hint', title: "This step's hint is all shown" },
+};
+
 /** A path's steps, for sharing: where each began, the word it made, and its strokes. */
 const stepsOf = (trail: Visit[]): ShareResult['steps'] => trail.slice(1).map((v) => ({ from: v.from ?? v.word, to: v.word, cost: v.cost, ...(v.moves && { moves: v.moves }) }));
 
@@ -183,12 +193,17 @@ export function MazeApp() {
   /** A lowest-stroke route is shown, once the puzzle's solved (after the win, or from the "Solved today" note). */
   const [reveal, setReveal] = useState(false);
   // Hints, for the word the player is in: first the next word's meaning, then the letters to
-  // change, then the word to make (see src/hints.ts). They're free, but each ask counts as a hint
-  // (the win message, the stats and the share card say how many).
+  // change, then the word to make (see src/hints.ts). Each ask counts as a hint (the win message,
+  // the stats and the share card say how many).
   const [hint, setHint] = useState<{ room: string; level: HintLevel; step: NextStep | null; meaning: string | null } | null>(null);
   const hintRef = useRef(hint);
   hintRef.current = hint;
   const [hintsUsed, setHintsUsed] = useState(0);
+  // A hint is earned: each new word made earns one (only one waits), and a step's first ask uses it
+  // (see hintGate). None at the start, after a restart, or in a new puzzle.
+  const [hintEarned, setHintEarned] = useState(false);
+  const earnedRef = useRef(hintEarned);
+  earnedRef.current = hintEarned;
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
@@ -230,7 +245,7 @@ export function MazeApp() {
   }, []);
   /** A word hardcore just turned away (off the lowest-stroke route), for the step line. */
   const [refused, setRefused] = useState<string | null>(null);
-  /** Said in the step line until the next stroke or hint (switching hardcore on or off). */
+  /** Said in the step line until the next stroke or hint (switching hardcore on or off, a locked hint tapped). */
   const [notice, setNotice] = useState<string | null>(null);
   /** Free strokes banked from ink pots, waiting to pay for the next steps to new words. */
   const [ink, setInk] = useState(0);
@@ -393,6 +408,7 @@ export function MazeApp() {
     setReveal(false);
     setHint(null);
     setHintsUsed(0);
+    setHintEarned(false);
     setPeek(null);
     setRefused(null);
     setNotice(null);
@@ -518,7 +534,9 @@ export function MazeApp() {
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
-        // Going back to a word already visited is free, and it isn't listed again.
+        // Moving to another word ends the step's hint.
+        setHint(null);
+        // Going back to a word already visited is free, and it isn't listed again (nor does it earn a hint).
         if (trail.some((v) => v.word === word)) {
           setBacks((n) => n + 1);
           setLastDoor({ word, cost: 0, back: true, pot: false });
@@ -532,6 +550,7 @@ export function MazeApp() {
         // The step's strokes: from its start, through each stroke's letters (history), to this one.
         setTrail((t) => [...t, { word, cost: paid, used, from: room, moves: movesOf([...history, cells, next]) }]);
         setLastDoor({ word, cost: paid, used, back: false, pot });
+        setHintEarned((e) => earnHint(e, true, hardcore));
         return true;
       }
       setRefused(null);
@@ -647,18 +666,24 @@ export function MazeApp() {
   const unit = Math.max(13, Math.min(32, (column - 36 - 10 * (n - 1) - 12 * n) / (CELL_W * n)));
   const visited = new Set(trail.map((v) => v.word));
   const shownHint = hint && hint.room === room && !won ? hint : null;
+  /** The Hint button: locked, an earned hint ready, this step's hint open, or all shown (see hintGate). */
+  const hintAt = hintGate(hintEarned, shownHint?.level ?? null, hardcore);
   const askHint = () => {
-    // No hints in hardcore, and nothing more once the word itself has been shown.
-    if (!data || !puzzle || won || hardcore || shownHint?.level === 3) return;
-    // The latest thing asked for wins the step line.
+    if (!data || !puzzle || won) return;
+    // The latest thing asked for wins the step line: locked, it says how to earn a hint.
     setRefused(null);
-    setNotice(null);
+    setNotice(hintAt === 'locked' ? EARN_HINT : null);
+    // No hints in hardcore or before one's earned, and nothing more once the word itself has been shown.
+    if (hintAt !== 'ready' && hintAt !== 'open') return;
     // The search takes a moment on a phone: show the hint once it's ready, without blocking the tap.
     window.setTimeout(() => {
-      // From the latest hint, so two quick asks show two levels, as they're counted.
+      // From the latest hint, so two quick asks show two levels, as they're counted (and use one earned hint).
       const h = hintRef.current;
       const shown = h && h.room === room ? h : null;
-      if (shown?.level === 3) return;
+      const asked = afterAsk(hintGate(earnedRef.current, shown?.level ?? null, hardcore), earnedRef.current);
+      if (!asked.shows) return;
+      earnedRef.current = asked.earned;
+      setHintEarned(asked.earned);
       const step = shown ? shown.step : nextStep(doorsOf!, room, puzzle.goal, visited);
       // The next word's meaning, as a clue (none when it has no definition, or they didn't load).
       const def = step && defs?.[step.next];
@@ -826,9 +851,7 @@ export function MazeApp() {
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
                   transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
                 >
-                  {/* Touch screens and mouse play differently (tap vs click; a finger double-taps to turn, a mouse swipes), so each gets its own. */}
                   <HowToCard
-                    touch={coarse}
                     compact={compact}
                     firstVisit={firstVisit}
                     // The sample's words are 5 letters; and it's not offered over a puzzle in progress, which it would lose.
@@ -1053,13 +1076,30 @@ export function MazeApp() {
                 <ResetIcon />
                 Reset
               </button>
-              {/* No hints in hardcore: the button gives way to a quiet note. */}
-              {hardcore ? (
+              {/* No hints in hardcore: the button gives way to a quiet note. Otherwise each new word
+                  earns one: locked until then (a tap says how), lit with a dot while one's waiting. */}
+              {hintAt === 'none' ? (
                 <span className="no-hints">No hints</span>
               ) : (
-                <button className="pill step-btn hint-btn" onClick={askHint} disabled={won || shownHint?.level === 3}>
-                  <HintIcon />
+                <button
+                  className={`pill step-btn hint-btn${hintAt === 'ready' ? ' earned' : ''}`}
+                  onClick={askHint}
+                  disabled={won || hintAt === 'shown'}
+                  aria-disabled={hintAt === 'locked' || undefined}
+                  aria-label={HINT_BUTTON[hintAt].label}
+                  title={HINT_BUTTON[hintAt].title}
+                >
+                  {hintAt === 'locked' ? <LockIcon /> : <HintIcon />}
                   Hint
+                  {hintAt === 'ready' && (
+                    <motion.span
+                      className="hint-dot"
+                      aria-hidden="true"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', bounce: 0.5, duration: 0.45 }}
+                    />
+                  )}
                 </button>
               )}
             </div>
@@ -1089,7 +1129,9 @@ export function MazeApp() {
                         : `New word: ${room} (+${lastDoor!.cost}${lastDoor!.used ? `, ${lastDoor!.used} paid in ink` : ''}).${
                             lastDoor!.pot ? ' Ink pot! You banked a free stroke.' : ' Find the next one.'
                           }`
-                      : null}
+                      : hintAt === 'locked'
+                        ? EARN_HINT
+                        : null}
               </p>
             )}
             {/* This step's strokes: three dots, filling as strokes are used. */}

@@ -1,5 +1,5 @@
 /**
- * Icons for the step's buttons (Undo, Reset, Hint), drawn in strokes like the gear: round-ended
+ * Icons for the step's buttons (Undo, Reset, Hint, and Hint's lock), drawn in strokes like the gear: round-ended
  * lines in the button's own colour (ink, or muted when it's disabled), in either theme. They sit
  * beside the labels, which stay, so they're hidden from screen readers.
  */
@@ -30,6 +30,17 @@ export function HintIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true" className="step-icon">
       <path className="glow" d="M9.2 15.6c-.2-2.3-3.4-3.6-3.4-7.2a6.2 6.2 0 0 1 12.4 0c0 3.6-3.2 4.9-3.4 7.2Z" />
       <path d="M9.6 18.6h4.8M10.6 21.2h2.8" />
+    </svg>
+  );
+}
+
+/** Hint, locked: a padlock, until a new word earns a hint. */
+export function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="step-icon">
+      <path d="M8.2 10.8V8.2a3.8 3.8 0 0 1 7.6 0v2.6" />
+      <rect x="5.6" y="10.8" width="12.8" height="9.6" rx="2.4" />
+      <path d="M12 14.6v2" />
     </svg>
   );
 }

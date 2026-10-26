@@ -6,8 +6,6 @@ import { GlyphWord } from '../Glyph';
 const ARROW = 'M0 0 L1 0 M0.7 -0.28 L1 0 L0.7 0.28';
 
 interface Props {
-  /** A finger (taps) or a mouse (clicks). */
-  touch: boolean;
   /** The phone layout: the example's words a little smaller. */
   compact: boolean;
   /** The card opened by itself, on a first visit: it offers the sample, or skipping to today's puzzle. */
@@ -37,7 +35,7 @@ const Dots = ({ page }: { page: number }) => (
  * the path card draws them, and the three rules. The second: good to know (scoring, hints, the other
  * difficulties), and the way on: on a first visit, the sample puzzle on the real board.
  */
-export function HowToCard({ touch, compact, firstVisit, canSample, sampled, easycore, inkPots, closeRef, onClose, onSample, onSkip }: Props) {
+export function HowToCard({ compact, firstVisit, canSample, sampled, easycore, inkPots, closeRef, onClose, onSample, onSkip }: Props) {
   const [page, setPage] = useState(0);
   const next = useRef<HTMLButtonElement>(null);
   const go = useRef<HTMLButtonElement>(null);
@@ -111,7 +109,7 @@ export function HowToCard({ touch, compact, firstVisit, canSample, sampled, easy
               Scored like golf: an <strong>Ace</strong> is the fewest strokes possible.
             </li>
             <li>
-              Stuck? {touch ? 'Tap' : 'Click'} <strong>Hint</strong> for a clue.
+              Each new word earns a <strong>Hint</strong> for your next step.
             </li>
             {easycore ? (
               <li>
