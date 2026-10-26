@@ -1,6 +1,6 @@
 // Past puzzles (the calendar in the header): every daily so far at the difficulty being played, the
-// classic ones or Easycore's, newest first and never one still to come, each with how the player did.
-// Tapping one plays it, as ?day= does.
+// classic ones or Easycore's, a month at a time and never one still to come, each with how the player
+// did. Tapping one plays it, as ?day= does.
 
 import { dayFor, dayNumber, daysFor } from './daily/daily';
 import { easyDayFor } from './easycore';
@@ -37,4 +37,20 @@ export function pastDays(days: readonly string[], todays: string, resultOf: (dat
       const how: How = r ? (r.strokes <= r.best ? 'ace' : 'solved') : started(date) ? 'started' : 'new';
       return { date, number: dayNumber(date), today: date === todays, how, ...(r && { strokes: r.strokes }) };
     });
+}
+
+/** The month (YYYY-MM) `n` months after `month` (before it, for a negative `n`). */
+export function addMonths(month: string, n: number): string {
+  const [y, m] = month.split('-').map(Number);
+  const at = y * 12 + m - 1 + n;
+  return `${Math.floor(at / 12)}-${String((at % 12) + 1).padStart(2, '0')}`;
+}
+
+/** A month's calendar, a week a row from Sunday: its dates (YYYY-MM-DD), and nulls to fill the first and last weeks. */
+export function monthGrid(month: string): (string | null)[] {
+  const [y, m] = month.split('-').map(Number);
+  const before = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  const length = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const cells = [...Array<null>(before).fill(null), ...Array.from({ length }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)];
+  return [...cells, ...Array<null>((7 - (cells.length % 7)) % 7).fill(null)];
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pastDays, todaysDaily } from './archive';
+import { addMonths, monthGrid, pastDays, todaysDaily } from './archive';
 import { DAYS_5 } from './daily/daily';
 import { easyDays } from './easycore';
 import type { Solved } from './stats';
@@ -44,3 +44,26 @@ describe("today's daily", () => {
     expect(days[20]).toMatchObject({ date: '2026-10-06', number: 1 });
   });
 });
+
+describe("the calendar's months", () => {
+  it('lays a month out a week a row from Sunday, filling the first and last weeks', () => {
+    // October 2026 starts on a Thursday and ends on a Saturday.
+    const october = monthGrid('2026-10');
+    expect(october.length).toBe(35);
+    expect(october.slice(0, 5)).toEqual([null, null, null, null, '2026-10-01']);
+    expect(october.at(-1)).toBe('2026-10-31');
+    // November 2026 starts on a Sunday; February 2027 fills exactly four weeks.
+    expect(monthGrid('2026-11')[0]).toBe('2026-11-01');
+    expect(monthGrid('2026-11').slice(29)).toEqual(['2026-11-30', null, null, null, null, null]);
+    expect(monthGrid('2027-02')).toHaveLength(28);
+    expect(monthGrid('2028-02').filter(Boolean)).toHaveLength(29);
+  });
+
+  it('turns months over the years', () => {
+    expect(addMonths('2026-10', 1)).toBe('2026-11');
+    expect(addMonths('2026-12', 1)).toBe('2027-01');
+    expect(addMonths('2027-01', -1)).toBe('2026-12');
+    expect(addMonths('2026-10', -10)).toBe('2025-12');
+  });
+});
+
