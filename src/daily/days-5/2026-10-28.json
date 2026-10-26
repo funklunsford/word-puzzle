@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-28",
+  "puzzle": {
+    "start": "CURLY",
+    "goal": "JELLY",
+    "best": 14,
+    "path": [
+      "CURLY",
+      "SURLY",
+      "SULLY",
+      "BILLY",
+      "BELLY",
+      "JELLY"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "CURLY",
+        "door": "GIRLY",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "CURLY",
+        "door": "GUPPY",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SULLY",
+        "door": "SILLY",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.03
+  },
+  "inkPots": {
+    "pots": [
+      "BULLY",
+      "SILLY",
+      "SULKY"
+    ],
+    "best": 14,
+    "walk": [
+      "CURLY",
+      "SURLY",
+      "SULLY",
+      "BILLY",
+      "BELLY",
+      "JELLY"
+    ]
+  },
+  "onRoute": {
+    "BELLY": 12,
+    "BILLY": 9,
+    "CURLY": 0,
+    "JELLY": 14,
+    "SULLY": 6,
+    "SURLY": 3
+  }
+}
