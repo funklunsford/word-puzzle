@@ -112,6 +112,7 @@ describe("Easycore's results and record", () => {
     keep(resultKey('2026-10-21', 5), { strokes: 13, best: 13 });
     const read = (easy: boolean) => (date: string) => JSON.parse(localStorage.getItem(resultKey(date, 5, easy)) ?? 'null') as Solved | null;
     expect(dailyRecord(easyDays('2026-10-22'), read(true), '2026-10-22')).toEqual({ solved: 3, perfect: 1, streak: 3, bestStreak: 3 });
-    expect(dailyRecord(DAYS_5, read(false), '2026-10-22')).toEqual({ solved: 1, perfect: 1, streak: 0, bestStreak: 1 });
+    // (The 22nd's classic daily isn't solved yet, so its streak is the run up to the 21st.)
+    expect(dailyRecord(DAYS_5, read(false), '2026-10-22')).toEqual({ solved: 1, perfect: 1, streak: 1, bestStreak: 1 });
   });
 });
