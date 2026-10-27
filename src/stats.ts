@@ -1,5 +1,7 @@
 // The end of a game's stats: the player's record over the dailies, worked out from the results this
 // browser keeps (one per daily solved, the best of them), so replaying a day never counts it twice.
+// A daily solved on a later day (from Past puzzles) counts as solved, but a streak counts only days
+// solved on their own date.
 
 import type { WordLength } from './letters';
 
@@ -10,17 +12,25 @@ export const resultKey = (date: string, letters: WordLength, easy = false) => `s
 export interface Solved {
   strokes: number;
   best: number;
+  /** The player's date when it was first solved (results kept before 2026-10-26 have none: they count as on the day). */
+  on?: string;
 }
 
 export interface DailyRecord {
   /** Dailies solved, and how many of them in the lowest possible strokes. */
   solved: number;
   perfect: number;
-  /** Dailies solved in a row, up to and including `upTo`'s. */
+  /**
+   * Dailies solved on the day in a row, up to and including `upTo`'s; while `upTo`'s isn't solved
+   * yet, the run up to the day before (it can still go on).
+   */
   streak: number;
-  /** The longest run of dailies solved in a row. */
+  /** The longest run of dailies solved on the day in a row. */
   bestStreak: number;
 }
+
+/** Whether a daily was solved on its own date, for the streak (a result with no date counts as on the day). */
+export const onTheDay = (day: string, r: Solved) => !r.on || r.on === day;
 
 /** The record over `days` (every daily, in order), from each one's result if it was solved. */
 export function dailyRecord(days: readonly string[], resultOf: (date: string) => Solved | null, upTo: string): DailyRecord {
@@ -35,8 +45,14 @@ export function dailyRecord(days: readonly string[], resultOf: (date: string) =>
     if (r) {
       solved++;
       if (r.strokes <= r.best) perfect++;
+    }
+    if (r && onTheDay(day, r)) {
       run++;
       bestStreak = Math.max(bestStreak, run);
+    } else if (day === upTo) {
+      // Not solved on the day (yet): the streak is the run up to it.
+      streak = run;
+      break;
     } else run = 0;
     if (day === upTo) streak = run;
   }

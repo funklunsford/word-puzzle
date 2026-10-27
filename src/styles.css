@@ -275,7 +275,7 @@ body {
   position: relative;
 }
 
-/* The toolbar, in the header's top-right corner: How to play and settings in one bar. */
+/* The toolbar, in the header's top-right corner: past puzzles, How to play and settings in one bar. */
 .masthead-actions {
   position: absolute;
   top: 0;
@@ -330,7 +330,8 @@ body {
     background: color-mix(in srgb, var(--ink) 7%, var(--surface));
   }
 
-  .gear-btn:hover .gear-icon {
+  .gear-btn:hover .gear-icon,
+  .past-btn:hover .calendar-icon {
     stroke: var(--ink);
   }
 
@@ -344,13 +345,18 @@ body {
   color: var(--muted);
 }
 
-.gear-icon {
+.gear-icon,
+.calendar-icon {
   width: 20px;
   height: 20px;
   fill: none;
   stroke: var(--muted);
   stroke-width: 2;
   stroke-linecap: round;
+}
+
+.calendar-icon {
+  stroke-linejoin: round;
 }
 
 /* Settings: a setting's name, its choices side by side, and a line of explanation. */
@@ -498,9 +504,9 @@ body {
   outline-offset: 2px;
 }
 
-/* (Narrower windows shrink it to leave the toolbar room on either side: it's about 86 px wide.) */
+/* (Narrower windows shrink it to leave the toolbar room on either side: it's about 126 px wide.) */
 .masthead-art {
-  width: min(520px, calc(100% - 200px));
+  width: min(520px, calc(100% - 280px));
   height: auto;
   overflow: visible;
 }
@@ -518,6 +524,15 @@ body {
 .maze.compact .dateline {
   margin-top: -6px;
   font-size: 11px;
+}
+
+/* An earlier day's puzzle: "Past puzzle · No. 11 · …", then the way back to today's, never split. */
+.dateline .back-today {
+  color: var(--ink);
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
 }
 
 /* The parts row: each stroke type on a tile tinted in its colour, like the tray. */
@@ -1575,6 +1590,201 @@ body {
   color: var(--muted);
 }
 
+/* Past puzzles (the calendar): the dailies so far, a month at a time. Each day is a tile in the
+   path card's chip colours: outlined when not played, dashed gold part-way (like the goal's chip),
+   light green once solved, solid green with a star for an Ace. Dates with no daily are just their number. */
+.archive-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.archive-whose {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.month-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.month-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.month-turn {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.month-turn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.month {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.weekday {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--muted);
+}
+
+.past-day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 44px;
+  padding: 0;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.past-day:active {
+  transform: scale(0.94);
+}
+
+.past-day.none {
+  border-color: transparent;
+  background: none;
+  color: color-mix(in srgb, var(--muted) 55%, transparent);
+  font-weight: 600;
+  cursor: default;
+}
+
+.past-day.started {
+  border: 1.5px dashed var(--gold);
+  background: color-mix(in srgb, var(--gold) 9%, var(--bg));
+}
+
+.past-day.solved {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok) 16%, var(--bg));
+}
+
+/* An Ace: solid green, its number and star in the page's colour. */
+.past-day.ace {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--bg);
+}
+
+.past-star {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 10px;
+  color: var(--bg);
+}
+
+/* Today's: a green bar under its number. */
+.past-day.today::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ok);
+}
+
+.past-day.ace.today::after {
+  background: var(--bg);
+}
+
+/* The one being played. */
+.past-day[aria-current] {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .past-day:not(.none):hover {
+    border-color: color-mix(in srgb, var(--ink) 45%, var(--line));
+  }
+
+  .month-turn:not(:disabled):hover {
+    border-color: color-mix(in srgb, var(--ink) 35%, var(--line));
+  }
+}
+
+/* The day pointed at, or the month summed up. */
+.month-detail {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.past-key {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.past-key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.past-swatch {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.past-swatch.started {
+  border: 1.5px dashed var(--gold);
+}
+
+.past-swatch.solved {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok) 16%, var(--bg));
+}
+
+.past-swatch.ace {
+  border-color: var(--ok);
+  background: var(--ok);
+}
+
 /* Side card: the path so far, and game controls. */
 .side-card {
   grid-area: side;
@@ -1918,7 +2128,7 @@ body {
 
 /* Less motion (Settings, or the device's setting; see prefs.ts): no slides, springs or scaling;
    keep colour and opacity changes. */
-:root[data-motion='less'] :is(.tray-tile, .tray-tile.taken, .tray-tile svg, .pill) {
+:root[data-motion='less'] :is(.tray-tile, .tray-tile.taken, .tray-tile svg, .pill, .past-day) {
   transition: none;
   transform: none !important;
 }
@@ -2203,6 +2413,8 @@ body {
   .pill,
   .tool-btn,
   .trail-word,
+  .past-day,
+  .month-turn,
   .help-card .close {
     touch-action: manipulation;
   }

@@ -19,9 +19,47 @@ describe("a player's record over the dailies", () => {
     expect(dailyRecord(DAYS, results, '2026-10-09')).toEqual({ solved: 3, perfect: 2, streak: 1, bestStreak: 2 });
   });
 
-  it("ignores days after the one being played, and has no streak if that day isn't solved", () => {
+  it('ignores days after the one being played', () => {
     const results = from({ '2026-10-06': { strokes: 9, best: 9 }, '2026-10-10': { strokes: 9, best: 9 } });
     expect(dailyRecord(DAYS, results, '2026-10-08')).toEqual({ solved: 1, perfect: 1, streak: 0, bestStreak: 1 });
+  });
+
+  it("keeps the run up to the day before while that day isn't solved yet", () => {
+    const results = from({ '2026-10-06': { strokes: 9, best: 9 }, '2026-10-07': { strokes: 9, best: 9 } });
+    expect(dailyRecord(DAYS, results, '2026-10-08')).toEqual({ solved: 2, perfect: 2, streak: 2, bestStreak: 2 });
+    // Once it is, the run goes on through it.
+    const more = from({ '2026-10-06': { strokes: 9, best: 9 }, '2026-10-07': { strokes: 9, best: 9 }, '2026-10-08': { strokes: 10, best: 9, on: '2026-10-08' } });
+    expect(dailyRecord(DAYS, more, '2026-10-08')).toEqual({ solved: 3, perfect: 2, streak: 3, bestStreak: 3 });
+  });
+});
+
+describe('a daily solved on a later day (Past puzzles)', () => {
+  it('counts as solved, and an Ace, but not towards a streak', () => {
+    // On the day, late, on the day: no run of three, nor of two.
+    const results = from({
+      '2026-10-06': { strokes: 9, best: 9, on: '2026-10-06' },
+      '2026-10-07': { strokes: 9, best: 9, on: '2026-10-10' },
+      '2026-10-08': { strokes: 9, best: 9, on: '2026-10-08' },
+    });
+    expect(dailyRecord(DAYS, results, '2026-10-08')).toEqual({ solved: 3, perfect: 3, streak: 1, bestStreak: 1 });
+  });
+
+  it("breaks the run as a day missed would, and doesn't start today's streak", () => {
+    const results = from({
+      '2026-10-07': { strokes: 9, best: 9, on: '2026-10-07' },
+      '2026-10-08': { strokes: 9, best: 9, on: '2026-10-08' },
+      '2026-10-09': { strokes: 11, best: 9, on: '2026-10-10' },
+      '2026-10-10': { strokes: 9, best: 9, on: '2026-10-10' },
+    });
+    expect(dailyRecord(DAYS, results, '2026-10-10')).toEqual({ solved: 4, perfect: 3, streak: 1, bestStreak: 2 });
+    // Solving yesterday's today leaves today's streak where it was: none, until today's is solved.
+    const late = from({ '2026-10-09': { strokes: 9, best: 9, on: '2026-10-10' } });
+    expect(dailyRecord(DAYS, late, '2026-10-10')).toEqual({ solved: 1, perfect: 1, streak: 0, bestStreak: 0 });
+  });
+
+  it('counts a result kept before the date was as solved on the day', () => {
+    const results = from({ '2026-10-06': { strokes: 9, best: 9 }, '2026-10-07': { strokes: 9, best: 9 }, '2026-10-08': { strokes: 9, best: 9, on: '2026-10-08' } });
+    expect(dailyRecord(DAYS, results, '2026-10-08')).toEqual({ solved: 3, perfect: 3, streak: 3, bestStreak: 3 });
   });
 });
 

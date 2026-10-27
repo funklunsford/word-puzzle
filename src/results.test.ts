@@ -46,6 +46,34 @@ describe('what a win keeps', () => {
     expect([...earlier.keys()]).toEqual([`strokes:result5:${DAYS_5[0]}`]);
   });
 
+  it('keeps the date it was solved on: today, for an earlier day too', () => {
+    storage();
+    expect(keepWin({ date: day }, 5, win(14), noon)?.on).toBe(day);
+    expect(loadResult(day, 5)?.on).toBe(day);
+    keepWin({ date: DAYS_5[0] }, 5, win(15), noon);
+    expect(loadResult(DAYS_5[0], 5)?.on).toBe(day);
+  });
+
+  it('keeps the first date when a later play betters it, so a solve on the day stays one', () => {
+    const items = storage();
+    const first = DAYS_5[0];
+    keepWin({ date: first }, 5, win(15), new Date(`${first}T20:00:00`));
+    expect(keepWin({ date: first }, 5, win(13), noon)?.on).toBe(first);
+    expect(loadResult(first, 5)).toMatchObject({ strokes: 13, on: first });
+    // A result kept before the date was counts as on the day, and still does once bettered.
+    items.set(`strokes:result5:${DAYS_5[1]}`, JSON.stringify({ ...win(15), on: undefined }));
+    expect(loadResult(DAYS_5[1], 5)?.on).toBeUndefined();
+    expect(keepWin({ date: DAYS_5[1] }, 5, win(12), noon)?.on).toBe(DAYS_5[1]);
+  });
+
+  it("leaves out a kept date that isn't one", () => {
+    const items = storage();
+    items.set(`strokes:result5:${day}`, JSON.stringify({ ...win(14), on: 'yesterday' }));
+    expect(loadResult(day, 5)).not.toHaveProperty('on');
+    items.set(`strokes:result5:${day}`, JSON.stringify({ ...win(14), on: 20261026 }));
+    expect(loadResult(day, 5)).not.toHaveProperty('on');
+  });
+
   it('keeps nothing for a pool puzzle', () => {
     const items = storage();
     expect(keepWin({}, 5, win(9), noon)).toBeNull();
