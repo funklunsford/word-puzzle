@@ -72,8 +72,8 @@ export function coachTip(s: CoachState): Tip | null {
   return 'move';
 }
 
-/** How long a tip waits, left alone, before the coach moves on to the next move (ms). */
-export const TIP_TIME: Partial<Record<Tip, number>> = { goal: 4000, dots: 6000, word: 5000 };
+/** How long a tip waits, left alone, before the coach moves on to the next move (ms): a quarter quicker than at first (4, 6 and 5 s). */
+export const TIP_TIME: Partial<Record<Tip, number>> = { goal: 3000, dots: 4500, word: 3750 };
 
 /** What a tip says (the next move's line comes from the plan: see sayMove). */
 export function tipText(tip: Exclude<Tip, 'move'>, { start, goal, word = '', cost = 0, back = false }: { start: string; goal: string; word?: string; cost?: number; back?: boolean }): string {
