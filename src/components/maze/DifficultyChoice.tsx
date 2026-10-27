@@ -141,15 +141,20 @@ export function DifficultyChip({ value, onChange }: Props) {
   );
 }
 
-/** The three to pick from, each with its line (How to play's last card, before the first puzzle). Picking one plays it. */
-export function DifficultyList({ value, onChange }: Props) {
+/**
+ * The three to pick from, each with its line (How to play's last card, before the first puzzle; and
+ * the phone's sheet, whose title names them: `labelledBy`). Picking one plays it.
+ */
+export function DifficultyList({ value, onChange, labelledBy }: Props & { labelledBy?: string }) {
   const id = useId();
   return (
     <div className="difficulty-pick">
-      <span className="difficulty-pick-label" id={id}>
-        How hard?
-      </span>
-      <div role="radiogroup" aria-labelledby={id}>
+      {!labelledBy && (
+        <span className="difficulty-pick-label" id={id}>
+          How hard?
+        </span>
+      )}
+      <div role="radiogroup" aria-labelledby={labelledBy ?? id}>
         {ORDER.map((d) => (
           <button key={d} role="radio" aria-checked={d === value} className={d === value ? 'on' : undefined} onClick={() => d !== value && onChange(d)}>
             <span className="pick-dot" aria-hidden="true" />
@@ -161,5 +166,83 @@ export function DifficultyList({ value, onChange }: Props) {
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * The difficulty on a phone: a tag under the score's count ("NORMAL ▾", and on Hard "HARD ▾" in the
+ * Hard tag's colours, which it stands in for), where a thumb finds it. It opens the three in a sheet
+ * from the bottom of the screen, big enough to tap. A pick plays it; a tap outside, Escape or dragging
+ * the sheet down closes it, back to the tag.
+ */
+export function DifficultyTag({ value, onChange }: Props) {
+  const [open, setOpen] = useState(false);
+  const tag = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLElement>(null);
+  const id = useId();
+  const close = () => {
+    setOpen(false);
+    tag.current?.focus();
+  };
+  useEffect(() => {
+    if (!open) return;
+    sheet.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={tag}
+        className={`difficulty-tag${value === 'hard' ? ' hard' : ''}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={`Difficulty: ${DIFFICULTY_NAMES[value]}`}
+        onClick={() => setOpen(true)}
+      >
+        {DIFFICULTY_NAMES[value]}
+        <svg viewBox="0 0 10 6" aria-hidden="true">
+          <path d="M1 1 L5 5 L9 1" />
+        </svg>
+      </button>
+      {createPortal(
+        <AnimatePresence>
+          {open && (
+            <motion.div className="sheet-backdrop" onClick={close} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <motion.section
+                ref={sheet}
+                className="difficulty-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={id}
+                onClick={(e) => e.stopPropagation()}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.7 }}
+                onDragEnd={(_, info) => (info.offset.y > 80 || info.velocity.y > 500) && close()}
+              >
+                <div className="sheet-grab" aria-hidden="true" />
+                <h2 id={id}>Difficulty</h2>
+                <DifficultyList
+                  value={value}
+                  labelledBy={id}
+                  onChange={(d) => {
+                    close();
+                    onChange(d);
+                  }}
+                />
+              </motion.section>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
+    </>
   );
 }

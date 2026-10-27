@@ -35,7 +35,7 @@ import { keepWin, loadResult, type Result } from './results';
 import { hasProgress, loadProgress, progressKey, useKeptProgress, type Progress, type SaveOf, type Visit } from './progress';
 import { pastDays, todaysDaily } from './archive';
 import { Archive, CalendarIcon } from './components/maze/Archive';
-import { DIFFICULTY_LINES, DIFFICULTY_NAMES, DifficultyChip } from './components/maze/DifficultyChoice';
+import { DIFFICULTY_LINES, DIFFICULTY_NAMES, DifficultyChip, DifficultyTag } from './components/maze/DifficultyChoice';
 import { SAMPLE } from './tutorial';
 import { isFirstVisit, loadOnboarded, saveOnboarded } from './onboarding';
 import { AD_SLOTS, BANNER, RAIL_H, loadAdSense, railWidth } from './ads';
@@ -892,8 +892,8 @@ export function MazeApp() {
                     {/* On a phone an earlier day's is shortened ("Past · No. 11 · Fri, Oct 16"), so it wraps less. */}
                     {past && (compact ? 'Past · ' : 'Past puzzle · ')}
                     {`No. ${dayNumber(current.date)} · `}
-                    {/* The difficulty, to change here (and in Settings). */}
-                    {easyOn && (
+                    {/* The difficulty, to change here (and in Settings); a phone has it under the score's count. */}
+                    {easyOn && !compact && (
                       <>
                         <DifficultyChip value={mode} onChange={changeDifficulty} />
                         {' · '}
@@ -922,7 +922,8 @@ export function MazeApp() {
             <div className="score-panel">
               <div className="score-big">
                 <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
-                {hardcore && <span className="hardcore-tag">Hard</span>}
+                {/* A phone's difficulty, to change here: on Hard it's the Hard tag. (Not in the sample.) */}
+                {easyOn && compact && !sample ? <DifficultyTag value={mode} onChange={changeDifficulty} /> : hardcore && <span className="hardcore-tag">Hard</span>}
               </div>
               <div className="score-sub">
                 <span>lowest strokes possible: {best}</span>
