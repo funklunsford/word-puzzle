@@ -4,10 +4,12 @@ import maze5Json from '../public/mazes-5.json';
 import poolText from '../public/pool.json?raw';
 import pool5Text from '../public/pool-5.json?raw';
 import {
+  FIRST_STEPS,
   STRATEGIES,
   bestWithout,
   distancesFrom,
   findPockets,
+  firstSteps,
   goalSide,
   isTricky,
   isTrickyBothWays,
@@ -229,6 +231,43 @@ describe('mustFind', () => {
     expect(over(puzzle)).toEqual({ GRUMP: 1, CLUMP: 1, CLUNK: 0, CLINK: 0 });
     expect(mustFind(words5, adj5, puzzle)).toEqual([]);
     expect(mustFind(words5, adj5, puzzle, 0)).toEqual(['GRUMP', 'CLUMP']);
+  });
+});
+
+describe('firstSteps', () => {
+  it('lists the words 1–2 strokes from the start', () => {
+    // A → D in 2 through B; C is 2 strokes from A, E 3.
+    const words = ['A', 'B', 'C', 'D', 'E'];
+    const puzzle: Puzzle = { start: 'A', goal: 'D', best: 2, path: ['A', 'B', 'D'] };
+    const graph = weighted(5, [
+      [0, 1, 1],
+      [1, 3, 1],
+      [0, 2, 2],
+      [2, 3, 5],
+      [0, 4, 3],
+      [4, 3, 1],
+    ]);
+    expect(firstSteps(words, graph, puzzle)).toEqual(['B', 'C']);
+    expect(firstSteps(words, graph, puzzle, 3)).toEqual(['B', 'C', 'E']);
+  });
+
+  const words5 = maze5.words;
+  const adj5 = doorsOf(maze5);
+
+  it(`passes SHELL → STEAK (2026-10-26), with ${FIRST_STEPS}: SHELF and SMELL`, () => {
+    const puzzle: Puzzle = { start: 'SHELL', goal: 'STEAK', best: 15, path: ['SHELL', 'SPELL', 'SPELT', 'SPLIT', 'SPLAT', 'SPEAK', 'STEAK'] };
+    expect(firstSteps(words5, adj5, puzzle)).toEqual(['SHELF', 'SMELL']);
+  });
+
+  it('turns down CHAMP → DRINK (2026-10-27) and RULER → SHRED (2026-10-28), with one each', () => {
+    // CHAMP's other first words, CHAIR and CHIMP, are 3 strokes: the whole turn.
+    const champ: Puzzle = { start: 'CHAMP', goal: 'DRINK', best: 13, path: ['CHAMP', 'CLAMP', 'CLANK', 'CRANK', 'DRANK', 'DRINK'] };
+    expect(firstSteps(words5, adj5, champ)).toEqual(['CLAMP']);
+    expect(firstSteps(words5, adj5, champ, 3).sort()).toEqual(['CHAIR', 'CHIMP', 'CLAMP']);
+    // RULER's lowest route starts with RIPER, 3 strokes.
+    const ruler: Puzzle = { start: 'RULER', goal: 'SHRED', best: 12, path: ['RULER', 'RIPER', 'PIPER', 'BIPED', 'SIRED', 'SHRED'] };
+    expect(firstSteps(words5, adj5, ruler)).toEqual(['RUDER']);
+    expect(firstSteps(words5, adj5, ruler, 3).sort()).toEqual(['JULEP', 'PURER', 'RIPER', 'RUDER', 'RULED']);
   });
 });
 

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import mazeJson from '../../public/mazes.json';
 import maze5Json from '../../public/mazes-5.json';
-import { mustFind } from '../difficulty';
+import { FIRST_STEPS, firstSteps, mustFind } from '../difficulty';
 import { potRoute, walkSteps } from '../inkpots';
 import { PUZZLE_SHAPES, buildGraph, classifyNeed, isObvious, routeWords, solve } from '../maze';
 import { STEP_LIMIT, wordDistance } from '../strokes';
-import { DAYS, DAYS_5, LAUNCH, PAR_RULE_FROM, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
+import { DAYS, DAYS_5, FIRST_STEP_FROM, LAUNCH, PAR_RULE_FROM, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
 
 /** 5-letter days picked while the pool's puzzles ran 15–18 strokes (2026-10-09), with that range. */
 const EARLIER_FIVE: Record<string, readonly [number, number]> = { '2026-10-08': [15, 18], '2026-10-09': [15, 18] };
@@ -96,6 +96,12 @@ describe('the daily puzzles', () => {
           if (letters === 5 && day.date >= PAR_RULE_FROM)
             it('has no word a player must find to make Par (4 strokes over the lowest)', () => {
               expect(mustFind(words, adj, day.puzzle)).toEqual([]);
+            });
+
+          // From FIRST_STEP_FROM every daily has easy first steps; earlier ones stay as they were.
+          if (letters === 5 && day.date >= FIRST_STEP_FROM)
+            it(`has at least ${FIRST_STEPS} easy first steps (words 1–2 strokes from the start)`, () => {
+              expect(firstSteps(words, adj, day.puzzle).length).toBeGreaterThanOrEqual(FIRST_STEPS);
             });
 
           if (letters === 5)

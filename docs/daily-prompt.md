@@ -34,17 +34,20 @@ new days.)
   - the kind of route varies from day to day;
   - no puzzle has a word a player must find to make Par (from 2026-10-28): for every word on its
     lowest-stroke route, there's a way round that word within 4 strokes of the lowest (see `mustFind`
-    in `src/difficulty.ts`).
+    in `src/difficulty.ts`);
+  - every puzzle has at least two easy first steps (from 2026-10-30): words a player can reach from
+    the start for 1–2 strokes (see `firstSteps` in `src/difficulty.ts`).
 - **Choose the one whose two words make the clearest picture of change.** The best pairs are vivid
   or concrete, like MINER → CHEER or POUCH → BATCH.
   - Avoid pairs where either word is unpleasant (SLAIN), religious or political (SAINT), or awkward
     to show to everyone.
   - Avoid pairs whose start or goal reads as an inflection (TUBED, BORED, BAKED).
   - Choose only from the list. If none is good, take the least awkward one.
-  - **Never check in a puzzle with a word a player must find to make Par.** The list leaves them
-    out, `npm run daily -- {DATE} {START} {GOAL}` refuses one (even with `--any`), and
-    `src/daily/daily.test.ts` fails on one. If the check-in refuses your pair, choose another from
-    the list; don't work round it. If the list is empty, stop: don't add the day, and say so.
+  - **Never check in a puzzle with a word a player must find to make Par, or with fewer than two
+    easy first steps.** The list leaves them out, `npm run daily -- {DATE} {START} {GOAL}` refuses
+    one (even with `--any`), and `src/daily/daily.test.ts` fails on one. If the check-in refuses
+    your pair, choose another from the list; don't work round it. If the list is empty, stop: don't
+    add the day, and say so.
   - Between pairs that are equally good pictures, prefer the one whose search from both ends looks
     at more words.
 - Check it in with `npm run daily -- {DATE} {START} {GOAL}`. This writes
