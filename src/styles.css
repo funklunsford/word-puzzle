@@ -1592,7 +1592,7 @@ body {
 
 /* Past puzzles (the calendar): the dailies so far, a month at a time. Each day is a tile in the
    path card's chip colours: outlined when not played, dashed gold part-way (like the goal's chip),
-   filled once solved, green with a star for an Ace. Dates with no daily are just their number. */
+   light green once solved, solid green with a star for an Ace. Dates with no daily are just their number. */
 .archive-card {
   display: flex;
   flex-direction: column;
@@ -1686,13 +1686,15 @@ body {
 }
 
 .past-day.solved {
-  border-color: transparent;
-  background: color-mix(in srgb, var(--ink) 16%, var(--bg));
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok) 16%, var(--bg));
 }
 
+/* An Ace: solid green, its number and star in the page's colour. */
 .past-day.ace {
   border-color: var(--ok);
-  background: color-mix(in srgb, var(--ok) 22%, var(--bg));
+  background: var(--ok);
+  color: var(--bg);
 }
 
 .past-star {
@@ -1700,7 +1702,7 @@ body {
   top: 2px;
   right: 5px;
   font-size: 10px;
-  color: var(--ok);
+  color: var(--bg);
 }
 
 /* Today's: a green bar under its number. */
@@ -1712,6 +1714,10 @@ body {
   height: 3px;
   border-radius: 2px;
   background: var(--ok);
+}
+
+.past-day.ace.today::after {
+  background: var(--bg);
 }
 
 /* The one being played. */
@@ -1770,13 +1776,13 @@ body {
 }
 
 .past-swatch.solved {
-  border-color: transparent;
-  background: color-mix(in srgb, var(--ink) 16%, var(--bg));
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok) 16%, var(--bg));
 }
 
 .past-swatch.ace {
   border-color: var(--ok);
-  background: color-mix(in srgb, var(--ok) 22%, var(--bg));
+  background: var(--ok);
 }
 
 /* Side card: the path so far, and game controls. */
