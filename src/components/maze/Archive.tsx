@@ -157,7 +157,6 @@ export function Archive({ days, whose, playing, onPlay, onClose }: Props) {
             Ace
           </li>
         </ul>
-        <p className="setting-note archive-note">Solved on a later day, a puzzle counts towards dailies solved and aces, but not your streak.</p>
       </motion.section>
     </motion.div>
   );
