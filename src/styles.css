@@ -956,6 +956,105 @@ body {
   background: var(--muted);
 }
 
+/* A phone's difficulty: a tag under the score's count (on Hard, in the Hard tag's colours), opening a sheet. */
+.difficulty-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  padding: 3px 8px 3px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 2px 0 var(--ledge);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* It looks small and takes a thumb-sized tap (as the toolbar's buttons do). */
+.difficulty-tag {
+  position: relative;
+}
+
+.difficulty-tag::after {
+  content: '';
+  position: absolute;
+  inset: -12px -10px;
+}
+
+.difficulty-tag svg {
+  width: 8px;
+  height: 5px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.difficulty-tag.hard {
+  border-color: color-mix(in srgb, var(--spicy) 40%, var(--line));
+  background: color-mix(in srgb, var(--spicy) 12%, var(--surface));
+  color: var(--spicy);
+}
+
+.difficulty-tag[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--ink) 8%, var(--surface));
+}
+
+/* Its sheet, from the bottom of the screen over the page (blurred, as the cards are), dragged down to close. */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.difficulty-sheet {
+  width: min(100%, 560px);
+  padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
+  border: 1.5px solid var(--line);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 -12px 40px rgb(0 0 0 / 0.18);
+  touch-action: none;
+}
+
+.sheet-grab {
+  width: 40px;
+  height: 5px;
+  margin: 0 auto 12px;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+.difficulty-sheet h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.difficulty-sheet .difficulty-pick {
+  margin-top: 6px;
+}
+
+.difficulty-sheet .difficulty-pick button {
+  min-height: 60px;
+}
+
 /* How to play's choice of difficulty: a card for each, a dot filled in on the one being played. */
 .difficulty-pick {
   margin-top: 16px;
@@ -2428,11 +2527,16 @@ body {
   font-size: 15px;
 }
 
-/* HARDCORE goes under the count, so the pair still fits on one row at 320 px. */
+/* HARDCORE goes under the count, so the pair still fits on one row at 320 px; so does the difficulty's tag. */
 .maze.compact .hardcore-tag {
   display: block;
   width: fit-content;
   margin: 3px auto 0;
+}
+
+.maze.compact .difficulty-tag {
+  display: flex;
+  margin: 4px auto 0;
 }
 
 .maze.compact .score-big strong {
@@ -2634,6 +2738,7 @@ body {
   .past-day,
   .month-turn,
   .difficulty-chip,
+  .difficulty-tag,
   .difficulty-menu button,
   .difficulty-pick button,
   .help-card .close {
