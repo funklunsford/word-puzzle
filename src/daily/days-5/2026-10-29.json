@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-29",
+  "puzzle": {
+    "start": "CLAMP",
+    "goal": "GRAPE",
+    "best": 14,
+    "path": [
+      "CLAMP",
+      "CLANK",
+      "GIANT",
+      "GRANT",
+      "GRAIL",
+      "GRAPE"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "CLAMP",
+        "door": "CLAMS",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "CLAMP",
+        "door": "CHAMP",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "CLAMP",
+        "door": "CLAIM",
+        "loses": 3,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "CRANK",
+      "GRADE"
+    ],
+    "best": 14,
+    "walk": [
+      "CLAMP",
+      "CLANK",
+      "GIANT",
+      "GRANT",
+      "GRAIL",
+      "GRAPE"
+    ]
+  },
+  "onRoute": {
+    "CLAMP": 0,
+    "CLANK": 3,
+    "GIANT": 6,
+    "GRAIL": 11,
+    "GRANT": 8,
+    "GRAPE": 14
+  }
+}
