@@ -5,7 +5,7 @@ import { FIRST_STEPS, firstSteps, mustFind } from '../difficulty';
 import { potRoute, walkSteps } from '../inkpots';
 import { PUZZLE_SHAPES, buildGraph, classifyNeed, isObvious, routeWords, solve } from '../maze';
 import { STEP_LIMIT, wordDistance } from '../strokes';
-import { DAYS, DAYS_5, FIRST_STEP_FROM, LAUNCH, PAR_RULE_FROM, dayFor, dayNumber, localDate, type DailyPuzzle } from './daily';
+import { DAYS, DAYS_5, FIRST_STEP_FROM, LAUNCH, MUST_FIND_FROM, MUST_FIND_SHARE, PAR_RULE_FROM, dayFor, dayNumber, localDate, mustFindDay, type DailyPuzzle } from './daily';
 
 /** 5-letter days picked while the pool's puzzles ran 15–18 strokes (2026-10-09), with that range. */
 const EARLIER_FIVE: Record<string, readonly [number, number]> = { '2026-10-08': [15, 18], '2026-10-09': [15, 18] };
@@ -92,10 +92,11 @@ describe('the daily puzzles', () => {
             expect(potRoute(words, adj, start, goal, day.inkPots.pots).best).toBe(day.inkPots.best);
           });
 
-          // From PAR_RULE_FROM no daily has a word a player must find to make Par; earlier ones stay as they were.
+          // From PAR_RULE_FROM no daily has a word a player must find to make Par, but from
+          // MUST_FIND_FROM a day drawn for one (mustFindDay) has one; earlier ones stay as they were.
           if (letters === 5 && day.date >= PAR_RULE_FROM)
-            it('has no word a player must find to make Par (4 strokes over the lowest)', () => {
-              expect(mustFind(words, adj, day.puzzle)).toEqual([]);
+            it(mustFindDay(day.date) ? 'has a word a player must find to make Par (a day drawn for one)' : 'has no word a player must find to make Par (4 strokes over the lowest)', () => {
+              expect(mustFind(words, adj, day.puzzle).length > 0).toBe(mustFindDay(day.date));
             });
 
           // From FIRST_STEP_FROM every daily has easy first steps; earlier ones stay as they were.
@@ -130,3 +131,27 @@ describe('the daily puzzles', () => {
     });
   }
 });
+
+describe('the days with a word a player must find to make Par', () => {
+  const day = (n: number) => new Date(Date.UTC(2026, 9, 30 + n)).toISOString().slice(0, 10);
+
+  it('are none before MUST_FIND_FROM', () => {
+    for (const d of [PAR_RULE_FROM, '2026-10-29', '2025-01-01']) if (d < MUST_FIND_FROM) expect(mustFindDay(d), d).toBe(false);
+  });
+
+  it(`are about ${100 * MUST_FIND_SHARE}% of days after, never more than 3 in a row`, () => {
+    const dates = Array.from({ length: 3 * 365 }, (_, i) => day(i));
+    const share = dates.filter(mustFindDay).length / dates.length;
+    expect(share).toBeGreaterThan(MUST_FIND_SHARE - 0.02);
+    expect(share).toBeLessThan(MUST_FIND_SHARE + 0.02);
+    let run = 0;
+    for (const d of dates) expect((run = mustFindDay(d) ? run + 1 : 0), d).toBeLessThanOrEqual(3);
+  });
+
+  it('are drawn from the date alone, the same each time', () => {
+    const dates = Array.from({ length: 60 }, (_, i) => day(i));
+    expect(dates.map(mustFindDay)).toEqual(dates.map(mustFindDay));
+    expect(dates.filter(mustFindDay).slice(0, 4)).toEqual(['2026-10-30', '2026-10-31', '2026-11-02', '2026-11-10']);
+  });
+});
+
