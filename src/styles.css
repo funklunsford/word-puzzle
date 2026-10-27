@@ -282,12 +282,12 @@ body {
   right: 0;
 }
 
-/* On a wide screen without ad rails, it moves out to the page's top-right corner, level with the
-   stroke parts row and clear of the game: the column is centred, so the corner is half the window
-   less half the column away. (A classic scrollbar puts it half the scrollbar nearer the edge.) */
+/* On a wide screen without ad rails, it moves out into the margin, just past the column's corner
+   (the layout's 24px gap), level with the stroke parts row and clear of it. */
 @media (min-width: 1100px) {
   .maze:not(.rails):not(.compact) .masthead-actions {
-    right: calc(50% - 50vw + 20px);
+    right: auto;
+    left: calc(100% + 24px);
   }
 }
 
