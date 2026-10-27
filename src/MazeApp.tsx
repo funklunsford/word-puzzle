@@ -35,6 +35,7 @@ import { keepWin, loadResult, type Result } from './results';
 import { hasProgress, loadProgress, progressKey, useKeptProgress, type Progress, type SaveOf, type Visit } from './progress';
 import { pastDays, todaysDaily } from './archive';
 import { Archive, CalendarIcon } from './components/maze/Archive';
+import { DIFFICULTY_LINES, DIFFICULTY_NAMES, DifficultyChip } from './components/maze/DifficultyChoice';
 import { SAMPLE } from './tutorial';
 import { isFirstVisit, loadOnboarded, saveOnboarded } from './onboarding';
 import { AD_SLOTS, BANNER, RAIL_H, loadAdSense, railWidth } from './ads';
@@ -513,7 +514,7 @@ export function MazeApp() {
     else setKeptAs(of);
     setRefused(null);
     const back = left ? ', back where you left it' : '';
-    setNotice(on ? `Hardcore on${back}${over ? ', so the puzzle starts over' : ''}: only lowest-stroke words count, and no hints.` : `Hardcore off${back}.`);
+    setNotice(on ? `Hard${back}${over ? ', from the start' : ''}: only lowest-stroke words count, and no hints.` : `Medium${back}: every word counts, and hints are earned.`);
   };
 
   // The maze's doors, shipped with it (worked out from the words only if they're missing).
@@ -532,6 +533,21 @@ export function MazeApp() {
   // (A path that started from this puzzle's start: while a new puzzle swaps in, the old word can
   // equal the new goal for a moment, which isn't a win.)
   const won = !!puzzle && room === puzzle.goal && trail[0]?.word === puzzle.start;
+  /**
+   * After a daily's win, the next difficulty up to try, on the same day: Medium after Easy (unless
+   * that day's Medium is solved), Hard after Medium (unless its result is a Hard one: Medium and Hard
+   * keep one result, the better). None after Hard, in the sample or on a pool puzzle.
+   */
+  const nextUp: Difficulty | null =
+    !won || !easyOn || sample || !current?.date
+      ? null
+      : mode === 'easy'
+        ? daily?.date && !loadResult(daily.date, letters, false)
+          ? 'classic'
+          : null
+        : mode === 'classic' && !loadResult(current.date, letters, false)?.hardcore
+          ? 'hard'
+          : null;
   // Reaching the goal in the lowest possible strokes (an Ace) celebrates: confetti pops out of the
   // word. Each run is a fresh one, so Watch again starts it over even while it's still falling. In
   // development, ?perfect plays it at once (?perfect=1.2 holds it at 1.2 seconds).
@@ -875,7 +891,15 @@ export function MazeApp() {
                   <>
                     {/* On a phone an earlier day's is shortened ("Past · No. 11 · Fri, Oct 16"), so it wraps less. */}
                     {past && (compact ? 'Past · ' : 'Past puzzle · ')}
-                    {`No. ${dayNumber(current.date)}${current.easy ? ' · Easycore' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, past && compact ? { weekday: 'short', month: 'short', day: 'numeric' } : { weekday: 'long', month: 'long', day: 'numeric' })}`}
+                    {`No. ${dayNumber(current.date)} · `}
+                    {/* The difficulty, to change here (and in Settings). */}
+                    {easyOn && (
+                      <>
+                        <DifficultyChip value={mode} onChange={changeDifficulty} />
+                        {' · '}
+                      </>
+                    )}
+                    {new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, past && compact ? { weekday: 'short', month: 'short', day: 'numeric' } : { weekday: 'long', month: 'long', day: 'numeric' })}
                     {past && (
                       <>
                         {' · '}
@@ -898,7 +922,7 @@ export function MazeApp() {
             <div className="score-panel">
               <div className="score-big">
                 <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
-                {hardcore && <span className="hardcore-tag">Hardcore</span>}
+                {hardcore && <span className="hardcore-tag">Hard</span>}
               </div>
               <div className="score-sub">
                 <span>lowest strokes possible: {best}</span>
@@ -977,6 +1001,8 @@ export function MazeApp() {
                     canSample={letters === 5 && (sample || won || !hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed }))}
                     sampled={sampled}
                     easycore={easyOn}
+                    difficulty={mode}
+                    onDifficulty={changeDifficulty}
                     inkPots={!!potPlan}
                     closeRef={helpClose}
                     onClose={closeHelp}
@@ -1083,8 +1109,8 @@ export function MazeApp() {
                   · {scoreName(spent, best)}
                   {spent <= best && ' ⭐'}
                 </span>
-                {hardcore && <span className="nowrap"> · hardcore</span>}
-                {current?.easy && <span className="nowrap"> · easycore</span>}
+                {hardcore && <span className="nowrap"> · hard</span>}
+                {current?.easy && <span className="nowrap"> · easy</span>}
               </p>
               {/* The sample's way on is in the coach's tip, over the word: no stats, record or share for it. */}
               {!sample && (
@@ -1121,7 +1147,7 @@ export function MazeApp() {
                   {record && record.solved > 0 && (
                     <>
                       <span className="label" id="record-label">
-                        {current?.easy ? 'Your Easycore dailies' : 'Your dailies'}
+                        {current?.easy ? 'Your Easy dailies' : 'Your dailies'}
                       </span>
                       <dl className="result-stats record" aria-labelledby="record-label">
                         <div>
@@ -1142,6 +1168,16 @@ export function MazeApp() {
                         </div>
                       </dl>
                     </>
+                  )}
+                  {nextUp && (
+                    <div className="level-up">
+                      <span>
+                        Ready for <strong>{DIFFICULTY_NAMES[nextUp]}</strong>?<small>{DIFFICULTY_LINES[nextUp]}</small>
+                      </span>
+                      <button className="pill" onClick={() => changeDifficulty(nextUp)}>
+                        Play {DIFFICULTY_NAMES[nextUp]}
+                      </button>
+                    </div>
                   )}
                   <div className="pill-row">
                     <button
@@ -1237,7 +1273,7 @@ export function MazeApp() {
             ) : (
               <p aria-live="polite" className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
                 {refused
-                  ? `Hardcore: ${refused} is off the lowest-stroke route.`
+                  ? `Hard: ${refused} is off the lowest-stroke route.`
                   : notice
                   ? notice
                   : hintText && !locked
@@ -1416,7 +1452,7 @@ export function MazeApp() {
               (d) => loadResult(d, letters, mode === 'easy'),
               (d) => hasProgress(progressKey(d, letters, mode)),
             )}
-            whose={mode === 'easy' ? 'Easycore dailies' : mode === 'hard' ? 'Classic dailies, in Hardcore' : 'Classic dailies'}
+            whose={mode === 'easy' ? 'Easy dailies' : mode === 'hard' ? 'Medium dailies, played on Hard' : 'Medium dailies'}
             playing={playing}
             onPlay={(date) => {
               closeArchive();

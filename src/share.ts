@@ -30,10 +30,10 @@ export interface ShareResult {
   steps: { from: string; to: string; cost: number; moves?: Move[] }[];
 }
 
-/** What a result's card and share say it is, after its number: Easycore, or (for the 5-letter game) 5 letters. */
-export const shareLabel = (r: Pick<ShareResult, 'easycore' | 'start'>) => (r.easycore ? 'Easycore' : r.start.length !== 4 ? `${r.start.length} letters` : '');
+/** What a result's card and share say it is, after its number: Easy (Easycore's), or (for the 5-letter game) 5 letters. */
+export const shareLabel = (r: Pick<ShareResult, 'easycore' | 'start'>) => (r.easycore ? 'Easy' : r.start.length !== 4 ? `${r.start.length} letters` : '');
 
-/** The share's title: "Strokes No. 15 · 5 letters", or for Easycore's No. 15, "Strokes No. 15 · Easycore". */
+/** The share's title: "Strokes No. 15 · 5 letters", or for Easycore's No. 15, "Strokes No. 15 · Easy". */
 export function shareTitle(r: Pick<ShareResult, 'number' | 'easycore' | 'start'>): string {
   const label = shareLabel(r);
   return `Strokes${r.number ? ` No. ${r.number}` : ''}${label ? ` · ${label}` : ''}`;
@@ -263,11 +263,11 @@ export async function drawResultCard(r: ShareResult, strokes: PaletteChoice = 'e
   ctx.font = `600 30px ${FONT}`;
   ctx.fillText(`lowest possible ${r.best}${r.hints ? ` · ${r.hints} ${r.hints === 1 ? 'hint' : 'hints'}` : ''}`, cx, 394);
 
-  // Badges: the score's golf name (an Ace in gold), and Hardcore or Easycore.
+  // Badges: the score's golf name (an Ace in gold), and Hard or Easy (Hardcore or Easycore).
   const name = scoreName(r.strokes, r.best).toUpperCase();
   const badges: [string, string][] = [perfect ? [`★ ${name}`, PAPER.gold] : [name, PAPER.muted]];
-  if (r.hardcore) badges.push(['🔥 HARDCORE', PAPER.spicy]);
-  if (r.easycore) badges.push(['EASYCORE', PAPER.easy]);
+  if (r.hardcore) badges.push(['🔥 HARD', PAPER.spicy]);
+  if (r.easycore) badges.push(['EASY', PAPER.easy]);
   if (badges.length) {
     ctx.font = `800 30px ${FONT}`;
     const widths = badges.map(([t]) => ctx.measureText(t).width + 44);
