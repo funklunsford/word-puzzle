@@ -544,6 +544,97 @@ body {
   white-space: nowrap;
 }
 
+/* The difficulty in the date line, as a chip that opens the three (DifficultyChoice.tsx). */
+.difficulty-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 1px;
+  padding: 1px 7px 1px 9px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 2px 0 var(--ledge);
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.difficulty-chip svg {
+  width: 8px;
+  height: 5px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.difficulty-chip[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--ink) 8%, var(--surface));
+}
+
+/* Its menu, under it and kept inside the window (placed by the chip), over the page. */
+.difficulty-menu {
+  position: fixed;
+  z-index: 45;
+  padding: 6px;
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow:
+    0 5px 0 var(--ledge),
+    0 18px 40px rgb(0 0 0 / 0.18);
+  transform-origin: top center;
+}
+
+.difficulty-menu button {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.difficulty-menu button.on {
+  background: color-mix(in srgb, var(--ink) 8%, var(--surface));
+}
+
+.difficulty-menu strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.difficulty-menu button.on strong::after {
+  content: ' ✓';
+}
+
+.difficulty-menu small {
+  display: block;
+  margin-top: 1px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .difficulty-chip:hover {
+    border-color: color-mix(in srgb, var(--ink) 35%, var(--line));
+  }
+
+  .difficulty-menu button:not(.on):hover {
+    background: color-mix(in srgb, var(--ink) 5%, var(--surface));
+  }
+}
+
 /* The parts row: each stroke type on a tile tinted in its colour, like the tray. */
 .part-tile {
   fill: color-mix(in srgb, var(--tile) 12%, var(--surface));
@@ -863,6 +954,70 @@ body {
   height: 7px;
   border-radius: 50%;
   background: var(--muted);
+}
+
+/* How to play's choice of difficulty: a card for each, a dot filled in on the one being played. */
+.difficulty-pick {
+  margin-top: 16px;
+}
+
+.difficulty-pick-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.difficulty-pick button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.difficulty-pick button.on {
+  border-color: var(--ink);
+  box-shadow: 0 3px 0 var(--ledge);
+}
+
+.pick-dot {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+
+.difficulty-pick button.on .pick-dot {
+  border: 5px solid var(--ink);
+}
+
+.difficulty-pick strong {
+  display: block;
+  font-size: 15px;
+}
+
+.difficulty-pick small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .difficulty-pick button:not(.on):hover {
+    border-color: color-mix(in srgb, var(--ink) 35%, var(--line));
+  }
 }
 
 .how-actions {
@@ -1620,6 +1775,30 @@ body {
 .share-note {
   margin: 0 0 10px;
   text-align: center;
+}
+
+/* After a win, the next difficulty up to try (Normal after Easy, Hard after Normal), over the stats. */
+.level-up {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(100%, 440px);
+  padding: 10px 10px 10px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg);
+  text-align: left;
+}
+
+.level-up small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.level-up .pill {
+  flex: none;
 }
 
 .result-next,
@@ -2454,6 +2633,9 @@ body {
   .trail-word,
   .past-day,
   .month-turn,
+  .difficulty-chip,
+  .difficulty-menu button,
+  .difficulty-pick button,
   .help-card .close {
     touch-action: manipulation;
   }

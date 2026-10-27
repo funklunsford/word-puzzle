@@ -23,8 +23,8 @@ describe('sharing a result', () => {
   });
 
   it("says an Easycore daily is one, since the classic daily of its number is another puzzle", () => {
-    expect(shareTitle({ number: 15, start: 'SHEEP', easycore: true })).toBe('Strokes No. 15 · Easycore');
-    expect(shareLabel({ start: 'SHEEP', easycore: true })).toBe('Easycore');
+    expect(shareTitle({ number: 15, start: 'SHEEP', easycore: true })).toBe('Strokes No. 15 · Easy');
+    expect(shareLabel({ start: 'SHEEP', easycore: true })).toBe('Easy');
     // The classic 5-letter daily, and the 4-letter one, as before.
     expect(shareTitle({ number: 15, start: 'SNARE' })).toBe('Strokes No. 15 · 5 letters');
     expect(shareTitle({ number: 1, start: 'PINK', easycore: false })).toBe('Strokes No. 1');
