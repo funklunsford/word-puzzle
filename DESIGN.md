@@ -1366,3 +1366,29 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - Won in 13 (an Ace): kept with `on: 2026-10-26`, its game cleared, no `puzzle-done:strokes:2026-10-26`. With Oct 15 and 17 solved on their days: 3 dailies solved, 1 Ace, streak 0, best streak 1 (not 3). Play another opened the list, Oct 16 now Ace ★. Today's row and Back to today drop `?day=`.
   - Classic → Hardcore (over) → a hardcore step → Classic (back where it was) → Hardcore (back to its own) → reload (still there) → Restart (cleared).
   - The sample: a stroke kept nothing, a row picked from it skipped it, and How to play didn't open again, nor for a returning player with a game kept. Easycore: a hint taken kept `strokes:progress5e:2026-10-06`, restored on a reload.
+
+## Hints are earned (2026-10-26, branch `earned-hints`)
+- **The owner's calls:** hints are earned, one at a time, with no bank. Before any word is made there's no hint, and the game says so. Each new word made earns one for the next step. They don't stack, and a free return earns none. One earned hint covers the whole step: its first ask uses it, and the letters, then the word, come with it. Moving to another word ends the step's hint. Hardcore still has none; Easycore earns them as Classic does.
+- **The rules** (`hintGate`, `afterAsk` and `earnHint` in `src/hints.ts`; MazeApp keeps one more field, `hintEarned`):
+  - The button is locked (nothing earned), ready (an earned hint waiting), open (this step's hint started, with more to show) or shown (the word shown: greyed, as before).
+  - A new word (its first visit, where the step joins Your path) earns one, unless one's waiting. An unused one waits, through free returns and more new words, until it's used: still only one.
+  - The step's first ask uses it. Each ask still counts as a hint on the result and the share card ("· 2 hints"), so a step still counts one to three.
+  - Moving to any word, a free return too, ends the step's hint. Before, going back to a word where a hint was asked showed it again and carried on from there, which would now be a hint for nothing.
+  - Restart and a new puzzle (a change of difficulty, the sample) start locked. Undo and Reset within a step change nothing.
+  - Hardcore earns none, having no hints. Turned off mid-puzzle, the button is locked until the next new word: words made in hardcore earned nothing.
+- **How it looks:**
+  - **Locked:** drawn as a disabled pill, like Undo and Reset with nothing to take back, with a padlock in strokes for the bulb. It's still a button (`aria-disabled`, not `disabled`), so a tap says "Make a new word to earn a hint." in the step line. The same line shows at the start, until the first stroke, when the step line has nothing else to say (not in the sample, where the coach has the line). Its name is "Hint, locked", its tooltip "Make a new word to earn a hint".
+  - **Lit** (one waiting): the bulb's glass gold, as before, with a gold border and ring (as round a hinted letter), and a gold dot on its edge that springs in. "Hint, earned"; tooltip "You've earned a hint for this step".
+  - **Open:** as the button was (the bulb lit, an ink border). **Shown:** greyed.
+  - Undo, Reset and Hint still share one row at 320 px.
+- **How to play:** "Stuck? Tap Hint for a clue." is now "Each new word earns a Hint." (short enough for one line on a phone), for touch and mouse alike (`HowToCard` no longer takes `touch`). No coach line mentions Hint. In the sample, hints are earned as in the game: locked until JUDGE.
+- **Saying so:** a word that earns a hint says it in the step line, which screen readers announce: "New word: GRUMP (+2). You earned a hint." in place of "Find the next one." (not when one was already waiting; after an ink pot, "Hint earned." is added). Settings' Classic note is now "The daily puzzle, with hints you earn as you go."
+- **Saved** with a game left part-way (see Past puzzles): `hintEarned` in `Progress`, false in a save made before it.
+- **Unchanged:** what a hint shows and says, the count of hints, and Hardcore's "No hints" note.
+- **Tests:** locked at the start; earned by a new word, not a free return; two new words, one hint; one earned hint gives all three levels, then nothing; locked after moving on, back in the word asked in too; kept through free returns until used; none in hardcore.
+- **Checked in headless Chrome** (the built site, `?day=2026-10-16`, real drags; 390 × 844 and 1512 × 945, light and dark):
+  - Locked at the start, with its line; a tap shows no hint. Lit at GRUMP. Three asks from one earned hint (the meaning, the 1st and 2nd letters, CLUMP), then greyed.
+  - Back to CRUMB: locked. Back in GRUMP: still locked, with no hint text or outlined letters. Lit at CLUMP, and still at CLUNK; Restart, locked.
+  - No stacking: GRUMP and CLUMP with the hint unused, one ask, back to GRUMP: locked.
+  - At 320 px, lit, on one row. Hardcore: "No hints", before and after a word. Easycore: locked at the start.
+  - How to play's new line, and the sample played through: locked, a tap's line, lit at JUDGE, a hint, solved, with the coach's tips as before.

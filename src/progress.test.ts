@@ -35,6 +35,7 @@ function game(): Progress {
     ink: 0,
     hintsUsed: 1,
     hint: { room: 'JUDGE', level: 1, step: { next: 'FUDGE', cost: 3, remaining: 3, letters: [0] }, meaning: 'a sweet' },
+    hintEarned: false,
     seconds: 42.5,
   };
 }
@@ -90,6 +91,14 @@ describe('saving and loading a game', () => {
 });
 
 describe('checking a kept game', () => {
+  it('keeps an earned hint waiting, and reads one saved before hints were earned as none', () => {
+    expect(parseProgress(kept({ ...game(), hintEarned: true }), of)?.hintEarned).toBe(true);
+    const before = kept() as Record<string, unknown>;
+    delete before.hintEarned;
+    expect(parseProgress(before, of)?.hintEarned).toBe(false);
+    expect(parseProgress({ ...kept(), hintEarned: 'yes' }, of)).toBeNull();
+  });
+
   it('takes a sound one, a fresh step and no hint or clock too', () => {
     expect(parseProgress(kept(), of)).toEqual(game());
     const fresh = { ...game(), cells: cellsFor('JUDGE'), history: [], hint: null, seconds: null };

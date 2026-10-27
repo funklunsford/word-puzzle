@@ -282,6 +282,15 @@ body {
   right: 0;
 }
 
+/* On a wide screen without ad rails, it moves out into the margin, just past the column's corner
+   (the layout's 24px gap), level with the stroke parts row and clear of it. */
+@media (min-width: 1100px) {
+  .maze:not(.rails):not(.compact) .masthead-actions {
+    right: auto;
+    left: calc(100% + 24px);
+  }
+}
+
 .toolbar {
   display: flex;
   gap: 4px;
@@ -682,8 +691,9 @@ body {
   color: var(--spicy);
 }
 
-/* The Hint button keeps one width as its label changes (Hint, Next word, Hint used). */
+/* The Hint button keeps the No hints note's width, and holds its dot (an earned hint waiting). */
 .hint-btn {
+  position: relative;
   min-width: 146px;
 }
 
@@ -1403,6 +1413,35 @@ body {
 /* The bulb's glass is lit in gold while there's a hint to take. */
 .hint-btn:not(:disabled) .glow {
   fill: color-mix(in srgb, var(--gold) 40%, transparent);
+}
+
+/* Locked until a new word earns a hint: drawn as disabled, with a padlock, but still a button, so
+   a tap can say how to earn one. */
+.hint-btn[aria-disabled='true'] {
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.hint-btn[aria-disabled='true']:active {
+  transform: none;
+}
+
+/* An earned hint waiting: a gold ring, as round a hinted letter, and a gold dot on its edge, where
+   the pill starts to round. */
+.hint-btn.earned {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 28%, transparent);
+}
+
+.hint-dot {
+  position: absolute;
+  top: -3px;
+  right: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--bg);
 }
 
 .pill.quiet {

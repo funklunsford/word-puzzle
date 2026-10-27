@@ -54,6 +54,8 @@ export interface Progress {
   ink: number;
   hintsUsed: number;
   hint: ShownHint | null;
+  /** An earned hint waiting for the next step (see hintGate in hints.ts). */
+  hintEarned: boolean;
   /** Time played so far, from the first stroke (none before it). Time away doesn't count. */
   seconds: number | null;
 }
@@ -107,11 +109,12 @@ const CHECKS: { [K in keyof Progress]-?: Check } = {
   ink: isCount,
   hintsUsed: isCount,
   hint: isHint,
+  hintEarned: (v) => typeof v === 'boolean',
   seconds: (v) => v === null || (isNumber(v) && (v as number) >= 0),
 };
 
 /** What a field added later is in a save made before it. */
-const LATER: Partial<Progress> = {};
+const LATER: Partial<Progress> = { hintEarned: false };
 
 /**
  * A kept save, if it's sound and of this puzzle as `of` begins it (the same start, goal, lowest
