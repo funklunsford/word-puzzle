@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { motion } from 'motion/react';
+import type { Difficulty } from '../../easycore';
 import { SAMPLE } from '../../tutorial';
+import { DifficultyList } from './DifficultyChoice';
 import { GlyphWord } from '../Glyph';
 
 const ARROW = 'M0 0 L1 0 M0.7 -0.28 L1 0 L0.7 0.28';
 
 interface Props {
-  /** A finger (taps) or a mouse (clicks). */
-  touch: boolean;
   /** The phone layout: the example's words a little smaller. */
   compact: boolean;
   /** The card opened by itself, on a first visit: it offers the sample, or skipping to today's puzzle. */
@@ -17,6 +17,9 @@ interface Props {
   /** The sample's been played through before. */
   sampled: boolean;
   easycore: boolean;
+  /** The difficulty being played, to choose here (with the easycore flag): picking one plays it. */
+  difficulty: Difficulty;
+  onDifficulty: (difficulty: Difficulty) => void;
   inkPots: boolean;
   closeRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
@@ -34,10 +37,11 @@ const Dots = ({ page }: { page: number }) => (
 
 /**
  * How to play, on two cards. The first: the goal, with the sample puzzle's start and goal words as
- * the path card draws them, and the three rules. The second: good to know (scoring, hints, the other
- * difficulties), and the way on: on a first visit, the sample puzzle on the real board.
+ * the path card draws them, and the three rules. The second: good to know (scoring, hints), the
+ * difficulty to choose (Easy, Normal or Hard), and the way on: on a first visit, the sample puzzle on
+ * the real board.
  */
-export function HowToCard({ touch, compact, firstVisit, canSample, sampled, easycore, inkPots, closeRef, onClose, onSample, onSkip }: Props) {
+export function HowToCard({ compact, firstVisit, canSample, sampled, easycore, difficulty, onDifficulty, inkPots, closeRef, onClose, onSample, onSkip }: Props) {
   const [page, setPage] = useState(0);
   const next = useRef<HTMLButtonElement>(null);
   const go = useRef<HTMLButtonElement>(null);
@@ -111,15 +115,11 @@ export function HowToCard({ touch, compact, firstVisit, canSample, sampled, easy
               Scored like golf: an <strong>Ace</strong> is the fewest strokes possible.
             </li>
             <li>
-              Stuck? {touch ? 'Tap' : 'Click'} <strong>Hint</strong> for a clue.
+              Each new word earns a <strong>Hint</strong>.
             </li>
-            {easycore ? (
+            {!easycore && (
               <li>
-                Easier or harder: choose <strong>Easycore</strong> or <strong>Hardcore</strong> in Settings.
-              </li>
-            ) : (
-              <li>
-                For a challenge, turn on <strong>Hardcore</strong> in Settings.
+                For a challenge, turn on <strong>Hard</strong> in Settings.
               </li>
             )}
             {inkPots && (
@@ -128,6 +128,7 @@ export function HowToCard({ touch, compact, firstVisit, canSample, sampled, easy
               </li>
             )}
           </ul>
+          {easycore && <DifficultyList value={difficulty} onChange={onDifficulty} />}
           <div className="how-actions">
             {firstVisit && canSample ? (
               <>

@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import type { ThemeChoice } from '../../theme';
 import type { MotionChoice, Prefs } from '../../prefs';
 import type { Difficulty } from '../../easycore';
+import { DIFFICULTY_NAMES } from './DifficultyChoice';
 import { PALETTES } from '../../palettes';
 import { TILES, TILE_IDS, TRAY_TURN } from '../../glyphs';
 import { opticalOffset } from '../../ink';
@@ -18,16 +19,12 @@ const MOTIONS: { choice: MotionChoice; label: string }[] = [
   { choice: 'less', label: 'Less' },
   { choice: 'full', label: 'Full' },
 ];
-const DIFFICULTIES: { choice: Difficulty; label: string }[] = [
-  { choice: 'easy', label: 'Easycore' },
-  { choice: 'classic', label: 'Classic' },
-  { choice: 'hard', label: 'Hardcore' },
-];
-const HARDCORE_NOTE = 'Only words on a lowest-stroke route count, and there are no hints. Turning it on starts the puzzle over.';
+const DIFFICULTIES: { choice: Difficulty; label: string }[] = (['easy', 'classic', 'hard'] as const).map((choice) => ({ choice, label: DIFFICULTY_NAMES[choice] }));
+const HARDCORE_NOTE = 'Only words on a lowest-stroke route count, and there are no hints. Choosing it starts the puzzle over, or picks up the Hard game you left.';
 /** What the chosen difficulty means, under the choice. */
 const DIFFICULTY_NOTES: Record<Difficulty, string> = {
   easy: 'Shorter puzzles with everyday words: its own daily.',
-  classic: 'The daily puzzle, with hints if you need them.',
+  classic: 'The daily puzzle, with hints you earn as you go.',
   hard: HARDCORE_NOTE,
 };
 
@@ -164,7 +161,7 @@ export function Settings({ theme, onTheme, prefs, onPrefs, difficulty, onDifficu
         {easycore && <Segmented label="Difficulty" options={DIFFICULTIES} value={difficulty} onChange={onDifficulty} note={DIFFICULTY_NOTES[difficulty]} />}
         <div className="setting">
           <span className="setting-label">Playing</span>
-          {!easycore && <Toggle label="Hardcore" note={HARDCORE_NOTE} on={difficulty === 'hard'} onChange={(on) => onDifficulty(on ? 'hard' : 'classic')} />}
+          {!easycore && <Toggle label="Hard" note={HARDCORE_NOTE} on={difficulty === 'hard'} onChange={(on) => onDifficulty(on ? 'hard' : 'classic')} />}
           <Toggle
             label="Letter guide"
             note="The A to Z under the word, lighting up the letters a stroke is in."
