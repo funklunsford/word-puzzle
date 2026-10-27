@@ -1115,6 +1115,17 @@ export function MazeApp() {
               {/* The sample's way on is in the coach's tip, over the word: no stats, record or share for it. */}
               {!sample && (
                 <>
+                  {/* The next difficulty up, first: Medium after Easy, Hard after Medium. */}
+                  {nextUp && (
+                    <div className="level-up">
+                      <span>
+                        Ready for <strong>{DIFFICULTY_NAMES[nextUp]}</strong>?<small>{DIFFICULTY_LINES[nextUp]}</small>
+                      </span>
+                      <button className="pill" onClick={() => changeDifficulty(nextUp)}>
+                        Play {DIFFICULTY_NAMES[nextUp]}
+                      </button>
+                    </div>
+                  )}
                   {/* This game's stats, then (for a daily) the player's record over them. */}
                   <dl className="result-stats" aria-label="This game">
                     <div>
@@ -1168,16 +1179,6 @@ export function MazeApp() {
                         </div>
                       </dl>
                     </>
-                  )}
-                  {nextUp && (
-                    <div className="level-up">
-                      <span>
-                        Ready for <strong>{DIFFICULTY_NAMES[nextUp]}</strong>?<small>{DIFFICULTY_LINES[nextUp]}</small>
-                      </span>
-                      <button className="pill" onClick={() => changeDifficulty(nextUp)}>
-                        Play {DIFFICULTY_NAMES[nextUp]}
-                      </button>
-                    </div>
                   )}
                   <div className="pill-row">
                     <button
