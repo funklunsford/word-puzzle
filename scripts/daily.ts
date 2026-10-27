@@ -17,8 +17,9 @@
 // the kind of route (see classifyNeed in src/maze.ts) the last week has had least of. At 5 letters,
 // from PAR_RULE_FROM (2026-10-28), it also leaves out puzzles with a word a player must find to make
 // Par (mustFind in src/difficulty.ts), and from FIRST_STEP_FROM (2026-10-30) those with fewer than two
-// easy first steps (firstSteps), and won't check one in. The same date and history always give the
-// same candidates.
+// easy first steps (firstSteps), and won't check one in. From MUST_FIND_FROM (2026-10-30) about 15% of
+// days (mustFindDay in src/daily/daily.ts, drawn from the date) turn the par rule round: only puzzles
+// with a word a player must find. The same date and history always give the same candidates.
 //
 // Checking in writes src/daily/days-5/{DATE}.json (with --letters 4, src/daily/days/{DATE}.json and
 // what the celebration prompt needs: docs/daily-celebration-prompt.md). The history is the day files
@@ -29,7 +30,7 @@ import { FIRST_STEPS, findPockets, firstSteps, isTricky, keep, measure, mustFind
 import { placePots, potRoute } from '../src/inkpots';
 import { POOL_MIXES, buildGraph, classifyNeed, routeWords, seededRandom, solve, type Graph, type Need, type Puzzle } from '../src/maze';
 import type { DailyPuzzle } from '../src/daily/daily';
-import { FIRST_STEP_FROM, PAR_RULE_FROM, dayNumber } from '../src/daily/daily';
+import { FIRST_STEP_FROM, MUST_FIND_SHARE, PAR_RULE_FROM, dayNumber, mustFindDay } from '../src/daily/daily';
 
 const args = process.argv.slice(2);
 const at = args.indexOf('--letters');
@@ -129,12 +130,14 @@ if (!start) {
   const owed = (n: Need) => MIX[n] * (week.length + 1) - week.filter((d) => d.need === n).length;
   const need = needs.reduce((a, b) => (owed(b) > owed(a) ? b : a));
   const unused = puzzles.filter((p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal));
-  // From PAR_RULE_FROM, none with a word a player must find to make Par; from FIRST_STEP_FROM, none
-  // with too few easy first steps (5 letters only).
+  // From PAR_RULE_FROM, none with a word a player must find to make Par, except on a day drawn for
+  // one (mustFindDay), when only those; from FIRST_STEP_FROM, none with too few easy first steps (5
+  // letters only).
   const parRule = LETTERS === 5 && date >= PAR_RULE_FROM;
+  const mustDay = LETTERS === 5 && mustFindDay(date);
   const stepRule = LETTERS === 5 && date >= FIRST_STEP_FROM;
   const fresh = unused.filter(
-    (p) => (!parRule || !mustFind(data.words, adj, p.puzzle).length) && (!stepRule || firstSteps(data.words, adj, p.puzzle).length >= FIRST_STEPS),
+    (p) => (!parRule || !!mustFind(data.words, adj, p.puzzle).length === mustDay) && (!stepRule || firstSteps(data.words, adj, p.puzzle).length >= FIRST_STEPS),
   );
   const shuffled = (xs: PoolEntry[]) => xs.map((x) => ({ x, r: random() })).sort((a, b) => a.r - b.r).map((o) => o.x);
   // The day's band and kind first; then the day's band of other kinds; then anything fresh.
@@ -149,12 +152,15 @@ if (!start) {
     `Daily #${dayNumber(date)}${LETTERS === 4 ? '' : ` (${LETTERS} letters)`}, ${WEEKDAYS[weekday(date)]} ${date}: a puzzle from the ${THIRD[band]} of the pool, picked at random (made at par ${percent(Math.min(...range))}–${percent(Math.max(...range))} of the time), preferably one that ${NEED_TEXT[need]}.`,
   );
   const left = unused.filter(inBand).length - fresh.filter(inBand).length;
-  const leftOut = stepRule ? 'with a word a player must find to make Par, or too few easy first steps' : 'with a word a player must find to make Par';
+  const byPar = mustDay ? 'without a word a player must find to make Par' : 'with a word a player must find to make Par';
+  const leftOut = stepRule ? `${byPar}, or with too few easy first steps` : byPar;
+  if (mustDay) console.log(`A day for a word a player must find (about ${percent(MUST_FIND_SHARE)} of days, mustFindDay): every candidate has one.`);
   console.log(`${fresh.filter(inBand).length} unused puzzles in the pool in that third${parRule ? ` (leaving out ${left} ${leftOut})` : ''}.\n`);
   picks.forEach((p, i) => {
     const { start: s, goal: g, best: b, path } = p.puzzle;
     console.log(`${String(i + 1).padStart(2)}. ${s} → ${g}   lowest strokes ${b} in ${path.length - 1} steps, ${NEED_TEXT[p.need]}${inBand(p) ? '' : ` (from the ${THIRD[bandOf.get(pairKey(p.puzzle)) ?? 'middle']})`}`);
     console.log(`    route: ${path.join(' → ')}`);
+    if (mustDay) console.log(`    must find to make Par: ${mustFind(data.words, adj, p.puzzle).join(', ')}`);
     console.log(`    ${describe(p)}`);
     console.log(`    ${s}: ${define(s)}`);
     console.log(`    ${g}: ${define(g)}\n`);
@@ -192,7 +198,10 @@ if (!start) {
 
   if (LETTERS === 5 && date >= PAR_RULE_FROM) {
     const must = mustFind(data.words, adj, entry.puzzle);
-    if (must.length) throw new Error(`${S} → ${G} can't make Par without ${must.join(', ')}: from ${PAR_RULE_FROM} no daily has a word a player must find (see mustFind in src/difficulty.ts)`);
+    if (mustFindDay(date) && !must.length)
+      throw new Error(`${date} is a day for a word a player must find to make Par (about ${percent(MUST_FIND_SHARE)} of days, mustFindDay in src/daily/daily.ts), and ${S} → ${G} has none: choose one from the list`);
+    if (!mustFindDay(date) && must.length)
+      throw new Error(`${S} → ${G} can't make Par without ${must.join(', ')}: from ${PAR_RULE_FROM} no daily has a word a player must find (see mustFind in src/difficulty.ts), but on a day drawn for one (mustFindDay)`);
   }
   if (LETTERS === 5 && date >= FIRST_STEP_FROM) {
     const steps = firstSteps(data.words, adj, entry.puzzle);
