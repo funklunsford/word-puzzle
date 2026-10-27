@@ -514,7 +514,7 @@ export function MazeApp() {
     else setKeptAs(of);
     setRefused(null);
     const back = left ? ', back where you left it' : '';
-    setNotice(on ? `Hard${back}${over ? ', from the start' : ''}: only lowest-stroke words count, and no hints.` : `Medium${back}: every word counts, and hints are earned.`);
+    setNotice(on ? `Hard${back}${over ? ', from the start' : ''}: only lowest-stroke words count, and no hints.` : `Normal${back}: every word counts, and hints are earned.`);
   };
 
   // The maze's doors, shipped with it (worked out from the words only if they're missing).
@@ -534,8 +534,8 @@ export function MazeApp() {
   // equal the new goal for a moment, which isn't a win.)
   const won = !!puzzle && room === puzzle.goal && trail[0]?.word === puzzle.start;
   /**
-   * After a daily's win, the next difficulty up to try, on the same day: Medium after Easy (unless
-   * that day's Medium is solved), Hard after Medium (unless its result is a Hard one: Medium and Hard
+   * After a daily's win, the next difficulty up to try, on the same day: Normal after Easy (unless
+   * that day's Normal is solved), Hard after Normal (unless its result is a Hard one: Normal and Hard
    * keep one result, the better). None after Hard, in the sample or on a pool puzzle.
    */
   const nextUp: Difficulty | null =
@@ -1115,7 +1115,7 @@ export function MazeApp() {
               {/* The sample's way on is in the coach's tip, over the word: no stats, record or share for it. */}
               {!sample && (
                 <>
-                  {/* The next difficulty up, first: Medium after Easy, Hard after Medium. */}
+                  {/* The next difficulty up, first: Normal after Easy, Hard after Normal. */}
                   {nextUp && (
                     <div className="level-up">
                       <span>
@@ -1453,7 +1453,7 @@ export function MazeApp() {
               (d) => loadResult(d, letters, mode === 'easy'),
               (d) => hasProgress(progressKey(d, letters, mode)),
             )}
-            whose={mode === 'easy' ? 'Easy dailies' : mode === 'hard' ? 'Medium dailies, played on Hard' : 'Medium dailies'}
+            whose={mode === 'easy' ? 'Easy dailies' : mode === 'hard' ? 'Normal dailies, played on Hard' : 'Normal dailies'}
             playing={playing}
             onPlay={(date) => {
               closeArchive();

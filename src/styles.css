@@ -1777,7 +1777,7 @@ body {
   text-align: center;
 }
 
-/* After a win, the next difficulty up to try (Medium after Easy, Hard after Medium), over the stats. */
+/* After a win, the next difficulty up to try (Normal after Easy, Hard after Normal), over the stats. */
 .level-up {
   display: flex;
   align-items: center;

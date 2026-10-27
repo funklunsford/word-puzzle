@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import type { Difficulty } from '../../easycore';
 
-/** The difficulties as players see them. (The code and storage keep easy, classic and hard: classic is Medium.) */
-export const DIFFICULTY_NAMES: Record<Difficulty, string> = { easy: 'Easy', classic: 'Medium', hard: 'Hard' };
+/** The difficulties as players see them. (The code and storage keep easy, classic and hard: classic is Normal.) */
+export const DIFFICULTY_NAMES: Record<Difficulty, string> = { easy: 'Easy', classic: 'Normal', hard: 'Hard' };
 
 /** Each in a line, for the date line's menu, How to play and the nudge up after a win. */
 export const DIFFICULTY_LINES: Record<Difficulty, string> = {
@@ -25,7 +25,7 @@ interface Props {
 }
 
 /**
- * The difficulty in the date line ("No. 22 · Medium ▾ · Tuesday, October 27"): tapping it opens the
+ * The difficulty in the date line ("No. 22 · Normal ▾ · Tuesday, October 27"): tapping it opens the
  * three under it, each with its line, kept inside the window. Picking one plays it. A pick, Escape, a
  * tap outside, Tab, or the page scrolling or resizing closes it (Escape and a pick back to the chip).
  */

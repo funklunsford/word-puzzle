@@ -38,7 +38,7 @@ const Dots = ({ page }: { page: number }) => (
 /**
  * How to play, on two cards. The first: the goal, with the sample puzzle's start and goal words as
  * the path card draws them, and the three rules. The second: good to know (scoring, hints), the
- * difficulty to choose (Easy, Medium or Hard), and the way on: on a first visit, the sample puzzle on
+ * difficulty to choose (Easy, Normal or Hard), and the way on: on a first visit, the sample puzzle on
  * the real board.
  */
 export function HowToCard({ compact, firstVisit, canSample, sampled, easycore, difficulty, onDifficulty, inkPots, closeRef, onClose, onSample, onSkip }: Props) {
