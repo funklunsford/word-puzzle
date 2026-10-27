@@ -18,7 +18,7 @@ export const FLAGS = {
   // On (for everyone since 2026-10-22): a Difficulty choice in Settings, Easycore, Classic or
   // Hardcore, where Easycore is a shorter daily with simpler words (see src/easycore.ts). Off:
   // Settings has the Hardcore switch, as before. 5 letters only.
-  easycore: { label: 'Easycore (Difficulty in Settings)', on: true },
+  easycore: { label: 'Difficulty choice (Easy, Normal, Hard)', on: true },
 } as const;
 
 export type Flag = keyof typeof FLAGS;

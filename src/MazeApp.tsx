@@ -6,8 +6,8 @@ import { STEP_LIMIT, recognize, slotKey, wordDistance } from './strokes';
 import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, walkSteps, type InkPots } from './inkpots';
-import { movesOf, type Move } from './moves';
-import { clue, doorsFrom, hintSays, nextHintLevel, nextStep, type Doors, type HintLevel, type NextStep } from './hints';
+import { movesOf } from './moves';
+import { afterAsk, clue, doorsFrom, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { hasStarted } from './hardcore';
 import { easyDayFor, easyDays, easyIndex, isEasyDay, loadDifficulty, saveDifficulty, type Difficulty } from './easycore';
@@ -20,18 +20,22 @@ import { Masthead } from './components/maze/Masthead';
 import { HowToCard } from './components/maze/HowToCard';
 import { BoardGhost, CoachTip, useArrowTo, useCoach } from './components/maze/Coach';
 import { GearIcon, Settings } from './components/maze/Settings';
-import { HintIcon, ResetIcon, UndoIcon } from './components/maze/StepIcons';
+import { HintIcon, LockIcon, ResetIcon, UndoIcon } from './components/maze/StepIcons';
 import { ShareSheet } from './components/maze/ShareSheet';
 import type { ShareResult } from './share';
 import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
 import { Celebration, inkSources } from './celebration/Celebration';
-import { dayFor, dayNumber, daysFor, loadDaily, localDate } from './daily/daily';
+import { dayFor, dayNumber, daysFor, loadDaily, localDate, type DailyPuzzle } from './daily/daily';
 import { CELL_W, WordEditor } from './components/maze/WordEditor';
 import { loadLetters, type WordLength } from './letters';
 import { Glyph, GlyphWord } from './components/Glyph';
 import { dailyRecord, formatTime } from './stats';
 import { scoreName } from './golf';
 import { keepWin, loadResult, type Result } from './results';
+import { hasProgress, loadProgress, progressKey, useKeptProgress, type Progress, type SaveOf, type Visit } from './progress';
+import { pastDays, todaysDaily } from './archive';
+import { Archive, CalendarIcon } from './components/maze/Archive';
+import { DIFFICULTY_LINES, DIFFICULTY_NAMES, DifficultyChip } from './components/maze/DifficultyChoice';
 import { SAMPLE } from './tutorial';
 import { isFirstVisit, loadOnboarded, saveOnboarded } from './onboarding';
 import { AD_SLOTS, BANNER, RAIL_H, loadAdSense, railWidth } from './ads';
@@ -94,6 +98,8 @@ function loadPool(file: string): Promise<Pick[]> {
 const poolFile = (letters: WordLength, easy: boolean) => (easy ? 'pool-5-easy.json' : letters === 5 ? 'pool-5.json' : 'pool.json');
 /** Easycore's puzzle for `date`, from its pool (none if the pool didn't load). */
 const easyPick = (pool: Pick[], date: string): Pick | null => (pool.length ? { ...pool[easyIndex(date, pool.length)], date, easy: true } : null);
+/** A classic daily, as a puzzle to play. */
+const dailyPick = (day: DailyPuzzle): Pick => ({ puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date, onRoute: day.onRoute });
 
 /** How to play's sample puzzle, as a puzzle to play: no date, so no result, record or done mark (see keepWin), and no ink pots. */
 const SAMPLE_PICK: Pick = {
@@ -109,18 +115,6 @@ function pickPuzzle(pool: Pick[], data: MazeData, current?: Puzzle): Pick {
   return options[Math.floor(Math.random() * options.length)];
 }
 
-interface Visit {
-  word: string;
-  /** Strokes charged for reaching it (after any ink). */
-  cost: number;
-  /** Ink spent on that step. */
-  used?: number;
-  /** The word the step started from (going back is free, so it isn't always the word before it). */
-  from?: string;
-  /** What each of its strokes did, for the result card. */
-  moves?: Move[];
-}
-
 /** Layout: the column's width cap (the game is one column, centred, with Your path under it). */
 const COLUMN_W = 640;
 /** The 5-letter game's wider column (so five letters keep the size four have). */
@@ -129,6 +123,16 @@ const COLUMN_W_5 = 760;
 const COMPACT_MAX = 600;
 
 const HELP_KEY = 'strokes:seen-help';
+
+/** The step line, when the Hint button is locked (at the start, or tapped). */
+const EARN_HINT = 'Make a new word to earn a hint.';
+/** The Hint button's name and tooltip, as it stands (see hintGate); hardcore has a note instead. */
+const HINT_BUTTON: Record<Exclude<HintGate, 'none'>, { label: string; title: string }> = {
+  locked: { label: 'Hint, locked', title: 'Make a new word to earn a hint' },
+  ready: { label: 'Hint, earned', title: "You've earned a hint for this step" },
+  open: { label: 'Hint', title: "More of this step's hint" },
+  shown: { label: 'Hint', title: "This step's hint is all shown" },
+};
 
 /** A path's steps, for sharing: where each began, the word it made, and its strokes. */
 const stepsOf = (trail: Visit[]): ShareResult['steps'] => trail.slice(1).map((v) => ({ from: v.from ?? v.word, to: v.word, cost: v.cost, ...(v.moves && { moves: v.moves }) }));
@@ -150,6 +154,20 @@ const markHelpSeen = () => {
 };
 
 const cellsFor = (word: string): Placement[][] => [...word].map((ch) => LETTERS[ch].parts.map((p) => ({ ...p })));
+/** A game at its puzzle's start: in the start word, nothing done. */
+const startOf = (start: string): Progress => ({
+  room: start,
+  cells: cellsFor(start),
+  history: [],
+  trail: [{ word: start, cost: 0 }],
+  spent: 0,
+  backs: 0,
+  ink: 0,
+  hintsUsed: 0,
+  hint: null,
+  hintEarned: false,
+  seconds: null,
+});
 
 function useWindowSize() {
   const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
@@ -178,17 +196,22 @@ export function MazeApp() {
   const startedAt = useRef<number | null>(null);
   const [seconds, setSeconds] = useState<number | null>(null);
   /** The door just walked through (cost 0 when it led back to a word already visited). */
-  const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean }) | null>(null);
+  const [lastDoor, setLastDoor] = useState<(Visit & { back: boolean; pot: boolean; earned?: boolean }) | null>(null);
   const [hoverTile, setHoverTile] = useState<TileId | null>(null);
   /** A lowest-stroke route is shown, once the puzzle's solved (after the win, or from the "Solved today" note). */
   const [reveal, setReveal] = useState(false);
   // Hints, for the word the player is in: first the next word's meaning, then the letters to
-  // change, then the word to make (see src/hints.ts). They're free, but each ask counts as a hint
-  // (the win message, the stats and the share card say how many).
+  // change, then the word to make (see src/hints.ts). Each ask counts as a hint (the win message,
+  // the stats and the share card say how many).
   const [hint, setHint] = useState<{ room: string; level: HintLevel; step: NextStep | null; meaning: string | null } | null>(null);
   const hintRef = useRef(hint);
   hintRef.current = hint;
   const [hintsUsed, setHintsUsed] = useState(0);
+  // A hint is earned: each new word made earns one (only one waits), and a step's first ask uses it
+  // (see hintGate). None at the start, after a restart, or in a new puzzle.
+  const [hintEarned, setHintEarned] = useState(false);
+  const earnedRef = useRef(hintEarned);
+  earnedRef.current = hintEarned;
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
@@ -230,7 +253,7 @@ export function MazeApp() {
   }, []);
   /** A word hardcore just turned away (off the lowest-stroke route), for the step line. */
   const [refused, setRefused] = useState<string | null>(null);
-  /** Said in the step line until the next stroke or hint (switching hardcore on or off). */
+  /** Said in the step line until the next stroke or hint (switching hardcore on or off, a locked hint tapped). */
   const [notice, setNotice] = useState<string | null>(null);
   /** Free strokes banked from ink pots, waiting to pay for the next steps to new words. */
   const [ink, setInk] = useState(0);
@@ -298,7 +321,7 @@ export function MazeApp() {
       easy ? loadPool(poolFile(letters, true)) : null,
     ]).then(([d, day, pool, easyPool]) => {
       if (!live) return;
-      const pick: Pick = { puzzle: day.puzzle, inkPots: day.inkPots, need: day.need, tricky: day.tricky, date: day.date, onRoute: day.onRoute };
+      const pick = dailyPick(day);
       // (Should Easycore's pool not load, the classic daily is played.)
       const easyDay = easyPool && easyPick(easyPool, easyDate.current);
       setData(d);
@@ -374,35 +397,101 @@ export function MazeApp() {
     });
   };
 
-  /** Each start of a puzzle (the coach starts the sample afresh on each). */
+  /** Each start of a puzzle, or return to one (the coach starts the sample afresh on each). */
   const [run, setRun] = useState(0);
-  const restart = useCallback(() => {
-    if (!puzzle) return;
+  /** Where the game being played is kept (see src/progress.ts): none for the sample or a pool puzzle. */
+  const [keptAs, setKeptAs] = useState<SaveOf | null>(null);
+  /** Where a puzzle's game is kept: a daily's, by its date and difficulty (Hardcore's apart from Classic's), with the puzzle as it begins. */
+  const saveOf = (pick: Pick | null, hard: boolean): SaveOf | null => {
+    if (!pick?.date || pick.sample) return null;
+    const pots = flags.inkPots ? pick.inkPots : null;
+    const { start, goal } = pick.puzzle;
+    return { key: progressKey(pick.date, letters, pick.easy ? 'easy' : hard ? 'hard' : 'classic'), start, goal, best: pots?.best ?? pick.puzzle.best, inkPots: !!pots };
+  };
+  /**
+   * Sets the board to a game, kept as `of`: a puzzle's start (startOf), or where it was left (its
+   * saved progress). Everything a game carries on with is set here, and kept by `progress` below.
+   */
+  const setGame = useCallback((g: Progress, of: SaveOf | null) => {
     setRun((r) => r + 1);
-    setRoom(puzzle.start);
-    setCells(cellsFor(puzzle.start));
-    setHistory([]);
-    setTrail([{ word: puzzle.start, cost: 0 }]);
-    setSpent(0);
-    setBacks(0);
-    startedAt.current = null;
+    setKeptAs(of);
+    setRoom(g.room);
+    setCells(g.cells);
+    setHistory(g.history);
+    setTrail(g.trail);
+    setSpent(g.spent);
+    setBacks(g.backs);
+    // The clock carries on from the time played so far (it starts at the first stroke).
+    startedAt.current = g.seconds === null ? null : Date.now() - g.seconds * 1000;
     setSeconds(null);
     setLastDoor(null);
-    setInk(0);
+    setInk(g.ink);
     setInFlight(0);
     setReveal(false);
-    setHint(null);
-    setHintsUsed(0);
+    setHint(g.hint);
+    setHintsUsed(g.hintsUsed);
+    setHintEarned(g.hintEarned);
     setPeek(null);
     setRefused(null);
     setNotice(null);
-  }, [puzzle, potPlan]);
-  useEffect(restart, [restart]);
+  }, []);
+  // Each puzzle begins where it was left, if it was, else at its start. So does turning ink pots on
+  // or off (only a game begun that way carries on), so ink and the best score never mix.
+  useEffect(() => {
+    if (!current) return;
+    const of = saveOf(current, mode === 'hard');
+    setGame((of && loadProgress(of)) ?? startOf(current.puzzle.start), of);
+  }, [current, potPlan]);
+  /** Restart: the puzzle from its start (the game kept goes with it). */
+  const restart = () => {
+    if (puzzle) setGame(startOf(puzzle.start), keptAs);
+  };
+  /** Today's daily at a difficulty (Easycore's, or the classic one), on the player's date. */
+  const todays = (easy: boolean) => todaysDaily(localDate(), letters, easy);
+  /** An earlier day's daily is being played (from Past puzzles, or ?day=). */
+  const past = !!current?.date && current.date !== todays(!!current.easy);
+  // The address keeps an earlier day's date (?day=), so a reload plays it again; today's has none.
+  useEffect(() => {
+    if (!current?.date) return;
+    const url = new URL(location.href);
+    if (past) url.searchParams.set('day', current.date);
+    else url.searchParams.delete('day');
+    if (url.href !== location.href) window.history.replaceState(window.history.state, '', url);
+  }, [current, past]);
+
+  /** The latest daily asked for (a row tapped after another plays the second). */
+  const asked = useRef(0);
+  /**
+   * Plays a daily at the difficulty being played: an earlier day's (Past puzzles), or today's (null).
+   * The game left keeps its progress. (Should Easycore's pool not load, the classic daily is played.)
+   */
+  const playDay = (date: string | null) => {
+    keepProgress();
+    if (sample) saveOnboarded(won ? 'done' : 'skipped');
+    const today = localDate();
+    const days = daysFor(letters);
+    const allowed = (d: string | null): d is string => !!d && (import.meta.env.DEV || d <= today);
+    const classic = allowed(date) && days.includes(date) ? date : dayFor(today, days);
+    easyDate.current = allowed(date) && isEasyDay(date) ? date : easyDayFor(today);
+    const easy = mode === 'easy';
+    const ask = ++asked.current;
+    Promise.all([loadDaily(classic, letters), easy ? loadPool(poolFile(letters, true)) : null]).then(([day, pool]) => {
+      if (ask !== asked.current) return;
+      const pick = dailyPick(day);
+      // (Easycore's is left to playMode, for this date, until Easycore is chosen.)
+      const easyDay = pool && easyPick(pool, easyDate.current);
+      setDaily(pick);
+      setEasyDaily(easyDay);
+      setCurrent(easyDay || pick);
+    });
+  };
 
   /**
    * The difficulty is chosen in Settings (the Hardcore switch, without the easycore flag). To or from
-   * Easycore plays that difficulty's daily. Turning Hardcore on starts a puzzle in progress over (no
-   * stroke, word or hint carries into a hardcore result); turning it off lets the puzzle go on.
+   * Easycore plays that difficulty's daily. Classic and Hardcore each keep their own game of a daily:
+   * arriving at one carries on its game, if it has one. Else turning Hardcore on starts a puzzle in
+   * progress over (no stroke, word or hint carries into a hardcore result), and turning it off lets
+   * the puzzle go on.
    */
   const changeDifficulty = (next: Difficulty) => {
     const now: Difficulty = next === 'easy' && !easyOn ? 'classic' : next;
@@ -416,10 +505,16 @@ export function MazeApp() {
     }
     const on = now === 'hard';
     if (on === hardcore) return;
-    const over = on && hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed });
-    if (over) restart();
+    keepProgress();
+    const of = saveOf(current, on);
+    const left = of && loadProgress(of);
+    const over = !left && on && hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed });
+    if (left) setGame(left, of);
+    else if (over && puzzle) setGame(startOf(puzzle.start), of);
+    else setKeptAs(of);
     setRefused(null);
-    setNotice(on ? `Hardcore on${over ? ', so the puzzle starts over' : ''}: only lowest-stroke words count, and no hints.` : 'Hardcore off.');
+    const back = left ? ', back where you left it' : '';
+    setNotice(on ? `Hard${back}${over ? ', from the start' : ''}: only lowest-stroke words count, and no hints.` : `Normal${back}: every word counts, and hints are earned.`);
   };
 
   // The maze's doors, shipped with it (worked out from the words only if they're missing).
@@ -438,6 +533,21 @@ export function MazeApp() {
   // (A path that started from this puzzle's start: while a new puzzle swaps in, the old word can
   // equal the new goal for a moment, which isn't a win.)
   const won = !!puzzle && room === puzzle.goal && trail[0]?.word === puzzle.start;
+  /**
+   * After a daily's win, the next difficulty up to try, on the same day: Normal after Easy (unless
+   * that day's Normal is solved), Hard after Normal (unless its result is a Hard one: Normal and Hard
+   * keep one result, the better). None after Hard, in the sample or on a pool puzzle.
+   */
+  const nextUp: Difficulty | null =
+    !won || !easyOn || sample || !current?.date
+      ? null
+      : mode === 'easy'
+        ? daily?.date && !loadResult(daily.date, letters, false)
+          ? 'classic'
+          : null
+        : mode === 'classic' && !loadResult(current.date, letters, false)?.hardcore
+          ? 'hard'
+          : null;
   // Reaching the goal in the lowest possible strokes (an Ace) celebrates: confetti pops out of the
   // word. Each run is a fresh one, so Watch again starts it over even while it's still falling. In
   // development, ?perfect plays it at once (?perfect=1.2 holds it at 1.2 seconds).
@@ -463,12 +573,31 @@ export function MazeApp() {
   /** Today's result from an earlier visit (or this one), if any. */
   const [saved, setSaved] = useState<Result | null>(null);
   useEffect(() => setSaved(current?.date ? loadResult(current.date, letters, current.easy) : null), [current?.date, current?.easy, letters]);
-  /** The player's record over the dailies (Easycore's over its own), for the end of a daily (worked out again once its result is kept). */
-  const record = useMemo(
-    () =>
-      current?.date ? dailyRecord(current.easy ? easyDays(current.date) : daysFor(letters), (d) => loadResult(d, letters, current.easy), current.date) : null,
-    [current?.date, current?.easy, letters, saved],
-  );
+  /**
+   * The player's record over the dailies (Easycore's over its own), up to today's (or, in
+   * development, a later day being played), for the end of a daily: worked out again once its result
+   * is kept.
+   */
+  const record = useMemo(() => {
+    if (!current?.date) return null;
+    const today = todays(!!current.easy);
+    const upTo = current.date > today ? current.date : today;
+    return dailyRecord(current.easy ? easyDays(upTo) : daysFor(letters), (d) => loadResult(d, letters, current.easy), upTo);
+  }, [current?.date, current?.easy, letters, saved]);
+  // The game so far, kept in this browser so leaving it part-way loses nothing (see src/progress.ts):
+  // a daily's, once started, until it's won. It's set back in setGame.
+  const progress = useMemo<Omit<Progress, 'seconds'> | null>(() => {
+    if (!keptAs || room === keptAs.goal || !hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed })) return null;
+    return { room, cells, history, trail, spent, backs, ink, hintsUsed, hint: hint?.room === room ? hint : null, hintEarned };
+  }, [keptAs, room, cells, history, trail, spent, backs, ink, hintsUsed, hint, hintEarned]);
+  const keepProgress = useKeptProgress(keptAs, progress, () => (startedAt.current === null ? null : (Date.now() - startedAt.current) / 1000));
+  // Past puzzles (the calendar): every daily so far at this difficulty, to play any of them.
+  const [archive, setArchive] = useState(false);
+  const archiveBtn = useRef<HTMLButtonElement>(null);
+  const closeArchive = useCallback(() => {
+    setArchive(false);
+    archiveBtn.current?.focus();
+  }, []);
   /** The result being shared (the share sheet is open). */
   const [sharing, setSharing] = useState<ShareResult | null>(null);
   const shareBtn = useRef<HTMLButtonElement>(null);
@@ -518,7 +647,9 @@ export function MazeApp() {
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
-        // Going back to a word already visited is free, and it isn't listed again.
+        // Moving to another word ends the step's hint.
+        setHint(null);
+        // Going back to a word already visited is free, and it isn't listed again (nor does it earn a hint).
         if (trail.some((v) => v.word === word)) {
           setBacks((n) => n + 1);
           setLastDoor({ word, cost: 0, back: true, pot: false });
@@ -531,7 +662,10 @@ export function MazeApp() {
         setInk(ink - used + (pot ? 1 : 0));
         // The step's strokes: from its start, through each stroke's letters (history), to this one.
         setTrail((t) => [...t, { word, cost: paid, used, from: room, moves: movesOf([...history, cells, next]) }]);
-        setLastDoor({ word, cost: paid, used, back: false, pot });
+        // A hint earned by this word (none if one was already waiting), which the step line says.
+        const earned = !earnedRef.current && earnHint(false, true, hardcore);
+        setLastDoor({ word, cost: paid, used, back: false, pot, earned });
+        setHintEarned((e) => earnHint(e, true, hardcore));
         return true;
       }
       setRefused(null);
@@ -634,6 +768,8 @@ export function MazeApp() {
 
   /** The daily at this difficulty (for Dev to go back to). */
   const modeDaily = mode === 'easy' ? easyDaily : daily;
+  /** The daily being played, of those Past puzzles lists (this difficulty's). */
+  const playing = current?.date && !!current.easy === (mode === 'easy') ? current.date : undefined;
   // The column: score, board, step controls, and Your path under them.
   const columnW = letters === 5 ? COLUMN_W_5 : COLUMN_W;
   const column = Math.min(width - 32, columnW);
@@ -647,18 +783,24 @@ export function MazeApp() {
   const unit = Math.max(13, Math.min(32, (column - 36 - 10 * (n - 1) - 12 * n) / (CELL_W * n)));
   const visited = new Set(trail.map((v) => v.word));
   const shownHint = hint && hint.room === room && !won ? hint : null;
+  /** The Hint button: locked, an earned hint ready, this step's hint open, or all shown (see hintGate). */
+  const hintAt = hintGate(hintEarned, shownHint?.level ?? null, hardcore);
   const askHint = () => {
-    // No hints in hardcore, and nothing more once the word itself has been shown.
-    if (!data || !puzzle || won || hardcore || shownHint?.level === 3) return;
-    // The latest thing asked for wins the step line.
+    if (!data || !puzzle || won) return;
+    // The latest thing asked for wins the step line: locked, it says how to earn a hint.
     setRefused(null);
-    setNotice(null);
+    setNotice(hintAt === 'locked' ? EARN_HINT : null);
+    // No hints in hardcore or before one's earned, and nothing more once the word itself has been shown.
+    if (hintAt !== 'ready' && hintAt !== 'open') return;
     // The search takes a moment on a phone: show the hint once it's ready, without blocking the tap.
     window.setTimeout(() => {
-      // From the latest hint, so two quick asks show two levels, as they're counted.
+      // From the latest hint, so two quick asks show two levels, as they're counted (and use one earned hint).
       const h = hintRef.current;
       const shown = h && h.room === room ? h : null;
-      if (shown?.level === 3) return;
+      const asked = afterAsk(hintGate(earnedRef.current, shown?.level ?? null, hardcore), earnedRef.current);
+      if (!asked.shows) return;
+      earnedRef.current = asked.earned;
+      setHintEarned(asked.earned);
       const step = shown ? shown.step : nextStep(doorsOf!, room, puzzle.goal, visited);
       // The next word's meaning, as a clue (none when it has no definition, or they didn't load).
       const def = step && defs?.[step.next];
@@ -727,8 +869,13 @@ export function MazeApp() {
           // A short screen (a phone on its side) gets the slim wordmark too, leaving room for the game.
           compact={compact || height < 500}
           actions={
-            // The game's buttons in one bar: How to play and settings (hardcore is a setting).
+            // The game's buttons in one bar: past puzzles (the 5-letter game's), How to play and settings (hardcore is a setting).
             <div className="toolbar">
+              {letters === 5 && (
+                <button ref={archiveBtn} className="tool-btn past-btn" aria-label="Past puzzles" aria-haspopup="dialog" aria-expanded={archive} onClick={() => setArchive(true)}>
+                  <CalendarIcon />
+                </button>
+              )}
               <button ref={helpBtn} className="tool-btn help-btn" aria-label="How to play" aria-haspopup="dialog" aria-expanded={help} onClick={() => setHelp(true)}>
                 ?
               </button>
@@ -740,8 +887,29 @@ export function MazeApp() {
           dateline={
             sample
               ? 'Sample puzzle'
-              : current?.date &&
-                `No. ${dayNumber(current.date)}${current.easy ? ' · Easycore' : ''} · ${new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`
+              : current?.date && (
+                  <>
+                    {/* On a phone an earlier day's is shortened ("Past · No. 11 · Fri, Oct 16"), so it wraps less. */}
+                    {past && (compact ? 'Past · ' : 'Past puzzle · ')}
+                    {`No. ${dayNumber(current.date)} · `}
+                    {/* The difficulty, to change here (and in Settings). */}
+                    {easyOn && (
+                      <>
+                        <DifficultyChip value={mode} onChange={changeDifficulty} />
+                        {' · '}
+                      </>
+                    )}
+                    {new Date(`${current.date}T12:00:00`).toLocaleDateString(undefined, past && compact ? { weekday: 'short', month: 'short', day: 'numeric' } : { weekday: 'long', month: 'long', day: 'numeric' })}
+                    {past && (
+                      <>
+                        {' · '}
+                        <button className="link-btn back-today" onClick={() => playDay(null)}>
+                          Back to today
+                        </button>
+                      </>
+                    )}
+                  </>
+                )
           }
         />
 
@@ -754,7 +922,7 @@ export function MazeApp() {
             <div className="score-panel">
               <div className="score-big">
                 <strong>{used}</strong> <span>{used === 1 ? 'stroke' : 'strokes'}</span>
-                {hardcore && <span className="hardcore-tag">Hardcore</span>}
+                {hardcore && <span className="hardcore-tag">Hard</span>}
               </div>
               <div className="score-sub">
                 <span>lowest strokes possible: {best}</span>
@@ -826,15 +994,15 @@ export function MazeApp() {
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
                   transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
                 >
-                  {/* Touch screens and mouse play differently (tap vs click; a finger double-taps to turn, a mouse swipes), so each gets its own. */}
                   <HowToCard
-                    touch={coarse}
                     compact={compact}
                     firstVisit={firstVisit}
                     // The sample's words are 5 letters; and it's not offered over a puzzle in progress, which it would lose.
                     canSample={letters === 5 && (sample || won || !hasStarted({ words: trail.length - 1, strokes: history.length, hints: hintsUsed }))}
                     sampled={sampled}
                     easycore={easyOn}
+                    difficulty={mode}
+                    onDifficulty={changeDifficulty}
                     inkPots={!!potPlan}
                     closeRef={helpClose}
                     onClose={closeHelp}
@@ -941,12 +1109,23 @@ export function MazeApp() {
                   · {scoreName(spent, best)}
                   {spent <= best && ' ⭐'}
                 </span>
-                {hardcore && <span className="nowrap"> · hardcore</span>}
-                {current?.easy && <span className="nowrap"> · easycore</span>}
+                {hardcore && <span className="nowrap"> · hard</span>}
+                {current?.easy && <span className="nowrap"> · easy</span>}
               </p>
               {/* The sample's way on is in the coach's tip, over the word: no stats, record or share for it. */}
               {!sample && (
                 <>
+                  {/* The next difficulty up, first: Normal after Easy, Hard after Normal. */}
+                  {nextUp && (
+                    <div className="level-up">
+                      <span>
+                        Ready for <strong>{DIFFICULTY_NAMES[nextUp]}</strong>?<small>{DIFFICULTY_LINES[nextUp]}</small>
+                      </span>
+                      <button className="pill" onClick={() => changeDifficulty(nextUp)}>
+                        Play {DIFFICULTY_NAMES[nextUp]}
+                      </button>
+                    </div>
+                  )}
                   {/* This game's stats, then (for a daily) the player's record over them. */}
                   <dl className="result-stats" aria-label="This game">
                     <div>
@@ -979,7 +1158,7 @@ export function MazeApp() {
                   {record && record.solved > 0 && (
                     <>
                       <span className="label" id="record-label">
-                        {current?.easy ? 'Your Easycore dailies' : 'Your dailies'}
+                        {current?.easy ? 'Your Easy dailies' : 'Your dailies'}
                       </span>
                       <dl className="result-stats record" aria-labelledby="record-label">
                         <div>
@@ -1010,6 +1189,12 @@ export function MazeApp() {
                     >
                       Share
                     </button>
+                    {/* A daily solved, today's or an earlier day's: on to another from Past puzzles. */}
+                    {letters === 5 && !!current?.date && (
+                      <button className="pill quiet" aria-haspopup="dialog" onClick={() => setArchive(true)}>
+                        Play another
+                      </button>
+                    )}
                     {spent <= best && !reduce && (
                       <button className="pill quiet" onClick={() => celebrate()}>
                         Watch again
@@ -1020,7 +1205,7 @@ export function MazeApp() {
                     </button>
                   </div>
                   {bestRoute}
-                  {current?.date && <p className="result-next">A new puzzle comes at midnight.</p>}
+                  {current?.date && !past && <p className="result-next">A new puzzle comes at midnight.</p>}
                 </>
               )}
             </section>
@@ -1029,7 +1214,7 @@ export function MazeApp() {
             {saved && stepEdits === 0 && trail.length === 1 && (
               <>
                 <p className="solved-before">
-                  Solved today in {saved.strokes}
+                  Solved{past ? '' : ' today'} in {saved.strokes}
                   {saved.strokes <= saved.best ? ' · perfect ⭐' : ''}. Play it again any time,{' '}
                   <button ref={shareBtn} className="link-btn" aria-haspopup="dialog" onClick={() => share(saved)}>
                     share it
@@ -1053,13 +1238,30 @@ export function MazeApp() {
                 <ResetIcon />
                 Reset
               </button>
-              {/* No hints in hardcore: the button gives way to a quiet note. */}
-              {hardcore ? (
+              {/* No hints in hardcore: the button gives way to a quiet note. Otherwise each new word
+                  earns one: locked until then (a tap says how), lit with a dot while one's waiting. */}
+              {hintAt === 'none' ? (
                 <span className="no-hints">No hints</span>
               ) : (
-                <button className="pill step-btn hint-btn" onClick={askHint} disabled={won || shownHint?.level === 3}>
-                  <HintIcon />
+                <button
+                  className={`pill step-btn hint-btn${hintAt === 'ready' ? ' earned' : ''}`}
+                  onClick={askHint}
+                  disabled={won || hintAt === 'shown'}
+                  aria-disabled={hintAt === 'locked' || undefined}
+                  aria-label={HINT_BUTTON[hintAt].label}
+                  title={HINT_BUTTON[hintAt].title}
+                >
+                  {hintAt === 'locked' ? <LockIcon /> : <HintIcon />}
                   Hint
+                  {hintAt === 'ready' && (
+                    <motion.span
+                      className="hint-dot"
+                      aria-hidden="true"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', bounce: 0.5, duration: 0.45 }}
+                    />
+                  )}
                 </button>
               )}
             </div>
@@ -1072,7 +1274,7 @@ export function MazeApp() {
             ) : (
               <p aria-live="polite" className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
                 {refused
-                  ? `Hardcore: ${refused} is off the lowest-stroke route.`
+                  ? `Hard: ${refused} is off the lowest-stroke route.`
                   : notice
                   ? notice
                   : hintText && !locked
@@ -1087,9 +1289,15 @@ export function MazeApp() {
                       ? lastDoor!.back
                         ? `Back in ${room}: free, you've been here before.`
                         : `New word: ${room} (+${lastDoor!.cost}${lastDoor!.used ? `, ${lastDoor!.used} paid in ink` : ''}).${
-                            lastDoor!.pot ? ' Ink pot! You banked a free stroke.' : ' Find the next one.'
+                            lastDoor!.pot
+                              ? ` Ink pot! You banked a free stroke.${lastDoor!.earned ? ' Hint earned.' : ''}`
+                              : lastDoor!.earned
+                                ? ' You earned a hint.'
+                                : ' Find the next one.'
                           }`
-                      : null}
+                      : hintAt === 'locked'
+                        ? EARN_HINT
+                        : null}
               </p>
             )}
             {/* This step's strokes: three dots, filling as strokes are used. */}
@@ -1233,6 +1441,26 @@ export function MazeApp() {
             onDifficulty={changeDifficulty}
             easycore={easyOn}
             onClose={closeSettings}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {archive && (
+          <Archive
+            days={pastDays(
+              mode === 'easy' ? easyDays(todays(true)) : daysFor(letters),
+              todays(mode === 'easy'),
+              (d) => loadResult(d, letters, mode === 'easy'),
+              (d) => hasProgress(progressKey(d, letters, mode)),
+            )}
+            whose={mode === 'easy' ? 'Easy dailies' : mode === 'hard' ? 'Normal dailies, played on Hard' : 'Normal dailies'}
+            playing={playing}
+            onPlay={(date) => {
+              closeArchive();
+              // (The one being played just closes the list.)
+              if ((date ?? todays(mode === 'easy')) !== playing) playDay(date);
+            }}
+            onClose={closeArchive}
           />
         )}
       </AnimatePresence>

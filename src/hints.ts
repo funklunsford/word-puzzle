@@ -1,6 +1,6 @@
 // Hints: the next word on a cheapest remaining route to the goal, from the word the player is in.
 // Asked again in the same word, a hint shows a little more: the next word's meaning, then the
-// letters to change, then the word itself.
+// letters to change, then the word itself. Each new word made earns one (see hintGate).
 
 import { STEP_LIMIT, wordDistance } from './strokes';
 import type { Def } from './components/maze/Definition';
@@ -142,4 +142,36 @@ export function hintSays(step: NextStep, level: HintLevel, meaning: string | nul
   if (level === 1 && meaning) return `Hint: the next word means ${meaning}.`;
   if (level < 3) return `Hint: change ${whichLetters(step.letters)}${meaning ? `, to a word meaning ${meaning}` : ''}.`;
   return `Hint: make ${step.next} next (${step.cost ? `${step.cost} ${step.cost === 1 ? 'stroke' : 'strokes'}` : 'free'}).`;
+}
+
+// ---------- Earning a hint ----------
+// Hints are earned (the owner's call): each new word made earns one for the next step. They don't
+// stack, and going back to a word already visited (a free return) earns none. A step's first ask
+// uses it, and its later asks (the letters, then the word) come with it. Moving to another word
+// ends the step's hint. Hardcore has no hints, so nothing to earn.
+
+/**
+ * The Hint button, in the word the player is in: none in hardcore; locked with nothing earned;
+ * ready with an earned hint waiting; open once this step's hint is started, with more to show; and
+ * shown once the word itself is.
+ */
+export type HintGate = 'none' | 'locked' | 'ready' | 'open' | 'shown';
+
+/** Where the Hint button stands, from whether an earned hint is waiting and how much of this step's hint is shown (null: none yet). */
+export function hintGate(earned: boolean, shown: HintLevel | null, hardcore: boolean): HintGate {
+  if (hardcore) return 'none';
+  if (shown === 3) return 'shown';
+  if (shown) return 'open';
+  return earned ? 'ready' : 'locked';
+}
+
+/** Asking for a hint: whether it shows one, and whether an earned hint is still waiting after (the step's first ask uses it). */
+export function afterAsk(gate: HintGate, earned: boolean): { shows: boolean; earned: boolean } {
+  if (gate === 'ready') return { shows: true, earned: false };
+  return { shows: gate === 'open', earned };
+}
+
+/** Whether an earned hint is waiting once a word is reached: a new word earns one (only one, they don't stack); a free return doesn't. */
+export function earnHint(earned: boolean, newWord: boolean, hardcore: boolean): boolean {
+  return earned || (newWord && !hardcore);
 }
