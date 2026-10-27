@@ -35,7 +35,7 @@ new days.)
   - no puzzle has a word a player must find to make Par (from 2026-10-28): for every word on its
     lowest-stroke route, there's a way round that word within 4 strokes of the lowest (see `mustFind`
     in `src/difficulty.ts`);
-  - every puzzle has at least two easy first steps (from 2026-10-29): words a player can reach from
+  - every puzzle has at least two easy first steps (from 2026-10-30): words a player can reach from
     the start for 1–2 strokes (see `firstSteps` in `src/difficulty.ts`).
 - **Choose the one whose two words make the clearest picture of change.** The best pairs are vivid
   or concrete, like MINER → CHEER or POUCH → BATCH.

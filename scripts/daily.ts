@@ -16,7 +16,7 @@
 // makes par and how many words a search from both ends must look at: see src/difficulty.ts), and
 // the kind of route (see classifyNeed in src/maze.ts) the last week has had least of. At 5 letters,
 // from PAR_RULE_FROM (2026-10-28), it also leaves out puzzles with a word a player must find to make
-// Par (mustFind in src/difficulty.ts), and from FIRST_STEP_FROM (2026-10-29) those with fewer than two
+// Par (mustFind in src/difficulty.ts), and from FIRST_STEP_FROM (2026-10-30) those with fewer than two
 // easy first steps (firstSteps), and won't check one in. The same date and history always give the
 // same candidates.
 //

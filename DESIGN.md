@@ -1332,7 +1332,7 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - GONER → DIVER has none: LONER, OCHER and TONER are 3 strokes each. SHAKE → TRAIT has 7.
   - Of the eight dailies from Oct 21 to Oct 28, two pass: Oct 21 and Oct 26.
 - **How many pass,** of the puzzles that pass the par rule: 264 of the classic pool's 487, and 510 of Easycore's 802.
-- **Classic dailies only,** from `FIRST_STEP_FROM` (2026-10-29, in `src/daily/daily.ts`). Earlier days stay as they were.
+- **Classic dailies only,** from `FIRST_STEP_FROM` (2026-10-30, in `src/daily/daily.ts`). Earlier days stay as they were: Oct 29's CLAMP → GRAPE, picked before the rule, has one easy first step (CHAMP).
   - `npm run daily` leaves failing puzzles out of the candidates (its count of those left out now covers both rules) and won't check one in, even with `--any`.
   - `docs/daily-prompt.md` has the rule in its checklist, for `/daily` and the nightly routine.
   - `src/daily/daily.test.ts` checks every 5-letter day from the switch-over on.
