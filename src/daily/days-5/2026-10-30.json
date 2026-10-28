@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-30",
+  "puzzle": {
+    "start": "CROWN",
+    "goal": "OLIVE",
+    "best": 13,
+    "path": [
+      "CROWN",
+      "GROWN",
+      "GROWL",
+      "GROVE",
+      "CLOVE",
+      "OLIVE"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "GROWN",
+        "door": "CLOWN",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "CROWN",
+        "door": "CLOWN",
+        "loses": 5,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.05
+  },
+  "inkPots": {
+    "pots": [
+      "GLOVE",
+      "CROWD"
+    ],
+    "best": 13,
+    "walk": [
+      "CROWN",
+      "GROWN",
+      "GROWL",
+      "GROVE",
+      "CLOVE",
+      "OLIVE"
+    ]
+  },
+  "onRoute": {
+    "CLOVE": 10,
+    "CROWN": 0,
+    "GROVE": 7,
+    "GROWL": 4,
+    "GROWN": 1,
+    "OLIVE": 13
+  }
+}
