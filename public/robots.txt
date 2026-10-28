@@ -1,3 +1,6 @@
-# Anything may be indexed. The game's one address is https://strokes.fun/ (the canonical link in index.html).
+# Anything may be indexed. The game's one address is https://strokes.fun/ (the canonical link in
+# index.html), and the sitemap lists it for search engines.
 User-agent: *
 Allow: /
+
+Sitemap: https://strokes.fun/sitemap.xml

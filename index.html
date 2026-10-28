@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- The tab icon (public/favicon.svg, drawn by scripts/favicon.ts); the ?v= makes browsers fetch it again when it changes. -->
     <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=tiles" />
-    <title>Strokes</title>
-    <meta name="description" content="Turn one word into another, stroke by stroke. A new word puzzle every day." />
+    <!-- The title and description are what search results show, so they say what the game is. The
+         title is also the tab's name; on an iPhone's home screen the game is still just "Strokes". -->
+    <title>Strokes: a daily word ladder puzzle</title>
+    <meta name="apple-mobile-web-app-title" content="Strokes" />
+    <meta name="description" content="A daily word ladder puzzle: turn the start word into the goal word, stroke by stroke, in as few strokes as you can. Free to play in your browser." />
     <!-- The link preview when a result is shared (public/og.png, drawn by drawPreviewCard in src/share.ts). -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Strokes" />

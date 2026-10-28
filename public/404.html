@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Cloudflare Pages answers an address with no file behind it with this page and a 404. Without
+         it, Pages treats the site as a single-page app and answers every address with the game and a
+         200, so search engines saw endless copies of the game, and /sitemap.xml was the game's page.
+         The game itself only ever uses the site's root (with ?day= and the like). Paths here are
+         absolute, as this page can be served at any depth. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=tiles" />
+    <title>Page not found · Strokes</title>
+    <!-- The player's theme, as in the game (public/boot.js). -->
+    <script src="/boot.js"></script>
+    <!-- The game's colours for light and dark (src/styles.css). -->
+    <style>
+      :root {
+        --bg: #f7f4ee;
+        --surface: #ffffff;
+        --ink: #2b2a33;
+        --muted: #6d6976;
+        --line: #e4dfd5;
+        color-scheme: light;
+      }
+      :root[data-theme='dark'] {
+        --bg: #17161c;
+        --surface: #212029;
+        --ink: #ece9f1;
+        --muted: #8e8a99;
+        --line: #34323d;
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        box-sizing: border-box;
+        padding: 24px 16px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 0 20px;
+        color: var(--muted);
+      }
+      a {
+        display: inline-block;
+        padding: 10px 18px;
+        border: 1.5px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--ink);
+        font-weight: 700;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Page not found</h1>
+      <p>There's nothing at this address.</p>
+      <a href="/">Play today's Strokes</a>
+    </main>
+  </body>
+</html>
