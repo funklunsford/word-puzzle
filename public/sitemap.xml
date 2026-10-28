@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- For search engines (robots.txt names it): the game's one address, the canonical link in
+     index.html. Past puzzles (?day=) aren't listed, as they're the same page. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://strokes.fun/</loc>
+  </url>
+</urlset>
