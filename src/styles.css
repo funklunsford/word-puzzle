@@ -1561,7 +1561,6 @@ body {
   .editor:not(.disabled) .tray-tile:not(.taken):hover {
     transform: translateY(-2px);
     background: color-mix(in srgb, var(--tile) 20%, var(--surface));
-    border-color: var(--tile);
     box-shadow: 0 6px 0 color-mix(in srgb, var(--tile) 45%, var(--ledge));
   }
 
@@ -2936,7 +2935,8 @@ section.board {
    touched, and it costs no filter at run time. --frame-mask picks the mask for the corner radius;
    --frame-bw is the element's own border width, which the outline sits over. A state that changed a
    border's colour (reached, hinted, selected, Hard, a day's result) changes --frame instead. Without
-   mask-border (Firefox) the outline is a plain border. The tray's tiles keep straight outlines. */
+   mask-border (Firefox) the outline is a plain border. The tray's tiles (and their swatches in
+   Settings) are chalky but straight, in their stroke's colour: a fine rough edge with no wobble. */
 .toolbar,
 .scorecard,
 section.board,
@@ -2957,7 +2957,9 @@ section.board,
 .segmented button.on,
 .switch,
 .result-stats div,
-.level-up {
+.level-up,
+.tray-tile,
+.stroke-colour {
   isolation: isolate;
   border-color: transparent !important;
 }
@@ -2978,11 +2980,12 @@ section.board,
 .segmented,
 .segmented button,
 .result-stats div,
-.level-up {
+.level-up,
+.stroke-colour {
   position: relative;
 }
 
-:is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .past-day, .month-turn, .segmented, .segmented button.on, .switch, .result-stats div, .level-up)::before {
+:is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .past-day, .month-turn, .segmented, .segmented button.on, .switch, .result-stats div, .level-up, .tray-tile, .stroke-colour)::before {
   content: '';
   position: absolute;
   z-index: -1;
@@ -3042,6 +3045,14 @@ section.board,
 .difficulty-tag,
 .difficulty-chip {
   --frame-mask: url(/chalk/p22.png) 51 / 17px / 6px stretch;
+}
+
+.tray-tile {
+  --frame-mask: url(/chalk/t14.png) 60 / 20px / 6px stretch;
+}
+
+.stroke-colour {
+  --frame-mask: url(/chalk/t9.png) 45 / 15px / 6px stretch;
 }
 
 /* Border widths the outline sits over. */
@@ -3113,6 +3124,11 @@ section.board,
   --frame: var(--spicy);
 }
 
+.tray-tile,
+.stroke-colour {
+  --frame: color-mix(in srgb, var(--tile) 75%, transparent);
+}
+
 /* Dim when it can't be pressed; Hint is drawn so until a word earns one. */
 .pill:disabled,
 .hint-btn[aria-disabled='true'] {
@@ -3130,10 +3146,14 @@ section.board,
   .difficulty-pick button:not(.on):hover {
     --frame: var(--chalk);
   }
+
+  .editor:not(.disabled) .tray-tile:not(.taken):hover {
+    --frame: var(--tile);
+  }
 }
 
 @supports not (-webkit-mask-box-image: none) {
-  :is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .past-day, .month-turn, .segmented, .segmented button.on, .switch, .result-stats div, .level-up)::before {
+  :is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .past-day, .month-turn, .segmented, .segmented button.on, .switch, .result-stats div, .level-up, .tray-tile, .stroke-colour)::before {
     border: 2px solid var(--frame, var(--chalk));
     border-radius: inherit;
     background: none;
