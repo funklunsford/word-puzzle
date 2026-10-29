@@ -2986,10 +2986,13 @@ section.board,
   content: '';
   position: absolute;
   z-index: -1;
-  inset: calc(-1 * (var(--frame-bw, 1.5px) + 6px));
+  /* Exactly over the border box, so it never widens the page or a card's scroll; the mask reaches
+     the 6px of room the chalk wobbles into by its outset, and a spread shadow gives it colour there. */
+  inset: calc(-1 * var(--frame-bw, 1.5px));
   pointer-events: none;
   background: var(--frame, var(--chalk));
-  -webkit-mask-box-image: var(--frame-mask, url(/chalk/r16.png) 66 / 22px stretch);
+  box-shadow: 0 0 0 6px var(--frame, var(--chalk));
+  -webkit-mask-box-image: var(--frame-mask, url(/chalk/r16.png) 66 / 22px / 6px stretch);
 }
 
 /* The masks, by corner radius (each slice is the radius and 6px of room for the chalk). */
@@ -2998,47 +3001,47 @@ section.board,
 .side-card,
 .help-card,
 .difficulty-sheet {
-  --frame-mask: url(/chalk/r24.png) 90 / 30px stretch;
+  --frame-mask: url(/chalk/r24.png) 90 / 30px / 6px stretch;
 }
 
 .maze.compact :is(.scorecard, .board, .side-card),
 .difficulty-menu {
-  --frame-mask: url(/chalk/r18.png) 72 / 24px stretch;
+  --frame-mask: url(/chalk/r18.png) 72 / 24px / 6px stretch;
 }
 
 .goal-panel,
 .cell,
 .level-up {
-  --frame-mask: url(/chalk/r16.png) 66 / 22px stretch;
+  --frame-mask: url(/chalk/r16.png) 66 / 22px / 6px stretch;
 }
 
 .difficulty-pick button,
 .result-stats div {
-  --frame-mask: url(/chalk/r14.png) 60 / 20px stretch;
+  --frame-mask: url(/chalk/r14.png) 60 / 20px / 6px stretch;
 }
 
 .maze.compact .goal-panel,
 .maze.compact .board .cell,
 .past-day,
 .month-turn {
-  --frame-mask: url(/chalk/r12.png) 54 / 18px stretch;
+  --frame-mask: url(/chalk/r12.png) 54 / 18px / 6px stretch;
 }
 
 .toolbar,
 .pill,
 .segmented,
 .segmented button.on {
-  --frame-mask: url(/chalk/p44.png) 84 / 28px stretch;
+  --frame-mask: url(/chalk/p44.png) 84 / 28px / 6px stretch;
 }
 
 .how-chip,
 .switch {
-  --frame-mask: url(/chalk/p32.png) 66 / 22px stretch;
+  --frame-mask: url(/chalk/p32.png) 66 / 22px / 6px stretch;
 }
 
 .difficulty-tag,
 .difficulty-chip {
-  --frame-mask: url(/chalk/p22.png) 51 / 17px stretch;
+  --frame-mask: url(/chalk/p22.png) 51 / 17px / 6px stretch;
 }
 
 /* Border widths the outline sits over. */
@@ -3053,6 +3056,11 @@ section.board,
 .segmented button.on,
 .switch,
 .how-chip {
+  --frame-bw: 0px;
+}
+
+/* A dialog's card scrolls, so its own outline sits just inside its border, where it can't. */
+.help-card {
   --frame-bw: 0px;
 }
 
@@ -3084,7 +3092,7 @@ section.board,
 
 .goal-panel,
 .cell.hinted,
-.hint-btn,
+.hint-btn.earned,
 .how-chip.goal,
 .difficulty-pick button.on,
 .past-day.started,
@@ -3105,7 +3113,9 @@ section.board,
   --frame: var(--spicy);
 }
 
-.pill:disabled {
+/* Dim when it can't be pressed; Hint is drawn so until a word earns one. */
+.pill:disabled,
+.hint-btn[aria-disabled='true'] {
   --frame: var(--line);
 }
 
@@ -3124,9 +3134,9 @@ section.board,
 
 @supports not (-webkit-mask-box-image: none) {
   :is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .past-day, .month-turn, .segmented, .segmented button.on, .switch, .result-stats div, .level-up)::before {
-    inset: calc(-1 * var(--frame-bw, 1.5px));
     border: 2px solid var(--frame, var(--chalk));
     border-radius: inherit;
     background: none;
+    box-shadow: none;
   }
 }
