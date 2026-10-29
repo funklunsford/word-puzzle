@@ -2936,7 +2936,8 @@ section.board {
    --frame-bw is the element's own border width, which the outline sits over. A state that changed a
    border's colour (reached, hinted, selected, Hard, a day's result) changes --frame instead. Without
    mask-border (Firefox) the outline is a plain border. The tray's tiles (and their swatches in
-   Settings) are chalky but straight, in their stroke's colour: a fine rough edge with no wobble. */
+   Settings) are chalky but straight, in their stroke's colour: a fine rough edge with no wobble. The
+   Past puzzles calendar (its days and month arrows) keeps plain outlines. */
 .toolbar,
 .scorecard,
 section.board,
@@ -2951,8 +2952,6 @@ section.board,
 .difficulty-menu,
 .difficulty-pick button,
 .how-chip,
-.past-day,
-.month-turn,
 .segmented,
 .segmented button.on,
 .switch,
@@ -2976,7 +2975,6 @@ section.board,
 .difficulty-sheet,
 .difficulty-pick button,
 .how-chip,
-.month-turn,
 .segmented,
 .segmented button,
 .result-stats div,
@@ -2985,7 +2983,7 @@ section.board,
   position: relative;
 }
 
-:is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .past-day, .month-turn, .segmented, .segmented button.on, .switch, .result-stats div, .level-up, .tray-tile, .stroke-colour)::before {
+:is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .segmented, .segmented button.on, .switch, .result-stats div, .level-up, .tray-tile, .stroke-colour)::before {
   content: '';
   position: absolute;
   z-index: -1;
@@ -3024,9 +3022,7 @@ section.board,
 }
 
 .maze.compact .goal-panel,
-.maze.compact .board .cell,
-.past-day,
-.month-turn {
+.maze.compact .board .cell {
   --frame-mask: url(/chalk/r12.png) 54 / 18px / 6px stretch;
 }
 
@@ -3085,8 +3081,6 @@ section.board,
 .pill.quiet,
 .difficulty-pick button,
 .how-chip,
-.past-day,
-.month-turn,
 .segmented,
 .switch,
 .result-stats div {
@@ -3106,18 +3100,12 @@ section.board,
 .hint-btn.earned,
 .how-chip.goal,
 .difficulty-pick button.on,
-.past-day.started,
 .level-up {
   --frame: var(--gold);
 }
 
-.goal-panel.reached,
-.past-day.solved {
+.goal-panel.reached {
   --frame: var(--ok);
-}
-
-.past-day.ace {
-  --frame: color-mix(in srgb, var(--ok) 45%, white);
 }
 
 .difficulty-tag.hard {
@@ -3135,13 +3123,7 @@ section.board,
   --frame: var(--line);
 }
 
-.past-day.none::before {
-  display: none;
-}
-
 @media (hover: hover) and (pointer: fine) {
-  .past-day:not(.none):hover,
-  .month-turn:not(:disabled):hover,
   .difficulty-chip:hover,
   .difficulty-pick button:not(.on):hover {
     --frame: var(--chalk);
@@ -3153,7 +3135,7 @@ section.board,
 }
 
 @supports not (-webkit-mask-box-image: none) {
-  :is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .past-day, .month-turn, .segmented, .segmented button.on, .switch, .result-stats div, .level-up, .tray-tile, .stroke-colour)::before {
+  :is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .segmented, .segmented button.on, .switch, .result-stats div, .level-up, .tray-tile, .stroke-colour)::before {
     border: 2px solid var(--frame, var(--chalk));
     border-radius: inherit;
     background: none;
