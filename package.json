@@ -14,7 +14,7 @@
     "@fontsource-variable/fredoka": "^5.3.0",
     "@fontsource/amatic-sc": "^5.3.0",
     "@types/three": "^0.186.0",
-    "motion": "^14.4.0",
+    "motion": "^14.6.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "three": "^0.186.1"
@@ -24,7 +24,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "typescript": "^7.0.2",
-    "vite": "^8.3.4",
+    "vite": "^8.3.5",
     "vite-node": "^6.0.0",
     "vitest": "^5.0.5"
   }
