@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import type { ThemeChoice } from '../../theme';
 import type { MotionChoice, Prefs } from '../../prefs';
 import type { Difficulty } from '../../easycore';
 import { DIFFICULTY_NAMES } from './DifficultyChoice';
@@ -9,11 +8,6 @@ import { TILES, TILE_IDS, TRAY_TURN } from '../../glyphs';
 import { opticalOffset } from '../../ink';
 import { TileStroke, minHalfWidthAt } from '../Glyph';
 
-const THEMES: { choice: ThemeChoice; label: string }[] = [
-  { choice: 'system', label: 'System' },
-  { choice: 'light', label: 'Light' },
-  { choice: 'dark', label: 'Dark' },
-];
 const MOTIONS: { choice: MotionChoice; label: string }[] = [
   { choice: 'system', label: 'System' },
   { choice: 'less', label: 'Less' },
@@ -97,8 +91,6 @@ function Toggle({ label, note, on, onChange }: { label: string; note: string; on
 }
 
 interface Props {
-  theme: ThemeChoice;
-  onTheme: (choice: ThemeChoice) => void;
   prefs: Prefs;
   onPrefs: (patch: Partial<Prefs>) => void;
   /**
@@ -113,7 +105,7 @@ interface Props {
 }
 
 /** The settings pop-up (the gear). Escape, the ×, Done or a tap outside closes it. */
-export function Settings({ theme, onTheme, prefs, onPrefs, difficulty, onDifficulty, easycore, onClose }: Props) {
+export function Settings({ prefs, onPrefs, difficulty, onDifficulty, easycore, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
@@ -141,7 +133,6 @@ export function Settings({ theme, onTheme, prefs, onPrefs, difficulty, onDifficu
             ×
           </button>
         </div>
-        <Segmented label="Appearance" options={THEMES} value={theme} onChange={onTheme} note="System follows your device's light or dark mode." />
         <Segmented
           label="Stroke colours"
           options={PALETTES}

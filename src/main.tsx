@@ -1,6 +1,9 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MazeApp } from './MazeApp';
+// The game's type, shipped with it (the site loads fonts from itself only): Fredoka, and Amatic SC for labels.
+import '@fontsource-variable/fredoka';
+import '@fontsource/amatic-sc/700.css';
 import './styles.css';
 
 // The glyph gallery (every letter and stroke, for design work) is on the dev server only, at /#gallery:
