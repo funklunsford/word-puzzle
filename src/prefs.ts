@@ -1,4 +1,4 @@
-// The player's settings (the gear), beyond light or dark (see theme.ts): the stroke colours,
+// The player's settings (the gear): the stroke colours,
 // motion, the letter guide and definitions. Kept in this browser. (Swipe to turn was one until
 // 2026-10-08: a mouse always swipes now, a finger never does. Colour-blind squares was one until
 // 2026-10-23: the result card's squares are always yellow, orange and red. A saved choice is

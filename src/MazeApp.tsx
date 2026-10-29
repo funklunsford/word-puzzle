@@ -23,7 +23,6 @@ import { GearIcon, Settings } from './components/maze/Settings';
 import { HintIcon, LockIcon, ResetIcon, UndoIcon } from './components/maze/StepIcons';
 import { ShareSheet } from './components/maze/ShareSheet';
 import type { ShareResult } from './share';
-import { followSystemTheme, loadTheme, saveTheme, type ThemeChoice } from './theme';
 import { Celebration, inkSources } from './celebration/Celebration';
 import { dayFor, dayNumber, daysFor, loadDaily, localDate, type DailyPuzzle } from './daily/daily';
 import { CELL_W, WordEditor } from './components/maze/WordEditor';
@@ -224,14 +223,10 @@ export function MazeApp() {
   const mode: Difficulty = difficulty === 'easy' && !easyOn ? 'classic' : difficulty;
   const modeRef = useRef(mode);
   modeRef.current = mode;
-  // Settings (the gear): light or dark, the player's choice or the device's.
+  // Settings (the gear): the stroke colours, motion, the letter guide, definitions. (The look is
+  // always dark, Chalk & Charcoal: public/boot.js and index.html.)
   const [settings, setSettings] = useState(false);
   const gearBtn = useRef<HTMLButtonElement>(null);
-  const [theme, setTheme] = useState<ThemeChoice>(loadTheme);
-  const themeRef = useRef(theme);
-  themeRef.current = theme;
-  useEffect(() => followSystemTheme(() => themeRef.current), []);
-  // The rest of the settings: the stroke colours, motion, the letter guide, definitions.
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
@@ -242,10 +237,6 @@ export function MazeApp() {
     const next = { ...prefsRef.current, ...patch };
     setPrefs(next);
     savePrefs(next);
-  };
-  const chooseTheme = (choice: ThemeChoice) => {
-    setTheme(choice);
-    saveTheme(choice);
   };
   const closeSettings = useCallback(() => {
     setSettings(false);
@@ -1434,8 +1425,6 @@ export function MazeApp() {
       <AnimatePresence>
         {settings && (
           <Settings
-            theme={theme}
-            onTheme={chooseTheme}
             prefs={prefs}
             onPrefs={changePrefs}
             difficulty={mode}

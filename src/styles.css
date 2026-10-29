@@ -37,21 +37,29 @@
   color-scheme: light;
 }
 
-/* Dark: the player's choice in Settings, or the device's (data-theme is set in index.html; see src/theme.ts). */
+/* Chalk & Charcoal, the game's one look: dark always (index.html sets data-theme before the first
+   paint). The light tokens above stay for the result card's colours and the palette test only. */
 :root[data-theme='dark'] {
-  --bg: #17161c;
-  --surface: #212029;
-  --ink: #ece9f1;
-  --muted: #8e8a99;
+  --bg: #18171d;
+  --surface: #23212a;
+  /* A letter's cell and other wells, a shade under the cards. */
+  --well: #1d1c22;
+  --ink: #f1ead9;
+  --muted: #a39d92;
   --line: #34323d;
-  --gold: #f0c04a;
+  /* The chalk outlines (see "Chalk & Charcoal: frames"): bright for cards, soft for cells and wells. */
+  --chalk: #efe6d2;
+  --chalk-soft: #cfc7b4;
+  --gold: #f0c35c;
   --ink-pot: #9fb2f0;
   --ink-fill: #4a63c8;
   --feather: #e6dfd0;
   --spicy: #ff7a4d;
   --remove: #ff6b6b;
   --ok: #93c27f;
-  --ledge: #0e0d12;
+  --ledge: #0a090c;
+  /* The labels' chalk (Amatic SC). */
+  --label: #e8dfc9;
   --pastel-1: #f5c45e;
   --pastel-2: #c8a8ea;
   --pastel-3: #9fcfb3;
@@ -160,9 +168,15 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* Charcoal paper: a fine grain over a faint glow at the top. */
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .85  0 0 0 0 .82  0 0 0 0 .75  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    radial-gradient(80% 50% at 50% 0%, #2a2733 0, transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  min-height: 100vh;
   color: var(--ink);
-  font-family: ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+  font-family: 'Fredoka Variable', ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
 }
 
 .gallery {
@@ -430,8 +444,8 @@ body {
   max-width: 34px;
   aspect-ratio: 1;
   padding: 4px;
-  background: color-mix(in srgb, var(--tile) 12%, var(--surface));
-  border: 1.5px solid color-mix(in srgb, var(--tile) 30%, var(--line));
+  background: color-mix(in srgb, var(--tile) 14%, var(--well));
+  border: 1.5px solid color-mix(in srgb, var(--tile) 75%, transparent);
   border-radius: 9px;
   box-shadow: 0 3px 0 color-mix(in srgb, var(--tile) 35%, var(--ledge));
 }
@@ -1527,8 +1541,8 @@ body {
   max-width: 56px;
   aspect-ratio: 1;
   padding: 7px;
-  background: color-mix(in srgb, var(--tile) 12%, var(--surface));
-  border: 1.5px solid color-mix(in srgb, var(--tile) 30%, var(--line));
+  background: color-mix(in srgb, var(--tile) 14%, var(--well));
+  border: 1.5px solid color-mix(in srgb, var(--tile) 75%, transparent);
   border-radius: 14px;
   box-shadow: 0 4px 0 color-mix(in srgb, var(--tile) 35%, var(--ledge));
   cursor: grab;
@@ -1547,7 +1561,7 @@ body {
   .editor:not(.disabled) .tray-tile:not(.taken):hover {
     transform: translateY(-2px);
     background: color-mix(in srgb, var(--tile) 20%, var(--surface));
-    border-color: color-mix(in srgb, var(--tile) 65%, var(--line));
+    border-color: var(--tile);
     box-shadow: 0 6px 0 color-mix(in srgb, var(--tile) 45%, var(--ledge));
   }
 
@@ -2854,4 +2868,265 @@ body {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+/* ---------- Chalk & Charcoal: type ----------
+   Fredoka for everything read and pressed (body, above); Amatic SC, a hand-drawn capital, for labels
+   and card titles, like a chalkboard menu. Both ship with the site (@fontsource, in main.tsx). */
+.maze .label,
+.step-meter > span:first-child,
+.setting-label,
+.difficulty-pick-label,
+.month-name,
+.weekday,
+.result-stats dt {
+  font-family: 'Amatic SC', 'Fredoka Variable', cursive;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  color: var(--label);
+}
+
+.maze .label,
+.step-meter > span:first-child,
+.setting-label,
+.difficulty-pick-label {
+  font-size: 23px;
+}
+
+.result-stats dt {
+  font-size: 19px;
+}
+
+.month-name {
+  font-size: 30px;
+}
+
+.weekday {
+  font-size: 17px;
+}
+
+.help-head h2,
+.difficulty-sheet h2 {
+  font-family: 'Amatic SC', 'Fredoka Variable', cursive;
+  font-weight: 700;
+  font-size: 40px;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+
+.pill {
+  font-weight: 600;
+}
+
+/* Fills: the board a flat card on the charcoal, letters' cells a shade under it. */
+section.board {
+  background: #211f27;
+}
+
+.cell {
+  background: var(--well);
+}
+
+/* ---------- Chalk & Charcoal: frames ----------
+   Cards, cells, buttons and tags are outlined in chalk: a rough rounded outline painted once into a
+   9-slice mask (public/chalk/, from scripts/chalk-masks.ts) and coloured by --frame. It's drawn in
+   ::before, under the element's content and over its fill, so the strokes and letters are never
+   touched, and it costs no filter at run time. --frame-mask picks the mask for the corner radius;
+   --frame-bw is the element's own border width, which the outline sits over. A state that changed a
+   border's colour (reached, hinted, selected, Hard, a day's result) changes --frame instead. Without
+   mask-border (Firefox) the outline is a plain border. The tray's tiles keep straight outlines. */
+.toolbar,
+.scorecard,
+section.board,
+.side-card,
+.goal-panel,
+.cell,
+.pill,
+.difficulty-tag,
+.difficulty-chip,
+.help-card,
+.difficulty-sheet,
+.difficulty-menu,
+.difficulty-pick button,
+.how-chip,
+.past-day,
+.month-turn,
+.segmented,
+.segmented button.on,
+.switch,
+.result-stats div,
+.level-up {
+  isolation: isolate;
+  border-color: transparent !important;
+}
+
+/* (The menu is fixed, the rest in the flow: the outline is placed against them.) */
+.toolbar,
+.side-card,
+.goal-panel,
+.cell,
+.switch,
+.pill,
+.difficulty-chip,
+.help-card,
+.difficulty-sheet,
+.difficulty-pick button,
+.how-chip,
+.month-turn,
+.segmented,
+.segmented button,
+.result-stats div,
+.level-up {
+  position: relative;
+}
+
+:is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .past-day, .month-turn, .segmented, .segmented button.on, .switch, .result-stats div, .level-up)::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * (var(--frame-bw, 1.5px) + 6px));
+  pointer-events: none;
+  background: var(--frame, var(--chalk));
+  -webkit-mask-box-image: var(--frame-mask, url(/chalk/r16.png) 66 / 22px stretch);
+}
+
+/* The masks, by corner radius (each slice is the radius and 6px of room for the chalk). */
+.scorecard,
+section.board,
+.side-card,
+.help-card,
+.difficulty-sheet {
+  --frame-mask: url(/chalk/r24.png) 90 / 30px stretch;
+}
+
+.maze.compact :is(.scorecard, .board, .side-card),
+.difficulty-menu {
+  --frame-mask: url(/chalk/r18.png) 72 / 24px stretch;
+}
+
+.goal-panel,
+.cell,
+.level-up {
+  --frame-mask: url(/chalk/r16.png) 66 / 22px stretch;
+}
+
+.difficulty-pick button,
+.result-stats div {
+  --frame-mask: url(/chalk/r14.png) 60 / 20px stretch;
+}
+
+.maze.compact .goal-panel,
+.maze.compact .board .cell,
+.past-day,
+.month-turn {
+  --frame-mask: url(/chalk/r12.png) 54 / 18px stretch;
+}
+
+.toolbar,
+.pill,
+.segmented,
+.segmented button.on {
+  --frame-mask: url(/chalk/p44.png) 84 / 28px stretch;
+}
+
+.how-chip,
+.switch {
+  --frame-mask: url(/chalk/p32.png) 66 / 22px stretch;
+}
+
+.difficulty-tag,
+.difficulty-chip {
+  --frame-mask: url(/chalk/p22.png) 51 / 17px stretch;
+}
+
+/* Border widths the outline sits over. */
+.toolbar,
+.goal-panel,
+.pill,
+.difficulty-menu {
+  --frame-bw: 2px;
+}
+
+.segmented,
+.segmented button.on,
+.switch,
+.how-chip {
+  --frame-bw: 0px;
+}
+
+/* The sheet runs off the bottom of the screen: so does its outline. */
+.difficulty-sheet::before {
+  bottom: -60px;
+}
+
+/* Colours: bright chalk for cards and buttons, soft for cells and wells, and the states. */
+.cell,
+.pill.quiet,
+.difficulty-pick button,
+.how-chip,
+.past-day,
+.month-turn,
+.segmented,
+.switch,
+.result-stats div {
+  --frame: var(--chalk-soft);
+}
+
+.pill.quiet {
+  --frame-bw: 1.5px;
+}
+
+.result-stats.record div {
+  --frame: var(--muted);
+}
+
+.goal-panel,
+.cell.hinted,
+.hint-btn,
+.how-chip.goal,
+.difficulty-pick button.on,
+.past-day.started,
+.level-up {
+  --frame: var(--gold);
+}
+
+.goal-panel.reached,
+.past-day.solved {
+  --frame: var(--ok);
+}
+
+.past-day.ace {
+  --frame: color-mix(in srgb, var(--ok) 45%, white);
+}
+
+.difficulty-tag.hard {
+  --frame: var(--spicy);
+}
+
+.pill:disabled {
+  --frame: var(--line);
+}
+
+.past-day.none::before {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .past-day:not(.none):hover,
+  .month-turn:not(:disabled):hover,
+  .difficulty-chip:hover,
+  .difficulty-pick button:not(.on):hover {
+    --frame: var(--chalk);
+  }
+}
+
+@supports not (-webkit-mask-box-image: none) {
+  :is(.toolbar, .scorecard, section.board, .side-card, .goal-panel, .cell, .pill, .difficulty-tag, .difficulty-chip, .help-card, .difficulty-sheet, .difficulty-menu, .difficulty-pick button, .how-chip, .past-day, .month-turn, .segmented, .segmented button.on, .switch, .result-stats div, .level-up)::before {
+    inset: calc(-1 * var(--frame-bw, 1.5px));
+    border: 2px solid var(--frame, var(--chalk));
+    border-radius: inherit;
+    background: none;
+  }
 }

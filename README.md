@@ -51,4 +51,4 @@ npx vite-node scripts/definitions.ts wordnet   # → public/definitions.json
 npx vite-node scripts/definitions.ts wordnet --letters 5   # → public/definitions-5.json
 ```
 
-Word list derived from [SCOWL](https://wordlist.aspell.net) by Kevin Atkinson (notice in DESIGN.md and in `data/familiar-4.txt`; Easycore's simplest words from SCOWL 2020.12.07, notice in `data/simple-5.txt`) and ENABLE. Definitions from [WordNet](https://wordnet.princeton.edu) 3.0, Copyright 2006 by Princeton University (licence in `data/WORDNET-LICENSE.txt`).
+Word list derived from [SCOWL](https://wordlist.aspell.net) by Kevin Atkinson (notice in DESIGN.md and in `data/familiar-4.txt`; Easycore's simplest words from SCOWL 2020.12.07, notice in `data/simple-5.txt`) and ENABLE. Definitions from [WordNet](https://wordnet.princeton.edu) 3.0, Copyright 2006 by Princeton University (licence in `data/WORDNET-LICENSE.txt`). Type: [Fredoka](https://github.com/hafontia/Fredoka-One) and [Amatic SC](https://github.com/googlefonts/AmaticSC), both under the SIL Open Font License 1.1 (notices in `public/licenses/`), from @fontsource.
