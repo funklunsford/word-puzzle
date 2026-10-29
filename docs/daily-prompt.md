@@ -30,6 +30,9 @@ new days.)
   ends looks at). The script has already cycled through the puzzle pool for you:
   - no pair is used twice (either way round);
   - no start or goal word comes back within 30 days;
+  - no start or goal word is like one from the last 3 days (from 2026-11-01): one letter apart
+    (CLAMP, CRAMP) or ending in the same three letters (SPILL, DRILL; see `similarWords` in
+    `src/daily/daily.ts`). The list names the last 3 days' words at the top;
   - each day's difficulty is picked at random: the easiest, middle or hardest third of the pool;
   - the kind of route varies from day to day;
   - no puzzle has a word a player must find to make Par (from 2026-10-28): for every word on its
@@ -46,7 +49,8 @@ new days.)
   - Avoid pairs whose start or goal reads as an inflection (TUBED, BORED, BAKED).
   - Choose only from the list. If none is good, take the least awkward one.
   - **Never check in a puzzle that breaks the day's rule: a word a player must find to make Par
-    (or, on a day drawn for one, none), or fewer than two easy first steps.** The list leaves them
+    (or, on a day drawn for one, none), fewer than two easy first steps, or a start or goal like
+    one from the last 3 days.** The list leaves them
     out, `npm run daily -- {DATE} {START} {GOAL}` refuses one (even with `--any`), and
     `src/daily/daily.test.ts` fails on one. If the check-in refuses your pair, choose another from
     the list; don't work round it. If the list is empty, stop: don't add the day, and say so.

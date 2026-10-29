@@ -65,6 +65,21 @@ export function mustFindDay(date: string): boolean {
   return seededRandom(seed)() < MUST_FIND_SHARE;
 }
 
+/**
+ * From SIMILAR_FROM, no classic daily's start or goal is like a start or goal of the SIMILAR_DAYS days
+ * before it (the owner's call: CLAMP the day after CRAMP feels like a repeat). Like means one letter
+ * apart (CLAMP, CRAMP) or ending in the same three letters (SPILL, DRILL). Earlier days stay as they were.
+ */
+export const SIMILAR_FROM = '2026-11-01';
+export const SIMILAR_DAYS = 3;
+
+/** Whether two words of a length are alike (see SIMILAR_FROM): one letter apart, or the same last three letters. */
+export function similarWords(a: string, b: string): boolean {
+  let apart = 0;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) apart++;
+  return apart <= 1 || a.slice(-3) === b.slice(-3);
+}
+
 /** A date as YYYY-MM-DD, in the player's own time zone. */
 export const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 

@@ -19,7 +19,10 @@
 // Par (mustFind in src/difficulty.ts), and from FIRST_STEP_FROM (2026-10-30) those with fewer than two
 // easy first steps (firstSteps), and won't check one in. From MUST_FIND_FROM (2026-10-30) about 35% of
 // days (mustFindDay in src/daily/daily.ts, drawn from the date) turn the par rule round: only puzzles
-// with a word a player must find. The same date and history always give the same candidates.
+// with a word a player must find. From SIMILAR_FROM (2026-11-01) it leaves out, and won't check in, a
+// puzzle whose start or goal is like a start or goal of the last 3 days: one letter apart (CLAMP,
+// CRAMP) or ending in the same three letters (SPILL, DRILL; similarWords in src/daily/daily.ts). The
+// same date and history always give the same candidates.
 //
 // Checking in writes src/daily/days-5/{DATE}.json (with --letters 4, src/daily/days/{DATE}.json and
 // what the celebration prompt needs: docs/daily-celebration-prompt.md). The history is the day files
@@ -30,7 +33,7 @@ import { FIRST_STEPS, findPockets, firstSteps, isTricky, keep, measure, mustFind
 import { placePots, potRoute } from '../src/inkpots';
 import { POOL_MIXES, buildGraph, classifyNeed, routeWords, seededRandom, solve, type Graph, type Need, type Puzzle } from '../src/maze';
 import type { DailyPuzzle } from '../src/daily/daily';
-import { FIRST_STEP_FROM, MUST_FIND_SHARE, PAR_RULE_FROM, dayNumber, mustFindDay } from '../src/daily/daily';
+import { FIRST_STEP_FROM, MUST_FIND_SHARE, PAR_RULE_FROM, SIMILAR_DAYS, SIMILAR_FROM, dayNumber, mustFindDay, similarWords } from '../src/daily/daily';
 
 const args = process.argv.slice(2);
 const at = args.indexOf('--letters');
@@ -116,6 +119,10 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) throw n
 const before = days.filter((d) => d.date < date);
 const used = new Set(days.filter((d) => d.date !== date).map((d) => pairKey(d.puzzle)));
 const resting = new Set(before.filter((d) => d.date >= addDays(date, -REST_DAYS)).flatMap((d) => [d.puzzle.start, d.puzzle.goal]));
+/** From SIMILAR_FROM, the last SIMILAR_DAYS days' starts and goals, which a new one mustn't be like (5 letters only). */
+const recent = LETTERS === 5 && date >= SIMILAR_FROM ? before.filter((d) => d.date >= addDays(date, -SIMILAR_DAYS)) : [];
+/** The recent words `w` is like, with their dates. */
+const likeRecent = (w: string) => recent.flatMap((d) => [d.puzzle.start, d.puzzle.goal].filter((r) => similarWords(w, r)).map((r) => `${r} (${d.date})`));
 
 if (!start) {
   // ---------- Candidates ----------
@@ -129,7 +136,9 @@ if (!start) {
   const needs = Object.keys(MIX) as Need[];
   const owed = (n: Need) => MIX[n] * (week.length + 1) - week.filter((d) => d.need === n).length;
   const need = needs.reduce((a, b) => (owed(b) > owed(a) ? b : a));
-  const unused = puzzles.filter((p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal));
+  const unused = puzzles.filter(
+    (p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal) && !likeRecent(p.puzzle.start).length && !likeRecent(p.puzzle.goal).length,
+  );
   // From PAR_RULE_FROM, none with a word a player must find to make Par, except on a day drawn for
   // one (mustFindDay), when only those; from FIRST_STEP_FROM, none with too few easy first steps (5
   // letters only).
@@ -155,6 +164,8 @@ if (!start) {
   const byPar = mustDay ? 'without a word a player must find to make Par' : 'with a word a player must find to make Par';
   const leftOut = stepRule ? `${byPar}, or with too few easy first steps` : byPar;
   if (mustDay) console.log(`A day for a word a player must find (about ${percent(MUST_FIND_SHARE)} of days, mustFindDay): every candidate has one.`);
+  if (recent.length)
+    console.log(`No start or goal like the last ${SIMILAR_DAYS} days' (${recent.flatMap((d) => [d.puzzle.start, d.puzzle.goal]).join(', ')}): one letter apart, or the same last three letters.`);
   console.log(`${fresh.filter(inBand).length} unused puzzles in the pool in that third${parRule ? ` (leaving out ${left} ${leftOut})` : ''}.\n`);
   picks.forEach((p, i) => {
     const { start: s, goal: g, best: b, path } = p.puzzle;
@@ -175,6 +186,11 @@ if (!start) {
   const any = flags.includes('--any'); // a hand-picked pair outside the pool's rules
   if (used.has(pairKey({ start: S, goal: G }))) throw new Error(`${S} → ${G} (or ${G} → ${S}) is already a daily`);
   if (!any && (resting.has(S) || resting.has(G))) throw new Error(`${resting.has(S) ? S : G} was a start or goal in the last ${REST_DAYS} days`);
+  const alike = [S, G].flatMap((w) => likeRecent(w).map((r) => `${w} is like ${r}`));
+  if (alike.length)
+    throw new Error(
+      `${alike.join('; ')}: from ${SIMILAR_FROM} no start or goal is like one from the last ${SIMILAR_DAYS} days (one letter apart, or the same last three letters; see similarWords in src/daily/daily.ts): choose another from the list`,
+    );
   const file = new URL(`${date}.json`, DAYS);
   if (existsSync(file) && !flags.includes('--replace')) throw new Error(`${date} already has a puzzle (pass --replace to change it)`);
 
