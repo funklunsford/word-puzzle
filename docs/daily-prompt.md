@@ -34,7 +34,7 @@ new days.)
   - the kind of route varies from day to day;
   - no puzzle has a word a player must find to make Par (from 2026-10-28): for every word on its
     lowest-stroke route, there's a way round that word within 4 strokes of the lowest (see `mustFind`
-    in `src/difficulty.ts`). Except: from 2026-10-30, about 15% of days, drawn from the date
+    in `src/difficulty.ts`). Except: from 2026-10-30, about 35% of days, drawn from the date
     (`mustFindDay` in `src/daily/daily.ts`), are the other way round: every candidate has such a word.
     The list says so at the top on those days, and names each candidate's words;
   - every puzzle has at least two easy first steps (from 2026-10-30): words a player can reach from
