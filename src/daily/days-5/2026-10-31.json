@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-31",
+  "puzzle": {
+    "start": "TOUGH",
+    "goal": "PUNCH",
+    "best": 14,
+    "path": [
+      "TOUGH",
+      "COUGH",
+      "CONCH",
+      "CINCH",
+      "PINCH",
+      "PUNCH"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "COUCH",
+        "door": "POUCH",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "TOUCH",
+        "door": "BOUGH",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "TOUCH",
+        "door": "ROUGH",
+        "loses": 5,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "COUCH",
+      "BUNCH"
+    ],
+    "best": 13,
+    "walk": [
+      "TOUGH",
+      "TOUCH",
+      "COUCH",
+      "CONCH",
+      "CINCH",
+      "PINCH",
+      "PUNCH"
+    ]
+  },
+  "onRoute": {
+    "CINCH": 9,
+    "CONCH": 6,
+    "COUCH": 4,
+    "COUGH": 3,
+    "PINCH": 12,
+    "PUNCH": 14,
+    "TOUCH": 1,
+    "TOUGH": 0
+  }
+}
