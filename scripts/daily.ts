@@ -17,7 +17,7 @@
 // the kind of route (see classifyNeed in src/maze.ts) the last week has had least of. At 5 letters,
 // from PAR_RULE_FROM (2026-10-28), it also leaves out puzzles with a word a player must find to make
 // Par (mustFind in src/difficulty.ts), and from FIRST_STEP_FROM (2026-10-30) those with fewer than two
-// easy first steps (firstSteps), and won't check one in. From MUST_FIND_FROM (2026-10-30) about 15% of
+// easy first steps (firstSteps), and won't check one in. From MUST_FIND_FROM (2026-10-30) about 35% of
 // days (mustFindDay in src/daily/daily.ts, drawn from the date) turn the par rule round: only puzzles
 // with a word a player must find. The same date and history always give the same candidates.
 //

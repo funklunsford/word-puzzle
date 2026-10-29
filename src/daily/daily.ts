@@ -49,14 +49,14 @@ export const PAR_RULE_FROM = '2026-10-28';
 export const FIRST_STEP_FROM = '2026-10-30';
 
 /**
- * From MUST_FIND_FROM, about one classic daily in seven (MUST_FIND_SHARE, 15%) is a puzzle with a word
- * a player must find to make Par (see mustFind in src/difficulty.ts), the owner's call: the par rule
- * made every day forgiving, and some days should hang on a word. Every other day has none, as from
+ * From MUST_FIND_FROM, about one classic daily in three (MUST_FIND_SHARE, 35%; 15% until 2026-10-29) is a
+ * puzzle with a word a player must find to make Par (see mustFind in src/difficulty.ts), the owner's
+ * call: the par rule made every day forgiving, and some days should hang on a word. Every other day has none, as from
  * PAR_RULE_FROM. Which days is drawn from the date alone (its own draw, apart from the picker's), so
  * the picker, its check-in and the tests agree. Easycore's are as they were.
  */
 export const MUST_FIND_FROM = '2026-10-30';
-export const MUST_FIND_SHARE = 0.15;
+export const MUST_FIND_SHARE = 0.35;
 
 /** Whether `date`'s classic daily is one with a word a player must find to make Par (MUST_FIND_SHARE of days from MUST_FIND_FROM). */
 export function mustFindDay(date: string): boolean {

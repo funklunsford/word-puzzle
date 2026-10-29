@@ -139,19 +139,19 @@ describe('the days with a word a player must find to make Par', () => {
     for (const d of [PAR_RULE_FROM, '2026-10-29', '2025-01-01']) if (d < MUST_FIND_FROM) expect(mustFindDay(d), d).toBe(false);
   });
 
-  it(`are about ${100 * MUST_FIND_SHARE}% of days after, never more than 3 in a row`, () => {
+  it(`are about ${100 * MUST_FIND_SHARE}% of days after, never more than 6 in a row`, () => {
     const dates = Array.from({ length: 3 * 365 }, (_, i) => day(i));
     const share = dates.filter(mustFindDay).length / dates.length;
     expect(share).toBeGreaterThan(MUST_FIND_SHARE - 0.02);
     expect(share).toBeLessThan(MUST_FIND_SHARE + 0.02);
     let run = 0;
-    for (const d of dates) expect((run = mustFindDay(d) ? run + 1 : 0), d).toBeLessThanOrEqual(3);
+    for (const d of dates) expect((run = mustFindDay(d) ? run + 1 : 0), d).toBeLessThanOrEqual(6);
   });
 
   it('are drawn from the date alone, the same each time', () => {
     const dates = Array.from({ length: 60 }, (_, i) => day(i));
     expect(dates.map(mustFindDay)).toEqual(dates.map(mustFindDay));
-    expect(dates.filter(mustFindDay).slice(0, 4)).toEqual(['2026-10-30', '2026-10-31', '2026-11-02', '2026-11-10']);
+    expect(dates.filter(mustFindDay).slice(0, 4)).toEqual(['2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02']);
   });
 });
 
