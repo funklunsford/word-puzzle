@@ -5,7 +5,23 @@ import { FIRST_STEPS, firstSteps, mustFind } from '../difficulty';
 import { potRoute, walkSteps } from '../inkpots';
 import { PUZZLE_SHAPES, buildGraph, classifyNeed, isObvious, routeWords, solve } from '../maze';
 import { STEP_LIMIT, wordDistance } from '../strokes';
-import { DAYS, DAYS_5, FIRST_STEP_FROM, LAUNCH, MUST_FIND_FROM, MUST_FIND_SHARE, PAR_RULE_FROM, dayFor, dayNumber, localDate, mustFindDay, type DailyPuzzle } from './daily';
+import {
+  DAYS,
+  DAYS_5,
+  FIRST_STEP_FROM,
+  LAUNCH,
+  MUST_FIND_FROM,
+  MUST_FIND_SHARE,
+  PAR_RULE_FROM,
+  SIMILAR_DAYS,
+  SIMILAR_FROM,
+  dayFor,
+  dayNumber,
+  localDate,
+  mustFindDay,
+  similarWords,
+  type DailyPuzzle,
+} from './daily';
 
 /** 5-letter days picked while the pool's puzzles ran 15–18 strokes (2026-10-09), with that range. */
 const EARLIER_FIVE: Record<string, readonly [number, number]> = { '2026-10-08': [15, 18], '2026-10-09': [15, 18] };
@@ -105,6 +121,15 @@ describe('the daily puzzles', () => {
               expect(firstSteps(words, adj, day.puzzle).length).toBeGreaterThanOrEqual(FIRST_STEPS);
             });
 
+          // From SIMILAR_FROM no start or goal is like one from the SIMILAR_DAYS days before (similarWords);
+          // earlier ones stay as they were.
+          if (letters === 5 && day.date >= SIMILAR_FROM)
+            it(`has no start or goal like one from the ${SIMILAR_DAYS} days before`, () => {
+              const from = new Date(Date.parse(`${day.date}T00:00:00Z`) - SIMILAR_DAYS * 86_400_000).toISOString().slice(0, 10);
+              const recent = days.filter(({ day: d }) => d.date >= from && d.date < day.date).flatMap(({ day: d }) => [d.puzzle.start, d.puzzle.goal]);
+              for (const w of [start, goal]) expect(recent.filter((r) => similarWords(w, r)), w).toEqual([]);
+            });
+
           if (letters === 5)
             it('shows a route after the win whose steps add up to its best, with ink pots or without', () => {
               const charged = (steps: { cost: number }[]) => steps.reduce((t, s) => t + s.cost, 0);
@@ -155,3 +180,12 @@ describe('the days with a word a player must find to make Par', () => {
   });
 });
 
+
+describe('words alike, kept apart on days close together', () => {
+  it('are one letter apart or end in the same three letters, either way round', () => {
+    const alike = [['CLAMP', 'CRAMP'], ['CHAMP', 'CLAMP'], ['SLUMP', 'CLUMP'], ['SPADE', 'SHADE'], ['SPILL', 'DRILL'], ['SLINK', 'BRINK']];
+    const unlike = [['SHARK', 'SHADE'], ['CRATE', 'CRAMP'], ['STACK', 'SHARK'], ['CROWN', 'OLIVE']];
+    for (const [a, b] of alike) expect([similarWords(a, b), similarWords(b, a)], `${a} ${b}`).toEqual([true, true]);
+    for (const [a, b] of unlike) expect([similarWords(a, b), similarWords(b, a)], `${a} ${b}`).toEqual([false, false]);
+  });
+});

@@ -1432,6 +1432,13 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Tests** (`src/daily/daily.test.ts`): from `PAR_RULE_FROM`, a day has a must-find word exactly when it's drawn for one; the draw is none before `MUST_FIND_FROM`, 33–37% over three years, never more than 6 in a row, and pinned (its first four dates).
 - `docs/daily-prompt.md` has the exception in its checklist, for `/daily` and the nightly routine.
 
+## No lookalike words on days close together (2026-10-29, branch `similar-words`)
+- **The owner's call:** days close together shouldn't feel like repeats, as CLAMP two days after CHAMP did. From `SIMILAR_FROM` (2026-11-01), no classic daily's start or goal is like a start or goal of the 3 days before it (`SIMILAR_DAYS`), start against goal as well.
+- **Like** (`similarWords` in `src/daily/daily.ts`): one letter apart (CLAMP, CRAMP), or ending in the same three letters (SPILL, DRILL). Among the first 25 dailies it would have kept apart SLUMP then CLUMP, SPADE then SHADE, CHAMP then CLAMP (one letter), and SPILL then DRILL, BRINK then SLINK (the ending). Two letters apart would also catch SHARK after SHADE and CRAMP after CRATE, which don't read alike, and leaves out 31% of candidates; one letter apart alone leaves out 8.6%.
+- **The picker** (`scripts/daily.ts`) leaves such puzzles out before it picks the day's third, so a third isn't emptied by it; the list names the last 3 days' words at the top. The check-in refuses one, even with `--any`, naming the word it's like and its date.
+- **Cost:** on the real 3-day windows so far it leaves out 12.7% of unused puzzles on average (22% at most). Nov 1's list, a must-find day from the hardest third, has 66 to choose from (78 without the rule). Words aren't used up by it, so the pool lasts as long: a walk forward first runs short in mid-December 2027, two days sooner than without it.
+- **Tests** (`src/daily/daily.test.ts`): from `SIMILAR_FROM`, each day's start and goal against the 3 days before; and `similarWords` either way round, on the pairs above and four that aren't alike.
+
 ## Search engines: a title that says what it is, a sitemap and a real 404 (2026-10-28, branch `seo-basics`)
 - **The owner's call:** help the game show up in searches for word games, with nothing on the page itself changing (the tab's name may).
 - **The title** is "Strokes: a daily word ladder puzzle", and the description starts "A daily word ladder puzzle". "Strokes" alone shares its word with the band, illness, swimming and golf, and nothing on the page said what the game is. A start word to a goal word through real words is a word ladder, which is what people call it when they search.
