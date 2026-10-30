@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-01",
+  "puzzle": {
+    "start": "SHACK",
+    "goal": "SNAIL",
+    "best": 12,
+    "path": [
+      "SHACK",
+      "STACK",
+      "STALK",
+      "STALL",
+      "SHALL",
+      "SNAIL"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "STACK",
+        "door": "SNACK",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SHACK",
+        "door": "SMACK",
+        "loses": 3,
+        "pocket": false
+      },
+      {
+        "at": "SHACK",
+        "door": "SNACK",
+        "loses": 3,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "SHALT",
+      "STAID",
+      "STALE"
+    ],
+    "best": 12,
+    "walk": [
+      "SHACK",
+      "STACK",
+      "STALK",
+      "STALL",
+      "SHALL",
+      "SNAIL"
+    ]
+  },
+  "onRoute": {
+    "SHACK": 0,
+    "SHALL": 9,
+    "SNAIL": 12,
+    "STACK": 2,
+    "STALK": 5,
+    "STALL": 7
+  }
+}
