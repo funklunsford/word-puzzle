@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-02",
+  "puzzle": {
+    "start": "JELLY",
+    "goal": "PATTY",
+    "best": 15,
+    "path": [
+      "JELLY",
+      "BELLY",
+      "BILLY",
+      "SILLY",
+      "SALLY",
+      "SALTY",
+      "BATTY",
+      "PATTY"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "BELLY",
+        "door": "PETTY",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "JELLY",
+        "door": "JETTY",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "JELLY",
+        "door": "PETTY",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "SULLY"
+    ],
+    "best": 15,
+    "walk": [
+      "JELLY",
+      "BELLY",
+      "BILLY",
+      "SILLY",
+      "SALLY",
+      "SALTY",
+      "BATTY",
+      "PATTY"
+    ]
+  },
+  "onRoute": {
+    "BATTY": 14,
+    "BELLY": 2,
+    "BILLY": 5,
+    "JELLY": 0,
+    "PATTY": 15,
+    "SALLY": 10,
+    "SALTY": 11,
+    "SILLY": 7
+  }
+}
