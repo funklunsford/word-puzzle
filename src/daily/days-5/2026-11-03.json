@@ -1,0 +1,69 @@
+{
+  "date": "2026-11-03",
+  "puzzle": {
+    "start": "SLEEP",
+    "goal": "STALL",
+    "best": 13,
+    "path": [
+      "SLEEP",
+      "SHEEP",
+      "SHELL",
+      "SHILL",
+      "STILL",
+      "STALL"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "SHEEP",
+        "door": "STEEP",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "SHELL",
+        "door": "SMELL",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "SLEEP",
+        "door": "SKEET",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "SHALL",
+      "SHEER",
+      "SHELF"
+    ],
+    "best": 12,
+    "walk": [
+      "SLEEP",
+      "SHEEP",
+      "SHELL",
+      "SHILL",
+      "SHALL",
+      "STALL"
+    ]
+  },
+  "onRoute": {
+    "SHALL": 11,
+    "SHEEP": 2,
+    "SHELL": 5,
+    "SHILL": 8,
+    "SLEEP": 0,
+    "STALL": 13,
+    "STILL": 10
+  }
+}
