@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-04",
+  "puzzle": {
+    "start": "CLICK",
+    "goal": "BLOOM",
+    "best": 13,
+    "path": [
+      "CLICK",
+      "SLICK",
+      "STICK",
+      "STOCK",
+      "BLOCK",
+      "BLOOM"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "CLICK",
+        "door": "CLUCK",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "CLICK",
+        "door": "CLOCK",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.08
+  },
+  "inkPots": {
+    "pots": [
+      "CLOCK",
+      "CHICK",
+      "STUCK"
+    ],
+    "best": 13,
+    "walk": [
+      "CLICK",
+      "SLICK",
+      "STICK",
+      "STOCK",
+      "BLOCK",
+      "BLOOM"
+    ]
+  },
+  "onRoute": {
+    "BLOCK": 10,
+    "BLOOM": 13,
+    "CLICK": 0,
+    "SLICK": 3,
+    "STICK": 4,
+    "STOCK": 7
+  }
+}
