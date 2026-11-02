@@ -1230,13 +1230,14 @@ export function MazeApp() {
                 <ResetIcon />
                 Reset
               </button>
-              {/* No hints in hardcore: the button gives way to a quiet note. Otherwise each new word
-                  earns one: locked until then (a tap says how), lit with a dot while one's waiting. */}
+              {/* No hints in hardcore: the button gives way to a quiet note. Otherwise the start and
+                  each new word give one: locked when there's none (a tap says how), its bulb lit while
+                  there's one to take. */}
               {hintAt === 'none' ? (
                 <span className="no-hints">No hints</span>
               ) : (
                 <button
-                  className={`pill step-btn hint-btn${hintAt === 'ready' ? ' earned' : ''}`}
+                  className="pill step-btn hint-btn"
                   onClick={askHint}
                   disabled={won || hintAt === 'shown'}
                   aria-disabled={hintAt === 'locked' || undefined}
@@ -1245,15 +1246,6 @@ export function MazeApp() {
                 >
                   {hintAt === 'locked' ? <LockIcon /> : <HintIcon />}
                   Hint
-                  {hintAt === 'ready' && (
-                    <motion.span
-                      className="hint-dot"
-                      aria-hidden="true"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', bounce: 0.5, duration: 0.45 }}
-                    />
-                  )}
                 </button>
               )}
             </div>
