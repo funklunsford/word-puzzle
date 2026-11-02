@@ -1,6 +1,7 @@
 // Hints: the next word on a cheapest remaining route to the goal, from the word the player is in.
 // Asked again in the same word, a hint shows a little more: the next word's meaning, then the
-// letters to change, then the word itself. Each new word made earns one (see hintGate).
+// letters to change, then the word itself. The start word comes with one, and each new word made
+// earns one (see hintGate).
 
 import { STEP_LIMIT, wordDistance } from './strokes';
 import type { Def } from './components/maze/Definition';
@@ -171,7 +172,15 @@ export function afterAsk(gate: HintGate, earned: boolean): { shows: boolean; ear
   return { shows: gate === 'open', earned };
 }
 
-/** Whether an earned hint is waiting once a word is reached: a new word earns one (only one, they don't stack); a free return doesn't. */
+/** A hint waits at a puzzle's start, for the first step, as if the start word were a new word (the owner's call). */
+export const START_HINT = true;
+
+/**
+ * Whether an earned hint is waiting once a word is reached: a new word earns one (only one, they
+ * don't stack); a free return doesn't. In hardcore a new word earns none and ends the start's, so
+ * turning hardcore off mid-puzzle leaves nothing waiting.
+ */
 export function earnHint(earned: boolean, newWord: boolean, hardcore: boolean): boolean {
-  return earned || (newWord && !hardcore);
+  if (hardcore) return newWord ? false : earned;
+  return earned || newWord;
 }

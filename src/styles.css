@@ -796,7 +796,7 @@ body {
   color: var(--spicy);
 }
 
-/* The Hint button keeps the No hints note's width, and holds its dot (an earned hint waiting). */
+/* The Hint button keeps the No hints note's width. */
 .hint-btn {
   position: relative;
   min-width: 146px;
@@ -1677,9 +1677,13 @@ body {
   stroke-linejoin: round;
 }
 
-/* The bulb's glass is lit in gold while there's a hint to take. */
-.hint-btn:not(:disabled) .glow {
-  fill: color-mix(in srgb, var(--gold) 40%, transparent);
+/* The bulb is lit in gold while there's a hint to take: the only sign that one's there. */
+.hint-btn:not(:disabled):not([aria-disabled='true']) .step-icon {
+  stroke: var(--gold);
+}
+
+.hint-btn:not(:disabled):not([aria-disabled='true']) .glow {
+  fill: color-mix(in srgb, var(--gold) 75%, transparent);
 }
 
 /* Locked until a new word earns a hint: drawn as disabled, with a padlock, but still a button, so
@@ -1691,24 +1695,6 @@ body {
 
 .hint-btn[aria-disabled='true']:active {
   transform: none;
-}
-
-/* An earned hint waiting: a gold ring, as round a hinted letter, and a gold dot on its edge, where
-   the pill starts to round. */
-.hint-btn.earned {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 28%, transparent);
-}
-
-.hint-dot {
-  position: absolute;
-  top: -3px;
-  right: 4px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--gold);
-  border: 2px solid var(--bg);
 }
 
 .pill.quiet {
@@ -3097,7 +3083,6 @@ section.board,
 
 .goal-panel,
 .cell.hinted,
-.hint-btn.earned,
 .how-chip.goal,
 .difficulty-pick button.on,
 .level-up {
