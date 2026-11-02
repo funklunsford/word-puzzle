@@ -93,7 +93,13 @@ const isVisit: Check = (v, letters) =>
   (v.from === undefined || isWord(v.from, letters)) &&
   (v.moves === undefined || !!validMoves(v.moves, letters));
 const isStep: Check = (v, letters) =>
-  isRecord(v) && isWord(v.next, letters) && isCount(v.cost) && isCount(v.remaining) && Array.isArray(v.letters) && v.letters.every((i) => isCount(i) && i < letters);
+  isRecord(v) &&
+  isWord(v.next, letters) &&
+  isCount(v.cost) &&
+  isCount(v.remaining) &&
+  Array.isArray(v.letters) &&
+  v.letters.every((i) => isCount(i) && i < letters) &&
+  (v.via === undefined || (Array.isArray(v.via) && v.via.length > 0 && v.via.every((w) => isWord(w, letters))));
 const isHint: Check = (v, letters) =>
   v === null ||
   (isRecord(v) && isWord(v.room, letters) && [1, 2, 3].includes(v.level as number) && (v.step === null || isStep(v.step, letters)) && (v.meaning === null || typeof v.meaning === 'string'));
