@@ -7,7 +7,7 @@ import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, walkSteps, type InkPots } from './inkpots';
 import { movesOf } from './moves';
-import { START_HINT, afterAsk, clue, doorsFrom, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
+import { START_HINT, afterAsk, clue, doorsFrom, earnHint, hintAlong, hintGate, hintSays, hintStep, nextHintLevel, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { hasStarted } from './hardcore';
 import { easyDayFor, easyDays, easyIndex, isEasyDay, loadDifficulty, saveDifficulty, type Difficulty } from './easycore';
@@ -638,8 +638,11 @@ export function MazeApp() {
         setRoom(word);
         setCells(cellsFor(word));
         setHistory([]);
-        // Moving to another word ends the step's hint.
-        setHint(null);
+        // Moving to another word ends the step's hint, unless it's going back the way the hint said
+        // (see hintStep): then the hint goes along, still to show, for the word it named.
+        const along = hintAlong(hintRef.current, room, word);
+        hintRef.current = along;
+        setHint(along);
         // Going back to a word already visited is free, and it isn't listed again (nor does it earn a hint).
         if (trail.some((v) => v.word === word)) {
           setBacks((n) => n + 1);
@@ -792,7 +795,7 @@ export function MazeApp() {
       if (!asked.shows) return;
       earnedRef.current = asked.earned;
       setHintEarned(asked.earned);
-      const step = shown ? shown.step : nextStep(doorsOf!, room, puzzle.goal, visited);
+      const step = shown ? shown.step : hintStep(doorsOf!, room, puzzle.goal, visited);
       // The next word's meaning, as a clue (none when it has no definition, or they didn't load).
       const def = step && defs?.[step.next];
       const meaning = shown ? shown.meaning : step && def ? clue(step.next, def) : null;
@@ -1060,7 +1063,7 @@ export function MazeApp() {
                 unit={unit}
                 compact={compact}
                 disabled={won || locked}
-                hinted={shownHint && shownHint.level >= 2 ? shownHint.step?.letters : undefined}
+                hinted={shownHint && shownHint.level >= 2 && !shownHint.step?.via ? shownHint.step?.letters : undefined}
                 room={room}
                 onEdit={onEdit}
                 onHoverTile={setHoverTile}

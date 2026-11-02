@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import mazeJson from '../public/mazes.json';
 import maze5Json from '../public/mazes-5.json';
 import poolText from '../public/pool.json?raw';
+import pool5Text from '../public/pool-5.json?raw';
 import defs4 from '../public/definitions.json';
 import defs5 from '../public/definitions-5.json';
 import type { Def } from './components/maze/Definition';
-import { START_HINT, afterAsk, clue, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
+import { START_HINT, afterAsk, clue, earnHint, hintAlong, hintGate, hintSays, hintStep, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
+import { seededRandom } from './maze';
 import { buildGraph, solve } from './maze';
 import { wordDistance } from './strokes';
 
@@ -58,6 +60,93 @@ describe('hints', () => {
   it('has nothing to suggest at the goal', () => {
     const p = puzzles[0].puzzle;
     expect(nextStep(doorsOf, p.goal, p.goal, new Set())).toBeNull();
+  });
+});
+
+describe('a hint off the route', () => {
+  // A small maze: from START, SIDE is a dead end (on to GOAL only the long way, by FAR), and the
+  // way on is BENCH. SIDE1 → SIDE2 goes further off.
+  const graph: Record<string, [string, number][]> = {
+    START: [['SIDES', 2], ['BENCH', 2], ['SIDE1', 1]],
+    SIDES: [['START', 2], ['FARTS', 3]],
+    SIDE1: [['START', 1], ['SIDE2', 1]],
+    SIDE2: [['SIDE1', 1]],
+    BENCH: [['START', 2], ['GOALS', 2]],
+    FARTS: [['SIDES', 3], ['GOALS', 5]],
+    GOALS: [['BENCH', 2], ['FARTS', 5]],
+  };
+  const doors: Doors = (w) => graph[w] ?? [];
+
+  it("names the next new word, and the way back to it, where the route starts by going back", () => {
+    const visited = new Set(['START', 'SIDES']);
+    expect(nextStep(doors, 'SIDES', 'GOALS', visited)?.next).toBe('START'); // the route's own first step
+    expect(hintStep(doors, 'SIDES', 'GOALS', visited)).toEqual({ next: 'BENCH', cost: 2, remaining: 4, letters: [0, 1, 2, 3, 4], via: ['START'] });
+  });
+
+  it('goes back through as many words as the route does', () => {
+    const h = hintStep(doors, 'SIDE2', 'GOALS', new Set(['START', 'SIDE1', 'SIDE2']))!;
+    expect([h.next, h.via]).toEqual(['BENCH', ['SIDE1', 'START']]);
+  });
+
+  it('is the plain next step on the route, with no way back', () => {
+    expect(hintStep(doors, 'START', 'GOALS', new Set(['START']))).toEqual({ next: 'BENCH', cost: 2, remaining: 4, letters: [0, 1, 2, 3, 4] });
+  });
+
+  it('goes along when the player goes back the way it said, and ends otherwise', () => {
+    const hint = { room: 'SIDE2', level: 2 as HintLevel, step: { next: 'BENCH', cost: 2, remaining: 4, letters: [0, 2], via: ['SIDE1', 'START'] } };
+    expect(hintAlong(hint, 'SIDE2', 'SIDE1')).toEqual({ ...hint, room: 'SIDE1', step: { ...hint.step, via: ['START'] } });
+    const { via: _, ...plain } = hint.step;
+    expect(hintAlong(hint, 'SIDE2', 'START')).toEqual({ ...hint, room: 'START', step: plain }); // straight back to the end of the way
+    expect(hintAlong(hint, 'SIDE2', 'BENCH')).toBeNull(); // the word itself, made: a new step
+    expect(hintAlong(hint, 'SIDE2', 'SIDES')).toBeNull(); // somewhere else
+    expect(hintAlong(hint, 'SIDE1', 'START')).toBeNull(); // a hint asked in another word
+    expect(hintAlong({ ...hint, step: plain }, 'SIDE2', 'START')).toBeNull(); // no way back: moving on ends it
+  });
+
+  it('says where to go back to, then the step from there', () => {
+    const step: NextStep = { next: 'BENCH', cost: 2, remaining: 4, letters: [0, 2], via: ['SIDE1', 'START'] };
+    expect(hintSays(step, 1, '“a long seat”')).toBe('Hint: go back through SIDE1 to START (free), then make a word meaning “a long seat”.');
+    expect(hintSays({ ...step, via: ['START'] }, 2, null)).toBe('Hint: go back to START (free), then change the 1st and 3rd letters.');
+    expect(hintSays({ ...step, via: ['START'] }, 3, null)).toBe('Hint: go back to START (free), then make BENCH (2 strokes).');
+  });
+
+  it('on 5-letter puzzles, never names a word already made, and its route still solves at the best', () => {
+    const { words: words5, doors: shipped } = maze5Json as unknown as { words: string[]; doors: number[][] };
+    const at = new Map(words5.map((w, i) => [w, i]));
+    const doors5: Doors = (w) => {
+      const flat = shipped[at.get(w)!];
+      return Array.from({ length: flat.length / 2 }, (_, k): [string, number] => [words5[flat[2 * k]], flat[2 * k + 1]]);
+    };
+    const { puzzles: pool5 } = JSON.parse(pool5Text) as { puzzles: { puzzle: { start: string; goal: string } }[] };
+    const random = seededRandom(5);
+    let back = 0;
+    for (const { puzzle: p } of pool5.slice(0, 12))
+      for (let trial = 0; trial < 6; trial++) {
+        // Wander 1–3 new words off the start, then ask.
+        const trail = [p.start];
+        for (let k = 0; k <= trial % 3; k++) {
+          const fresh = doors5(trail[trail.length - 1]).filter(([w]) => !trail.includes(w) && w !== p.goal);
+          if (fresh.length) trail.push(fresh[Math.floor(random() * fresh.length)][0]);
+        }
+        const room = trail[trail.length - 1];
+        const visited = new Set(trail);
+        const h = hintStep(doors5, room, p.goal, visited)!;
+        const label = `${trail.join(' → ')} (goal ${p.goal})`;
+        expect(h.remaining, label).toBe(nextStep(doors5, room, p.goal, visited)!.remaining);
+        expect(!visited.has(h.next) || h.next === p.goal, label).toBe(true);
+        // The way back is through words made, door by door, and the step is a door of its last.
+        let from = room;
+        for (const w of h.via ?? []) {
+          expect(visited.has(w), label).toBe(true);
+          expect(doors5(from).some(([d]) => d === w), label).toBe(true);
+          from = w;
+        }
+        expect(doors5(from).find(([d]) => d === h.next)?.[1], label).toBe(h.cost);
+        if (h.via) back++;
+        // From the word it names, the goal is the rest of the best away.
+        if (h.next !== p.goal) expect(h.cost + nextStep(doors5, h.next, p.goal, new Set([...visited, h.next]))!.remaining, label).toBe(h.remaining);
+      }
+    expect(back).toBeGreaterThan(0); // some of these routes do start by going back
   });
 });
 

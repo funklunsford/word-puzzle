@@ -1,4 +1,5 @@
-// Hints: the next word on a cheapest remaining route to the goal, from the word the player is in.
+// Hints: the next new word on a cheapest remaining route to the goal, from the word the player is in
+// (going back to words already made first, if the route does: see hintStep).
 // Asked again in the same word, a hint shows a little more: the next word's meaning, then the
 // letters to change, then the word itself. The start word comes with one, and each new word made
 // earns one (see hintGate).
@@ -15,6 +16,11 @@ export interface NextStep {
   remaining: number;
   /** Which letters that step changes (indexes into the word). */
   letters: number[];
+  /**
+   * Words already made to go back to first (free), in order, when a cheapest route starts by going
+   * back: the step is made from the last of them, so its cost and letters are from there.
+   */
+  via?: string[];
 }
 
 /** A word's doors: the words one step (at most STEP_LIMIT strokes) away, with each step's cost. */
@@ -52,6 +58,23 @@ export function nextStep(doorsOf: Doors, room: string, goal: string, visited: Se
 /** Every next step on a cheapest route from `room` to `goal`, the best first (see nextStep). The sample puzzle's coach plans towards any of them. */
 export function nextSteps(doorsOf: Doors, room: string, goal: string, visited: Set<string>): NextStep[] {
   if (room === goal) return [];
+  const { enter, dist, done } = towardGoal(doorsOf, room, goal, visited, false);
+  const best = dist.get(room);
+  if (best === undefined || !done.has(room)) return [];
+  // The room's doors that lie on a cheapest route; prefer new words over going back.
+  return doorsOf(room)
+    .map(([w, c]) => ({ w, cost: enter(w, c), after: dist.get(w) }))
+    .filter((o) => done.has(o.w) && o.after !== undefined && o.cost + o.after === best)
+    .sort((a, b) => Number(visited.has(a.w)) - Number(visited.has(b.w)) || a.cost - b.cost)
+    .map((o) => ({ next: o.w, cost: o.cost, remaining: best, letters: [...o.w].flatMap((ch, k) => (ch !== room[k] ? [k] : [])) }));
+}
+
+/**
+ * The strokes to the goal from each word, cheapest first, as far out as `room` (see nextSteps): a
+ * search outward from the goal, going back to a visited word free. With `ties`, every word as near
+ * as the room is settled too, not just the room.
+ */
+function towardGoal(doorsOf: Doors, room: string, goal: string, visited: Set<string>, ties: boolean) {
   const enter = (w: string, c: number) => (visited.has(w) && w !== goal ? 0 : c);
   const dist = new Map<string, number>([[goal, 0]]);
   const done = new Set<string>();
@@ -61,8 +84,9 @@ export function nextSteps(doorsOf: Doors, room: string, goal: string, visited: S
     queue.sort((a, b) => a[0] - b[0]);
     const [d, v] = queue.shift()!;
     if (done.has(v)) continue;
+    if (done.has(room) && d > dist.get(room)!) break;
     done.add(v);
-    if (v === room) break;
+    if (v === room && !ties) break;
     for (const [u, c] of doorsOf(v)) {
       if (done.has(u)) continue;
       const du = d + enter(v, c); // the player steps u → v
@@ -72,14 +96,60 @@ export function nextSteps(doorsOf: Doors, room: string, goal: string, visited: S
       }
     }
   }
+  return { enter, dist, done };
+}
+
+/** The letters that differ between two words (indexes). */
+const changed = (from: string, to: string) => [...to].flatMap((ch, k) => (ch !== from[k] ? [k] : []));
+
+/**
+ * What a hint points to: the first new word on a cheapest route from `room` (or the goal), never a
+ * word already made. Going back is free, so off the route the cheapest way on usually starts by going
+ * back, and a hint naming that word would spend itself on a retreat; this names the new word the
+ * route goes on to, and the words to go back through first (`via`), fewest first. It's still a
+ * cheapest route, so the player can solve from where it sends them.
+ */
+export function hintStep(doorsOf: Doors, room: string, goal: string, visited: Set<string>): NextStep | null {
+  if (room === goal) return null;
+  const { enter, dist, done } = towardGoal(doorsOf, room, goal, visited, true);
   const best = dist.get(room);
-  if (best === undefined || !done.has(room)) return [];
-  // The room's doors that lie on a cheapest route; prefer new words over going back.
-  return doorsOf(room)
-    .map(([w, c]) => ({ w, cost: enter(w, c), after: dist.get(w) }))
-    .filter((o) => done.has(o.w) && o.after !== undefined && o.cost + o.after === best)
-    .sort((a, b) => Number(visited.has(a.w)) - Number(visited.has(b.w)) || a.cost - b.cost)
-    .map((o) => ({ next: o.w, cost: o.cost, remaining: best, letters: [...o.w].flatMap((ch, k) => (ch !== room[k] ? [k] : [])) }));
+  if (best === undefined || !done.has(room)) return null;
+  const onRoute = (w: string, c: number) => done.has(w) && enter(w, c) + dist.get(w)! === best;
+  // Breadth first through words already made (free to go back to) on a cheapest route, until one
+  // has a new word next; the cheapest step of the nearest ones.
+  const from = new Map<string, string | null>([[room, null]]);
+  let layer = [room];
+  while (layer.length) {
+    const steps = layer.flatMap((at) => doorsOf(at).flatMap(([w, c]) => ((!visited.has(w) || w === goal) && onRoute(w, c) ? [{ at, next: w, cost: c }] : [])));
+    if (steps.length) {
+      const { at, next, cost } = steps.reduce((a, b) => (b.cost < a.cost ? b : a));
+      const via: string[] = [];
+      for (let w: string | null = at; w !== room; w = from.get(w!)!) via.unshift(w!);
+      return { next, cost, remaining: best, letters: changed(at, next), ...(via.length > 0 && { via }) };
+    }
+    const further: string[] = [];
+    for (const at of layer)
+      for (const [w, c] of doorsOf(at))
+        if (visited.has(w) && w !== goal && !from.has(w) && onRoute(w, c)) {
+          from.set(w, at);
+          further.push(w);
+        }
+    layer = further;
+  }
+  return nextStep(doorsOf, room, goal, visited);
+}
+
+/**
+ * A step's hint once the player moves from `room` to `word`: it goes along when that's back the way
+ * it said (its `via`, to any word on it), with the rest of the way; otherwise it ends (null).
+ */
+export function hintAlong<H extends { room: string; step: NextStep | null }>(hint: H | null, room: string, word: string): H | null {
+  const way = hint?.room === room ? hint.step?.via : undefined;
+  const at = way ? way.indexOf(word) : -1;
+  if (!hint?.step || !way || at < 0) return null;
+  const { via: _, ...step } = hint.step;
+  const rest = way.slice(at + 1);
+  return { ...hint, room: word, step: rest.length ? { ...step, via: rest } : step };
 }
 
 // ---------- What a hint shows ----------
@@ -140,9 +210,18 @@ function whichLetters(letters: number[]): string {
  * letters to change are outlined in the word too.
  */
 export function hintSays(step: NextStep, level: HintLevel, meaning: string | null): string {
+  const cost = step.cost ? `${step.cost} ${step.cost === 1 ? 'stroke' : 'strokes'}` : 'free';
+  const via = step.via ?? [];
+  if (via.length) {
+    // Back to a word already made first: where to, then the step from there.
+    const back = `Hint: go back${via.length > 1 ? ` through ${via.slice(0, -1).join(', ')}` : ''} to ${via[via.length - 1]} (free), then`;
+    if (level === 1 && meaning) return `${back} make a word meaning ${meaning}.`;
+    if (level < 3) return `${back} change ${whichLetters(step.letters)}${meaning ? `, to a word meaning ${meaning}` : ''}.`;
+    return `${back} make ${step.next} (${cost}).`;
+  }
   if (level === 1 && meaning) return `Hint: the next word means ${meaning}.`;
   if (level < 3) return `Hint: change ${whichLetters(step.letters)}${meaning ? `, to a word meaning ${meaning}` : ''}.`;
-  return `Hint: make ${step.next} next (${step.cost ? `${step.cost} ${step.cost === 1 ? 'stroke' : 'strokes'}` : 'free'}).`;
+  return `Hint: make ${step.next} next (${cost}).`;
 }
 
 // ---------- Earning a hint ----------
