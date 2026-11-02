@@ -5,7 +5,7 @@ import poolText from '../public/pool.json?raw';
 import defs4 from '../public/definitions.json';
 import defs5 from '../public/definitions-5.json';
 import type { Def } from './components/maze/Definition';
-import { afterAsk, clue, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
+import { START_HINT, afterAsk, clue, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
 import { buildGraph, solve } from './maze';
 import { wordDistance } from './strokes';
 
@@ -115,7 +115,7 @@ describe('earning hints', () => {
   // A game as MazeApp plays it: whether an earned hint is waiting, the word the player is in, and
   // how much of that step's hint is shown. Moving to any word ends the step's hint.
   const play = (hardcore = false) => {
-    let earned = false;
+    let earned = START_HINT;
     let shown: HintLevel | null = null;
     const game = {
       gate: (): HintGate => hintGate(earned, shown, hardcore),
@@ -136,16 +136,26 @@ describe('earning hints', () => {
     return game;
   };
 
-  it('is locked at the start, and asking then shows nothing', () => {
+  it('waits at the start, for the first step', () => {
     const game = play();
-    expect(game.gate()).toBe('locked');
-    expect(game.ask()).toBeNull();
-    expect(game.gate()).toBe('locked');
+    expect(game.gate()).toBe('ready');
+    expect([game.ask(), game.gate()]).toEqual([1, 'open']);
   });
 
-  it('is earned by a new word, not by a free return', () => {
-    expect(play().reach(true).gate()).toBe('ready');
-    expect(play().reach(false).gate()).toBe('locked');
+  it("is locked once the start's is used, until a new word: a free return earns none", () => {
+    const game = play();
+    game.ask();
+    game.reach(false); // a free return (the start word's own hint ends with its step)
+    expect(game.gate()).toBe('locked');
+    expect(game.ask()).toBeNull();
+    expect(game.reach(true).gate()).toBe('ready');
+  });
+
+  it("doesn't stack with the start's: an unused one and a new word, still one", () => {
+    const game = play().reach(true);
+    expect(game.ask()).toBe(1);
+    game.reach(false);
+    expect(game.gate()).toBe('locked');
   });
 
   it("doesn't stack: two new words, one hint", () => {
@@ -186,5 +196,8 @@ describe('earning hints', () => {
     expect(game.ask()).toBeNull();
     expect(hintGate(true, null, true)).toBe('none');
     expect(earnHint(false, true, true)).toBe(false);
+    // The start's hint ends with the first word made in hardcore, so turning it off leaves none waiting.
+    expect(earnHint(true, true, true)).toBe(false);
+    expect(earnHint(true, false, true)).toBe(true);
   });
 });

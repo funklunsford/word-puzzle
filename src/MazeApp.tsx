@@ -7,7 +7,7 @@ import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, walkSteps, type InkPots } from './inkpots';
 import { movesOf } from './moves';
-import { afterAsk, clue, doorsFrom, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
+import { START_HINT, afterAsk, clue, doorsFrom, earnHint, hintGate, hintSays, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { hasStarted } from './hardcore';
 import { easyDayFor, easyDays, easyIndex, isEasyDay, loadDifficulty, saveDifficulty, type Difficulty } from './easycore';
@@ -123,12 +123,12 @@ const COMPACT_MAX = 600;
 
 const HELP_KEY = 'strokes:seen-help';
 
-/** The step line, when the Hint button is locked (at the start, or tapped). */
+/** The step line, when the Hint button is locked and tapped. */
 const EARN_HINT = 'Make a new word to earn a hint.';
 /** The Hint button's name and tooltip, as it stands (see hintGate); hardcore has a note instead. */
 const HINT_BUTTON: Record<Exclude<HintGate, 'none'>, { label: string; title: string }> = {
   locked: { label: 'Hint, locked', title: 'Make a new word to earn a hint' },
-  ready: { label: 'Hint, earned', title: "You've earned a hint for this step" },
+  ready: { label: 'Hint, ready', title: 'A hint is ready for this step' },
   open: { label: 'Hint', title: "More of this step's hint" },
   shown: { label: 'Hint', title: "This step's hint is all shown" },
 };
@@ -164,7 +164,7 @@ const startOf = (start: string): Progress => ({
   ink: 0,
   hintsUsed: 0,
   hint: null,
-  hintEarned: false,
+  hintEarned: START_HINT,
   seconds: null,
 });
 
@@ -206,9 +206,9 @@ export function MazeApp() {
   const hintRef = useRef(hint);
   hintRef.current = hint;
   const [hintsUsed, setHintsUsed] = useState(0);
-  // A hint is earned: each new word made earns one (only one waits), and a step's first ask uses it
-  // (see hintGate). None at the start, after a restart, or in a new puzzle.
-  const [hintEarned, setHintEarned] = useState(false);
+  // A hint is earned: the start word comes with one, each new word made earns one (only one waits),
+  // and a step's first ask uses it (see hintGate). So does a restart or a new puzzle (startOf).
+  const [hintEarned, setHintEarned] = useState(START_HINT);
   const earnedRef = useRef(hintEarned);
   earnedRef.current = hintEarned;
   const [defs, setDefs] = useState<Definitions | null>(null);
