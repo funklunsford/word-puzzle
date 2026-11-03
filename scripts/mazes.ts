@@ -7,11 +7,13 @@
 // It writes the maze to public/mazes.json (mazes-5.json at 5 letters) and the pool beside it, in
 // public/pool.json (pool-5.json). The game loads the maze on every visit, but the pool only for the
 // freshPuzzle flag, so players don't download it. --size is how many puzzles the pool holds (1,200 at
-// 5 letters, over three years of dailies; 420 at 4), and --seed which ones: another seed gives another
-// pool from the same words, for when the dailies have used up most of this one. At 5 letters 12-stroke
-// puzzles set the limit: few keep the rules, and they dry up fast. Building 2,000 (a quarter at each of
-// 12 to 15 strokes) gave up after 200,000 candidates with 361 of its 500 at 12 strokes, having found the
-// first 105 in about 10,000. A new seed will mostly find the same ones.
+// 5 letters, about a year of dailies, as the daily rules use it; 420 at 4), and --seed which ones: another seed gives another
+// pool from the same words, for when the dailies have used up most of this one. It leaves out the
+// pairs already played, so it only holds fresh ones. A new seed draws from the same puzzles, and there
+// are only so many: of the 33,229 the 5-letter pool could draw (2026-11-03), 7,834 pairs keep its
+// rules, and 1,912 of those suit an ordinary day (no word a player must find, two easy first steps),
+// about 8 years of them. 12-stroke puzzles are scarcest: 396 keep the rules, so the pool spreads its
+// lowest strokes evenly only as far as each total has enough (see EVEN_TRIES below).
 //
 // Rooms are the words in data/familiar-4.txt (see scripts/familiar.ts); a door joins two words
 // that are at most STEP_LIMIT stroke edits apart (see src/maze.ts). The puzzle's `best` is the
@@ -33,10 +35,11 @@
 // and that pool alone. Its days are picked from it by date (src/easycore.ts), so once it ships,
 // rebuilding it changes every Easycore day, past ones too.
 
-import { readFileSync, writeFileSync } from 'node:fs';
-import { distancesFrom, findPockets, isTricky, keep, measure, meetDepth, parChance, walkChance, type Difficulty } from '../src/difficulty';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { distancesFrom, findPockets, isTricky, keep, measure, meetDepth, parChance, solveType, walkChance, type Difficulty } from '../src/difficulty';
 import { placePots, potRoute, potValues } from '../src/inkpots';
-import { EASY_SHAPE, POOL_MIXES, PUZZLE_SHAPES, buildGraph, classifyNeed, randomPuzzle, routeWords, seededRandom, solve, type Need } from '../src/maze';
+import { EASY_SHAPE, POOL_CAPS, POOL_MIXES, PUZZLE_SHAPES, buildGraph, classifyNeed, randomPuzzle, routeWords, seededRandom, solve, type Need, type Puzzle } from '../src/maze';
+import { SAMPLE } from '../src/tutorial';
 import { parseWordList } from '../src/wordlist';
 
 const option = (name: string) => {
@@ -109,10 +112,31 @@ if (EASY) {
 // there still takes planning 2 steps ahead (meetDepth; see src/difficulty.ts and
 // docs/difficulty-5-letters.md). Its mix is set by quota (POOL_MIXES in src/maze.ts), evenly across
 // the best totals (9, 10 and 11; 12 to 15 for 5-letter words, whose pool is balanced by best total
-// alone).
+// alone) as far as each has enough: after EVEN_TRIES candidates, the places a total couldn't fill go
+// to whichever totals come up. At 5 letters 12 strokes runs short (it did even before the caps), so
+// the pool has fewer 12s and more of the rest.
+//
+// At 5 letters the pool also keeps to POOL_CAPS (src/maze.ts), so it doesn't crowd the dense S-
+// corner of the maze: no first letter begins more than a quarter of its starts and goals, and no word
+// between start and goal is on the lowest routes of more than 3% of its puzzles. And it leaves out the
+// pairs already played as dailies (either way round), which a pool built after them would only carry
+// as dead weight, and any puzzle whose route the game shows (its path, or its ink pots' walk) takes a
+// step of the tutorial's sample (src/tutorial.ts), which would give the sample away.
 const MIX = POOL_MIXES[LETTERS];
+const CAPS = EASY ? null : POOL_CAPS[LETTERS];
+const EVEN_TRIES = 60_000;
 const everyday = new Set(parseWordList(readFileSync(new URL(`../data/everyday-${LETTERS}.txt`, import.meta.url), 'utf8')));
 const endpoint = (w: string) => everyday.has(w) && baseWord(w);
+const pairOf = (a: string, b: string) => [a, b].sort().join('|');
+const dayFiles = new URL(`../src/daily/days${suffix}/`, import.meta.url);
+const played = new Set(
+  readdirSync(dayFiles)
+    .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
+    .map((f) => JSON.parse(readFileSync(new URL(f, dayFiles), 'utf8')).puzzle as Puzzle)
+    .map((p) => pairOf(p.start, p.goal)),
+);
+const sampleSteps = new Set([pairOf(SAMPLE.start, SAMPLE.goal), ...SAMPLE.path.slice(1).map((w, i) => pairOf(SAMPLE.path[i], w))]);
+const givesSampleAway = (route: string[]) => route.some((w, i) => i > 0 && sampleSteps.has(pairOf(route[i - 1], w)));
 // Quota per cell: (best, need), or (best) alone when the mix isn't set
 const bests = Array.from({ length: SHAPE.best[1] - SHAPE.best[0] + 1 }, (_, i) => SHAPE.best[0] + i);
 const quota = new Map<string, number>();
@@ -121,6 +145,12 @@ for (const b of bests) {
   else for (const need of Object.keys(MIX.need) as Need[]) quota.set(`${b}|${need}`, Math.round((POOL / bests.length) * MIX.need[need]));
 }
 const target = [...quota.values()].reduce((t, n) => t + n, 0);
+// What the caps count: starts and goals by first letter, and each word between by the puzzles it's on a lowest route of.
+const firstLetters = new Map<string, number>();
+const traffic = new Map<string, number>();
+const between = (p: Puzzle, onRoute: Record<string, number>) => Object.keys(onRoute).filter((w) => w !== p.start && w !== p.goal);
+const lettersFit = (p: Puzzle) => !CAPS || [p.start, p.goal].every((w) => (firstLetters.get(w[0]) ?? 0) + [p.start, p.goal].filter((v) => v[0] === w[0]).length <= CAPS.firstLetter * 2 * target);
+const routeFits = (p: Puzzle, onRoute: Record<string, number>) => !CAPS || between(p, onRoute).every((w) => (traffic.get(w) ?? 0) < CAPS.routeWord * target);
 const random = seededRandom(SEED);
 const seen = new Set<string>();
 const puzzles = [];
@@ -130,31 +160,45 @@ console.time('pool');
 while (puzzles.length < target) {
   if (++attempts > 200_000) {
     const starved = [...quota].filter(([, n]) => n > 0).map(([k, n]) => `${k} (${n} short)`);
-    throw new Error(`gave up filling the pool after ${attempts - 1} candidates; still short: ${starved.join(', ')}`);
+    throw new Error(`gave up filling the pool after ${attempts - 1} candidates, with ${puzzles.length} of ${target}; still short: ${starved.join(', ')}`);
   }
+  // Evenly across the cells at first; then into whatever cell has room.
+  const even = attempts <= EVEN_TRIES;
   const p = randomPuzzle(words, adj, random, endpoint, SHAPE);
-  if (seen.has(p.start + p.goal) || seen.has(p.goal + p.start)) continue;
-  if (![...quota].some(([k, n]) => n > 0 && k.startsWith(`${p.best}|`))) continue;
+  if (seen.has(p.start + p.goal) || seen.has(p.goal + p.start) || played.has(pairOf(p.start, p.goal))) continue;
+  if (even && ![...quota].some(([k, n]) => n > 0 && k.startsWith(`${p.best}|`))) continue;
+  if (!lettersFit(p)) continue;
   // The cheap measures first: only a tricky puzzle goes on that passes a pocket (the pocket rule) or
   // that working back from the goal and then taking the door that looks best doesn't solve (meet).
   const difficulty: Difficulty = measure(words, adj, p, pockets);
   if (!isTricky(difficulty)) continue;
   if (RULE === 'pocket' ? !difficulty.pocketsBeside : meetDepth(words, adj, p) < 2) continue;
+  const onRoute = routeWords(words, adj, p.start, p.goal);
+  if (!routeFits(p, onRoute)) continue;
   const { need, path } = classifyNeed(words, adj, p.start, p.goal, p.best);
   const cell = `${p.best}|${MIX ? need : 'any'}`;
   tries.set(cell, (tries.get(cell) ?? 0) + 1);
-  if (!quota.get(cell)) continue;
-  quota.set(cell, quota.get(cell)! - 1);
-  seen.add(p.start + p.goal);
+  if (even && !quota.get(cell)) continue;
   const puzzle = { ...p, path };
   const potWords = placePots(words, adj, p.start, p.goal, p.best, path, random);
   const { bound: _bound, ...plan } = potRoute(words, adj, p.start, p.goal, potWords);
-  puzzles.push({ puzzle, need, tricky: true, difficulty: keep(difficulty, parChance(words, adj, puzzle)), inkPots: plan, onRoute: routeWords(words, adj, p.start, p.goal) });
+  if (givesSampleAway(path) || givesSampleAway(plan.walk)) continue;
+  quota.set(cell, quota.get(cell)! - 1);
+  seen.add(p.start + p.goal);
+  for (const w of [p.start, p.goal]) firstLetters.set(w[0], (firstLetters.get(w[0]) ?? 0) + 1);
+  for (const w of between(p, onRoute)) traffic.set(w, (traffic.get(w) ?? 0) + 1);
+  puzzles.push({ puzzle, need, tricky: true, difficulty: keep(difficulty, parChance(words, adj, puzzle)), inkPots: plan, onRoute, solve: solveType(words, adj, puzzle) });
 }
 console.timeEnd('pool');
 const mean = puzzles.reduce((t, x) => t + x.puzzle.best, 0) / puzzles.length;
 const share = (need: Need) => `${Math.round((100 * puzzles.filter((x) => x.need === need).length) / puzzles.length)}%`;
-console.log(`pool: ${puzzles.length} puzzles from ${attempts} candidates, best ${mean.toFixed(2)} on average; needs no C/I/V ${share('none')}, C/I/V in start or goal ${share('letter')}, a stepping stone ${share('stone')}`);
+console.log(`pool: ${puzzles.length} puzzles from ${attempts} candidates, best ${mean.toFixed(2)} on average (${bests.map((b) => `${b}: ${puzzles.filter((x) => x.puzzle.best === b).length}`).join(', ')}); needs no C/I/V ${share('none')}, C/I/V in start or goal ${share('letter')}, a stepping stone ${share('stone')}`);
+const percent = (n: number) => `${((100 * n) / puzzles.length).toFixed(1)}%`;
+const busiest = [...traffic].sort((a, b) => b[1] - a[1]).slice(0, 5);
+const letters = [...firstLetters].sort((a, b) => b[1] - a[1]).slice(0, 3);
+console.log(`starts and goals by first letter: ${letters.map(([c, n]) => `${c} ${((100 * n) / (2 * puzzles.length)).toFixed(0)}%`).join(', ')}; on the most lowest routes: ${busiest.map(([w, n]) => `${w} ${percent(n)}`).join(', ')}`);
+const kinds = (key: 'direction' | 'texture') => [...new Set(puzzles.map((x) => x.solve[key]))].map((k) => `${k} ${percent(puzzles.filter((x) => x.solve[key] === k).length)}`).join(', ');
+console.log(`solved: ${kinds('direction')}; moves: ${kinds('texture')}`);
 const chances = puzzles.map((x) => x.difficulty.parChance).sort((a, b) => a - b);
 const depths = [1, 2, 3, 4].map((k) => puzzles.filter((x) => x.difficulty.depth === k).length);
 console.log(`difficulty: par chance median ${chances[chances.length >> 1]} (from ${chances[0]} to ${chances[chances.length - 1]}); depth 2/3/4+: ${depths.slice(1).join('/')}; with a trap ${puzzles.filter((x) => x.difficulty.traps.length).length}, a trap into a pocket ${puzzles.filter((x) => x.difficulty.pocketTrap).length}`);

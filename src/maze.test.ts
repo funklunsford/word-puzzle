@@ -6,7 +6,7 @@ import pool5Text from '../public/pool-5.json?raw';
 import easyPoolText from '../public/pool-5-easy.json?raw';
 import simpleText from '../data/simple-5.txt?raw';
 import { distancesFrom, parChance } from './difficulty';
-import { EASY_SHAPE, ONE_STROKE, POOL_MIX, PUZZLE_SHAPE, PUZZLE_SHAPES, buildGraph, classifyNeed, hubStep, isObvious, randomPuzzle, solve, steppingStone, type Need, type Puzzle } from './maze';
+import { EASY_SHAPE, ONE_STROKE, POOL_CAPS, POOL_MIX, PUZZLE_SHAPE, PUZZLE_SHAPES, buildGraph, classifyNeed, hubStep, isObvious, randomPuzzle, solve, steppingStone, type Need, type Puzzle } from './maze';
 import { STEP_LIMIT, wordDistance } from './strokes';
 import { parseWordList } from './wordlist';
 
@@ -79,7 +79,7 @@ describe('maze graph', () => {
   });
 });
 
-type PoolJson = { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] }; puzzles: { puzzle: { start: string; goal: string; best: number; path: string[] }; need: Need; tricky: boolean }[] };
+type PoolJson = { words: string[]; puzzle: { start: string; goal: string; best: number; path: string[] }; puzzles: { puzzle: { start: string; goal: string; best: number; path: string[] }; need: Need; tricky: boolean; onRoute: Record<string, number> }[] };
 // The pools (scripts/mazes.ts) come in as text: they're big, and type-checking them as JSON would be slow.
 const withPool = (m: unknown, text: string): PoolJson => ({ ...(m as Omit<PoolJson, 'puzzles'>), puzzles: (JSON.parse(text) as Pick<PoolJson, 'puzzles'>).puzzles });
 const maze4 = withPool(mazeJson, poolText);
@@ -107,14 +107,34 @@ describe.each([
   const poolAdj = letters === 4 ? adj : buildGraph(poolWords);
   const [lo, hi] = PUZZLE_SHAPES[letters].best;
 
-  it('spreads its lowest strokes evenly across its range', () => {
+  it('spreads its lowest strokes evenly across its range, as far as each total has enough', () => {
     expect(pool.length).toBeGreaterThanOrEqual(300);
     for (const { puzzle } of pool) expect(puzzle.best).toBeGreaterThanOrEqual(lo), expect(puzzle.best).toBeLessThanOrEqual(hi);
-    const mean = pool.reduce((t, x) => t + x.puzzle.best, 0) / pool.length;
-    expect(mean).toBeCloseTo((lo + hi) / 2, 1);
     const per = (b: number) => pool.filter((x) => x.puzzle.best === b).length;
-    for (let b = lo; b <= hi; b++) expect(per(b)).toBe(pool.length / (hi - lo + 1));
+    const share = pool.length / (hi - lo + 1);
+    if (letters === 4) {
+      const mean = pool.reduce((t, x) => t + x.puzzle.best, 0) / pool.length;
+      expect(mean).toBeCloseTo((lo + hi) / 2, 1);
+      for (let b = lo; b <= hi; b++) expect(per(b)).toBe(share);
+    } else {
+      // At 5 letters 12 strokes runs short under the pool's caps (scripts/mazes.ts): it has what the
+      // builder found, still a tenth of the pool or more, and its places went to the others.
+      expect(per(lo)).toBeGreaterThanOrEqual(pool.length / 10);
+      for (let b = lo + 1; b <= hi; b++) expect(per(b)).toBeGreaterThanOrEqual(share);
+    }
   });
+
+  if (POOL_CAPS[letters])
+    it('keeps out of one corner of the maze: no first letter begins more than its share of starts and goals, and no word between is on too many lowest routes (POOL_CAPS)', () => {
+      const caps = POOL_CAPS[letters]!;
+      const ends = pool.flatMap((x) => [x.puzzle.start, x.puzzle.goal]);
+      const firsts = new Map<string, number>();
+      for (const w of ends) firsts.set(w[0], (firsts.get(w[0]) ?? 0) + 1);
+      for (const [c, n] of firsts) expect(n / ends.length, c).toBeLessThanOrEqual(caps.firstLetter);
+      const traffic = new Map<string, number>();
+      for (const { puzzle: p, onRoute } of pool) for (const w of Object.keys(onRoute)) if (w !== p.start && w !== p.goal) traffic.set(w, (traffic.get(w) ?? 0) + 1);
+      for (const [w, n] of traffic) expect(n / pool.length, w).toBeLessThanOrEqual(caps.routeWord);
+    });
 
   it('tags each puzzle truly, and stores a shortest route that shows it', () => {
     for (const { puzzle: p, need } of pool) {

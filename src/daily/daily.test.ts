@@ -13,12 +13,15 @@ import {
   MUST_FIND_FROM,
   MUST_FIND_SHARE,
   PAR_RULE_FROM,
+  ROUTE_REST_DAYS,
+  ROUTE_REST_FROM,
   SIMILAR_DAYS,
   SIMILAR_FROM,
   dayFor,
   dayNumber,
   localDate,
   mustFindDay,
+  sharedRouteWords,
   similarWords,
   type DailyPuzzle,
 } from './daily';
@@ -130,6 +133,15 @@ describe('the daily puzzles', () => {
               for (const w of [start, goal]) expect(recent.filter((r) => similarWords(w, r)), w).toEqual([]);
             });
 
+          // From ROUTE_REST_FROM no daily's lowest routes share a word with those of the ROUTE_REST_DAYS
+          // days before (sharedRouteWords); earlier ones stay as they were.
+          if (letters === 5 && day.date >= ROUTE_REST_FROM)
+            it(`shares no word on its lowest routes with the ${ROUTE_REST_DAYS} days before`, () => {
+              const from = new Date(Date.parse(`${day.date}T00:00:00Z`) - ROUTE_REST_DAYS * 86_400_000).toISOString().slice(0, 10);
+              const recent = days.filter(({ day: d }) => d.date >= from && d.date < day.date);
+              expect(recent.flatMap(({ day: d }) => sharedRouteWords(day.onRoute, d.onRoute).map((w) => `${w} (${d.date})`))).toEqual([]);
+            });
+
           if (letters === 5)
             it('shows a route after the win whose steps add up to its best, with ink pots or without', () => {
               const charged = (steps: { cost: number }[]) => steps.reduce((t, s) => t + s.cost, 0);
@@ -189,3 +201,14 @@ describe('words alike, kept apart on days close together', () => {
     for (const [a, b] of unlike) expect([similarWords(a, b), similarWords(b, a)], `${a} ${b}`).toEqual([false, false]);
   });
 });
+
+describe('lowest routes, kept apart for a week', () => {
+  it('share the words both have, starts and goals too', () => {
+    // CLINK → STACK (2026-10-22) and SHACK → SNAIL (2026-11-01) both pass STALK.
+    const clink = { CLINK: 0, SLINK: 3, STINK: 4, STANK: 7, STALK: 10, STACK: 13 };
+    const shack = { SHACK: 0, STACK: 2, STALK: 5, STALL: 7, SHALL: 9, SNAIL: 12 };
+    expect(sharedRouteWords(clink, shack)).toEqual(['STALK', 'STACK']);
+    expect(sharedRouteWords(shack, { CROWN: 0, OLIVE: 13 })).toEqual([]);
+  });
+});
+

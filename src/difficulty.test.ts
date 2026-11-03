@@ -22,13 +22,16 @@ import {
   planningDepth,
   reversed,
   searchEffort,
+  solveTexture,
+  solveType,
   walkChance,
   type KeptDifficulty,
+  type SolveType,
 } from './difficulty';
-import { isObvious, type Graph, type Need, type Puzzle } from './maze';
+import { isObvious, solve, type Graph, type Need, type Puzzle } from './maze';
 import { strokeDiff, wordDistance } from './strokes';
 
-type MazeJson = { words: string[]; doors: number[][]; puzzles: { puzzle: Puzzle; need: Need; tricky: boolean; difficulty: KeptDifficulty }[] };
+type MazeJson = { words: string[]; doors: number[][]; puzzles: { puzzle: Puzzle; need: Need; tricky: boolean; difficulty: KeptDifficulty; solve?: SolveType }[] };
 // The maze's own doors, as shipped (scripts/mazes.ts builds them).
 const doorsOf = (m: MazeJson): Graph => m.doors.map((flat) => Array.from({ length: flat.length / 2 }, (_, k) => ({ to: flat[2 * k], cost: flat[2 * k + 1] })));
 // The pools (scripts/mazes.ts) come in as text: they're big, and type-checking them as JSON would be slow.
@@ -328,3 +331,33 @@ describe.each([
     expect(a).toBeLessThanOrEqual(1);
   });
 });
+
+describe('solveType', () => {
+  const words5 = maze5.words;
+  const adj5 = doorsOf(maze5);
+  const puzzle = (start: string, goal: string) => solve(words5, adj5, start, goal)!;
+
+  it('says which way of planning makes Par, and what the moves are, for dailies the study looked at', () => {
+    // Planning from the start makes Par at POUCH → BATCH, working back from the goal at MINER → CHEER,
+    // either at TOUGH → PUNCH, and neither alone at CRAMP → DRILL.
+    expect(solveType(words5, adj5, puzzle('POUCH', 'BATCH'))).toEqual({ direction: 'start', texture: 'ladder' });
+    expect(solveType(words5, adj5, puzzle('MINER', 'CHEER'))).toEqual({ direction: 'goal', texture: 'shuffle' });
+    expect(solveType(words5, adj5, puzzle('TOUGH', 'PUNCH'))).toEqual({ direction: 'either', texture: 'ladder' });
+    expect(solveType(words5, adj5, puzzle('CRAMP', 'DRILL'))).toEqual({ direction: 'middle', texture: 'shuffle' });
+    expect(solveType(words5, adj5, puzzle('HIKER', 'TOWER')).texture).toBe('leap');
+  });
+
+  it('counts the fewest steps of two or three letters over every lowest route, not just the stored one', () => {
+    // A small maze: AAAA → BAAA → BBAA is 2 strokes in one-letter steps, and so is AAAA → BBBA → BBAA,
+    // whose first step changes three letters. The stored route takes that one; the other is a ladder.
+    const words = ['AAAA', 'BAAA', 'BBBA', 'BBAA'];
+    const g: Graph = [[{ to: 1, cost: 1 }, { to: 2, cost: 1 }], [{ to: 0, cost: 1 }, { to: 3, cost: 1 }], [{ to: 0, cost: 1 }, { to: 3, cost: 1 }], [{ to: 1, cost: 1 }, { to: 2, cost: 1 }]];
+    expect(solveTexture(words, g, { start: 'AAAA', goal: 'BBAA', best: 2, path: ['AAAA', 'BBBA', 'BBAA'] })).toBe('ladder');
+    expect(solveTexture(words, g, { start: 'AAAA', goal: 'BBBA', best: 1, path: ['AAAA', 'BBBA'] })).toBe('leap');
+  });
+
+  it('is kept with each pool puzzle as solveType finds it', () => {
+    for (const { puzzle: p, solve: kept } of maze5.puzzles.slice(0, 12)) expect(kept, `${p.start} → ${p.goal}`).toEqual(solveType(words5, adj5, p));
+  });
+});
+
