@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { DESKTOP_MIN, chooseLetters } from './letters';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DESKTOP_MIN, chooseLetters, loadLetters } from './letters';
 
 describe('which game a visit plays', () => {
   it('gives a wide window with a mouse or trackpad the 5-letter game', () => {
@@ -24,5 +24,24 @@ describe('which game a visit plays', () => {
     expect(chooseLetters({ fine: false, width: 1366, asked: null, everywhere: true })).toBe(5); // a tablet
     expect(chooseLetters({ fine: true, width: 1280, asked: null, everywhere: true })).toBe(5);
     expect(chooseLetters({ fine: false, width: 390, asked: '4', everywhere: true })).toBe(4);
+  });
+
+  describe('the address', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    /** A phone at `search`. */
+    const phone = (search: string) => {
+      vi.stubGlobal('window', { matchMedia: () => ({ matches: false }), innerWidth: 390 });
+      vi.stubGlobal('location', { search });
+    };
+
+    it('is ignored on the live site: ?letters=4 still plays the 5-letter game', () => {
+      phone('?letters=4');
+      expect(loadLetters(true, false)).toBe(5);
+    });
+
+    it('chooses the game in development', () => {
+      phone('?letters=4');
+      expect(loadLetters(true, true)).toBe(4);
+    });
   });
 });

@@ -231,7 +231,7 @@ Playtesters missed words like POSH and PITH. Rooms are now **2,112** words (up f
 
 ## Modifiers and feature flags (2026-10-04)
 Modifiers are prototyped behind **feature flags** (`src/flags.ts`).
-- **Setting them:** each flag has a default. The Dev section of the side card toggles it, remembered in the browser, and a link can set it with `?flags=inkPots` or `?flags=-inkPots`.
+- **Setting them:** each flag has a default. The Dev section of the side card toggles it, remembered in the browser, and a link can set it with `?flags=inkPots` or `?flags=-inkPots`. Since 2026-11-03 both work only in development; the live site always plays the defaults (see "Flags are for development only").
 - **Toggling restarts the puzzle,** so a modifier's state never mixes with another setting's best score.
 - Brainstormed but not built yet: an extra charge (one 4-stroke step), a stroke of the day (one stroke type is free), and a clean-step refund.
 
@@ -1503,6 +1503,13 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
   - `src/daily/daily.test.ts`: from `ROUTE_REST_FROM`, each day against the 7 before; and `sharedRouteWords`.
   - `src/difficulty.test.ts`: `solveType` on five dailies; a small maze where the stored route leaps but another lowest one is a ladder; and the pool's kept types.
   - `src/maze.test.ts`: the pool's caps. The lowest-strokes spread test now asks for evenness at 4 letters, and at 5 a tenth or more at 12 and a quarter or more at each of the rest.
+
+## Flags are for development only (2026-11-03, branch `flags-dev-only`)
+- **The owner's call:** the feature flags shouldn't be usable on the live site. Until now a `?flags=` link turned them on or off for anyone: a random pool puzzle each load (`freshPuzzle`), ink pots, ad slots, the 4-letter game (`-fiveLetters`). Flags saved in a browser applied there too. The Dev section that toggles them was already development only.
+- **The rule** (`loadFlags` in `src/flags.ts`): on the live site (any production build) the flags are their defaults, whatever a link or the browser's storage says. In development (`npm run dev`) the Dev section and `?flags=` work as before. Turning a flag on for everyone is still changing its default.
+- **`?letters=` too** (`loadLetters` in `src/letters.ts`, the owner's call): on the live site the address no longer chooses the game, so every visit plays 5 letters (the `fiveLetters` flag is on). In development `?letters=4` still plays the 4-letter game, its days and scenes kept. `?day=` still opens a past day (not a future one) from Past puzzles, as before.
+- **Checked:** the production build (`vite preview`) with `?flags=freshPuzzle,inkPots,ads` and a Dev toggle saved in the browser plays today's daily, with no ink pots or ad slots; the dev server with the same link plays a random pool puzzle with ink pots. `?letters=4` plays the 5-letter daily in the production build and the 4-letter one on the dev server.
+- **Tests:** `src/flags.test.ts`: defaults on the live site whatever a link or storage says; a link and storage both count in development. `src/letters.test.ts`: `?letters=4` on a phone plays 5 letters live and 4 in development.
 
 ## Search engines: a title that says what it is, a sitemap and a real 404 (2026-10-28, branch `seo-basics`)
 - **The owner's call:** help the game show up in searches for word games, with nothing on the page itself changing (the tab's name may).
