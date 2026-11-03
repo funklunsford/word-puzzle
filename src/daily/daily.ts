@@ -5,7 +5,7 @@
 // the 4-letter game's in src/daily/days. (Its one day scene, 2026-10-06.ts, no longer plays: an Ace
 // gets the confetti, and nothing else celebrates.)
 
-import type { KeptDifficulty } from '../difficulty';
+import type { KeptDifficulty, SolveType } from '../difficulty';
 import type { WordLength } from '../letters';
 import { seededRandom, type Need, type Puzzle } from '../maze';
 
@@ -20,6 +20,8 @@ export interface DailyPuzzle {
   difficulty?: KeptDifficulty;
   /** Words on a lowest-stroke route, with their strokes from the start (see routeWords): hardcore mode keeps to them. */
   onRoute: Record<string, number>;
+  /** How it's solved (see solveType), for the picker to vary; days checked in before the pool kept it don't say. */
+  solve?: SolveType;
 }
 
 const puzzles = import.meta.glob<DailyPuzzle>('./days/*.json', { import: 'default' });
@@ -79,6 +81,18 @@ export function similarWords(a: string, b: string): boolean {
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) apart++;
   return apart <= 1 || a.slice(-3) === b.slice(-3);
 }
+
+/**
+ * From ROUTE_REST_FROM, no classic daily shares a word on its lowest-stroke routes (its onRoute, start
+ * and goal too) with the lowest-stroke routes of the ROUTE_REST_DAYS days before it (the owner's call:
+ * the middle of a route came back too soon, STALK and STALL four times in two weeks, though the start
+ * and goal rules held). Earlier days stay as they were.
+ */
+export const ROUTE_REST_FROM = '2026-11-06';
+export const ROUTE_REST_DAYS = 7;
+
+/** The words two days' lowest-stroke routes share (see ROUTE_REST_FROM), in the first one's order. */
+export const sharedRouteWords = (a: Record<string, number>, b: Record<string, number>) => Object.keys(a).filter((w) => w in b);
 
 /** A date as YYYY-MM-DD, in the player's own time zone. */
 export const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

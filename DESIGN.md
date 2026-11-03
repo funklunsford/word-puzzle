@@ -1457,6 +1457,53 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Measured:** on the same wanderers, hints back to a word already made fall from 64% to none.
 - **Tests** (`src/hints.test.ts`): a small maze with a dead end and a longer way off: the new word and the way back, through two words, and the plain step with none; the wording; going along (to the next word back, straight to the end, and ending otherwise); and on 5-letter pool puzzles, after 1–3 random words, a hint never names a word made, its way back is door by door through words made, and from its word the goal is the rest of the best away.
 
+## Days that don't repeat their middles, and vary how they're solved (2026-11-03, branch `solve-variety`)
+- **The owner's call**, after a study of how the puzzles get solved (the 1,200 pool puzzles and the first 30 dailies, with the game's simulated players): the three changes below.
+- **What the study found:**
+  - **Planning is what solves these.** Walking without a plan makes Par in about 2% of games. Planning ahead (looking at about 20 words in your head, `planChance`) makes Par at least half the time on 62% of puzzles from the start, 67% from the goal, and 89% meeting in the middle. The pool keeps only puzzles that defeat the rules of thumb and working back 3 doors, so some of this is by design.
+  - **So each puzzle has a direction:** the way of planning that makes Par. Either end (47% of the pool), the start only (16%), the goal only (21%), or neither alone (17%). It follows difficulty: 84% of the easiest third solve either way; 45% of the hardest need the middle or more.
+  - **And a texture:** a ladder of one-letter swaps (22%), one leap that changes 2–3 letters at once (34%), or a shuffle of two or more (44%). This is nearly independent of direction.
+  - **Neither varied by more than chance:** a day had the same direction as the day before 30% of the time, what random picks give.
+  - **The middles repeated, though the start and goal rules held:**
+    - 39% of days shared a lowest-route word with the week before. STALK and STALL came up four times in two weeks; CLINK, CLUNK and CLANK five.
+    - Random picks repeat as often, so it was the pool.
+    - 36% of its starts and goals were S- words, against 16% of the words that can be one. STALL was on the lowest routes of 9.5% of its puzzles, STALK on 8.6%.
+    - Mostly that's how candidates are drawn: a start needs 3 or more doors, and those crowd the dense S- corner. The rules pass S- puzzles at about the same rate as the rest.
+  - **There are only so many puzzles.** Of the 33,229 the 5-letter pool could ever draw, 7,834 pairs keep its rules, and 1,912 suit an ordinary day (no word to find, two easy first steps). At 65% ordinary days that's about 8 years. Must-find puzzles would last 19. A new seed draws from the same ones.
+- **A. Route words rest a week** (`ROUTE_REST_FROM`, 2026-11-06; `ROUTE_REST_DAYS`, 7; `sharedRouteWords`, all in `src/daily/daily.ts`):
+  - From then, no classic daily's lowest-stroke routes (its `onRoute`, start and goal too) share a word with the last 7 days' lowest routes.
+  - The picker leaves such puzzles out, and says how many wait.
+  - The check-in refuses one, even with `--any`, naming the words and their dates.
+  - 14 days was too costly: the pool would run out entirely in 9–11 months.
+- **B. How it's solved varies** (`solveType` in `src/difficulty.ts`, kept with each pool puzzle and each new day as `solve`):
+  - **Direction:** forward and backward `planChance` at its usual budget of 20, each made at Par half the time or more.
+  - **Texture:** the fewest steps changing 2–3 letters on any lowest route, not just the stored one.
+  - **The picker's order:** the day's third, then the need as before, then the direction the week owes (against the third's own mix), then the texture it owes (against the pool's). They're preferences, not filters, so they cost no supply. They come after the need because, put first, they cost the need's variety (the same need as the day before 44–49% of the time, against 41%).
+  - **The list** says each candidate's type, and the day's at the top. Days from before work theirs out.
+  - **At 4 letters:** unchanged.
+- **C. A new pool** (seed 8, `POOL_CAPS` in `src/maze.ts`, `scripts/mazes.ts`):
+  - **Caps:** no first letter begins more than 25% of the pool's starts and goals, and no word between start and goal is on the lowest routes of more than 3% of its puzzles.
+  - **Left out:** the pairs already played, either way round, and any puzzle whose path or ink pots' walk takes a step of the tutorial's sample.
+  - **Lowest strokes:** spread evenly for 60,000 candidates (`EVEN_TRIES`), then the places a total couldn't fill go to the others. 12 strokes ran short under the caps, as it nearly did before: the pool has 137 at 12, 329 at 13 and 367 at each of 14 and 15. The mean is 13.8, was 13.5.
+  - **What it holds:**
+    - S- starts and goals 25%, was 36%.
+    - The busiest words between are on 3.0% of lowest routes (PINCH, IRATE, PLATE, IDLED, LIVER), where STALL was on 9.5%.
+    - 691 different start and goal words, was 666.
+    - The same difficulty (par chance median 0.02) and the same need mix.
+    - 245 puzzles suit an ordinary day and 302 a must-find day; the last pool had 264 and 368, some of them played.
+  - The maze file (`mazes-5.json`) is unchanged: the pool was written with `--out`.
+- **The "running low" note** now counts what's left in the day's third for a day like it: unused, and keeping its lasting rules (must-find or not, easy first steps). Rests (words for 30 days, lookalikes for 3, route words for 7) only hold puzzles back a while, so they don't count; counting them would have raised the note within weeks. It says to tell the owner, and `docs/daily-prompt.md` says not to rebuild the pool in a nightly run. A walk forward first raises it on 2027-02-10.
+- **Measured** with a walk of the picker a year forward from Nov 6 (5 runs, the nightly choosing at random from its ten), against the old pool and rules:
+  - A route word from the last 7 days: 0% (was 37%). From the last 14 days: 37% (was 58%).
+  - S- starts and goals: 28% (was 40%).
+  - The same direction as the day before: 25% (was 30%), 3.4 directions a week (was 3.2).
+  - The same need as the day before: 42% (was 41%).
+  - A third first runs dry in Aug–Oct 2027 (was Sep–Nov). About 5 days of the year then come from another third, and no day is left with no candidates.
+- **Tests:**
+  - `src/daily/daily.test.ts`: from `ROUTE_REST_FROM`, each day against the 7 before; and `sharedRouteWords`.
+  - `src/difficulty.test.ts`: `solveType` on five dailies; a small maze where the stored route leaps but another lowest one is a ladder; and the pool's kept types.
+  - `src/maze.test.ts`: the pool's caps. The lowest-strokes spread test now asks for evenness at 4 letters, and at 5 a tenth or more at 12 and a quarter or more at each of the rest.
+
 ## Search engines: a title that says what it is, a sitemap and a real 404 (2026-10-28, branch `seo-basics`)
 - **The owner's call:** help the game show up in searches for word games, with nothing on the page itself changing (the tab's name may).
 - **The title** is "Strokes: a daily word ladder puzzle", and the description starts "A daily word ladder puzzle". "Strokes" alone shares its word with the band, illness, swimming and golf, and nothing on the page said what the game is. A start word to a goal word through real words is a word ladder, which is what people call it when they search.

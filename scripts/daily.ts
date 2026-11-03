@@ -21,7 +21,12 @@
 // days (mustFindDay in src/daily/daily.ts, drawn from the date) turn the par rule round: only puzzles
 // with a word a player must find. From SIMILAR_FROM (2026-11-01) it leaves out, and won't check in, a
 // puzzle whose start or goal is like a start or goal of the last 3 days: one letter apart (CLAMP,
-// CRAMP) or ending in the same three letters (SPILL, DRILL; similarWords in src/daily/daily.ts). The
+// CRAMP) or ending in the same three letters (SPILL, DRILL; similarWords in src/daily/daily.ts). From
+// ROUTE_REST_FROM it leaves out, and won't check in, a puzzle whose lowest routes share a word (start
+// and goal too) with the lowest routes of the last 7 days (sharedRouteWords). And after the kind of
+// route, it prefers how the puzzle is solved (solveType in src/difficulty.ts) the last week has had
+// least of: the way of planning that makes Par (from either end, the start, the goal, or meeting in
+// the middle), against its third's mix, then the moves (one-letter swaps, one leap, or a shuffle). The
 // same date and history always give the same candidates.
 //
 // Checking in writes src/daily/days-5/{DATE}.json (with --letters 4, src/daily/days/{DATE}.json and
@@ -29,11 +34,23 @@
 // themselves.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { FIRST_STEPS, findPockets, firstSteps, isTricky, keep, measure, mustFind, parChance, searchEffort, type KeptDifficulty } from '../src/difficulty';
+import { FIRST_STEPS, findPockets, firstSteps, isTricky, keep, measure, mustFind, parChance, searchEffort, solveType, type Direction, type KeptDifficulty, type SolveType, type Texture } from '../src/difficulty';
 import { placePots, potRoute } from '../src/inkpots';
 import { POOL_MIXES, buildGraph, classifyNeed, routeWords, seededRandom, solve, type Graph, type Need, type Puzzle } from '../src/maze';
 import type { DailyPuzzle } from '../src/daily/daily';
-import { FIRST_STEP_FROM, MUST_FIND_SHARE, PAR_RULE_FROM, SIMILAR_DAYS, SIMILAR_FROM, dayNumber, mustFindDay, similarWords } from '../src/daily/daily';
+import {
+  FIRST_STEP_FROM,
+  MUST_FIND_SHARE,
+  PAR_RULE_FROM,
+  ROUTE_REST_DAYS,
+  ROUTE_REST_FROM,
+  SIMILAR_DAYS,
+  SIMILAR_FROM,
+  dayNumber,
+  mustFindDay,
+  sharedRouteWords,
+  similarWords,
+} from '../src/daily/daily';
 
 const args = process.argv.slice(2);
 const at = args.indexOf('--letters');
@@ -56,6 +73,17 @@ const NEED_TEXT: Record<Need, string> = {
   letter: 'changes a C, I or V the start or goal has',
   stone: 'needs a stepping stone through C, I or V',
 };
+const DIRECTION_TEXT: Record<Direction, string> = {
+  either: 'solved planning from either end',
+  start: 'solved planning from the start (working back from the goal falls short)',
+  goal: 'solved working back from the goal (planning from the start falls short)',
+  middle: 'solved meeting in the middle (neither end alone does)',
+};
+const TEXTURE_TEXT: Record<Texture, string> = {
+  ladder: 'one-letter swaps all the way',
+  leap: 'one step that changes 2–3 letters at once',
+  shuffle: 'two or more steps that change 2–3 letters at once',
+};
 
 type PoolEntry = Omit<DailyPuzzle, 'date'>;
 const data: { words: string[]; doors: number[][]; puzzle: Puzzle; inkPots: DailyPuzzle['inkPots']; onRoute: DailyPuzzle['onRoute'] } = JSON.parse(
@@ -73,6 +101,9 @@ const days: DailyPuzzle[] = (existsSync(DAYS) ? readdirSync(DAYS) : [])
   .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
   .sort()
   .map((f) => JSON.parse(readFileSync(new URL(f, DAYS), 'utf8')));
+
+/** How a puzzle is solved (see solveType): kept in the pool and day files, or worked out for days checked in before they kept it. */
+const solveOf = (p: { puzzle: Puzzle; solve?: SolveType }): SolveType => p.solve ?? (p.solve = solveType(data.words, adj, p.puzzle));
 
 const addDays = (date: string, n: number) => new Date(Date.parse(`${date}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 const weekday = (date: string) => new Date(`${date}T00:00:00Z`).getUTCDay();
@@ -123,6 +154,10 @@ const resting = new Set(before.filter((d) => d.date >= addDays(date, -REST_DAYS)
 const recent = LETTERS === 5 && date >= SIMILAR_FROM ? before.filter((d) => d.date >= addDays(date, -SIMILAR_DAYS)) : [];
 /** The recent words `w` is like, with their dates. */
 const likeRecent = (w: string) => recent.flatMap((d) => [d.puzzle.start, d.puzzle.goal].filter((r) => similarWords(w, r)).map((r) => `${r} (${d.date})`));
+/** From ROUTE_REST_FROM, the last ROUTE_REST_DAYS days, whose lowest-route words a new one mustn't share (5 letters only). */
+const restingRoutes = LETTERS === 5 && date >= ROUTE_REST_FROM ? before.filter((d) => d.date >= addDays(date, -ROUTE_REST_DAYS)) : [];
+/** The words a puzzle's lowest routes share with the last days' (see restingRoutes), with their dates. */
+const routeRepeats = (onRoute: Record<string, number>) => restingRoutes.flatMap((d) => sharedRouteWords(onRoute, d.onRoute).map((w) => `${w} (${d.date})`));
 
 if (!start) {
   // ---------- Candidates ----------
@@ -136,6 +171,19 @@ if (!start) {
   const needs = Object.keys(MIX) as Need[];
   const owed = (n: Need) => MIX[n] * (week.length + 1) - week.filter((d) => d.need === n).length;
   const need = needs.reduce((a, b) => (owed(b) > owed(a) ? b : a));
+  // Then how it's solved: the way of planning (against the third's own mix, which leans to "either"
+  // in the easiest and to "middle" in the hardest) and the moves (against the pool's) the week has
+  // had least of. These come after the need: put first, they cost the need's variety.
+  const owedOf = <K extends string>(kind: (p: { puzzle: Puzzle; solve?: SolveType }) => K, among: PoolEntry[]): K => {
+    const mix = new Map<K, number>();
+    for (const p of among) mix.set(kind(p), (mix.get(kind(p)) ?? 0) + 1 / among.length);
+    const due = (k: K) => mix.get(k)! * (week.length + 1) - week.filter((d) => kind(d) === k).length;
+    return [...mix.keys()].sort().reduce((a, b) => (due(b) > due(a) ? b : a));
+  };
+  // (5 letters only: the 4-letter game gets no new days.)
+  const typed = LETTERS === 5;
+  const direction = typed ? owedOf((p) => solveOf(p).direction, pool.filter(inBand)) : null;
+  const texture = typed ? owedOf((p) => solveOf(p).texture, pool) : null;
   const unused = puzzles.filter(
     (p) => !used.has(pairKey(p.puzzle)) && !resting.has(p.puzzle.start) && !resting.has(p.puzzle.goal) && !likeRecent(p.puzzle.start).length && !likeRecent(p.puzzle.goal).length,
   );
@@ -145,20 +193,37 @@ if (!start) {
   const parRule = LETTERS === 5 && date >= PAR_RULE_FROM;
   const mustDay = LETTERS === 5 && mustFindDay(date);
   const stepRule = LETTERS === 5 && date >= FIRST_STEP_FROM;
+  const unusedInThird = (must: boolean, byPar: boolean, bySteps: boolean) =>
+    puzzles.filter(
+      (p) =>
+        inBand(p) &&
+        !used.has(pairKey(p.puzzle)) &&
+        (!byPar || !!mustFind(data.words, adj, p.puzzle).length === must) &&
+        (!bySteps || firstSteps(data.words, adj, p.puzzle).length >= FIRST_STEPS),
+    ).length;
   const fresh = unused.filter(
     (p) => (!parRule || !!mustFind(data.words, adj, p.puzzle).length === mustDay) && (!stepRule || firstSteps(data.words, adj, p.puzzle).length >= FIRST_STEPS),
   );
-  const shuffled = (xs: PoolEntry[]) => xs.map((x) => ({ x, r: random() })).sort((a, b) => a.r - b.r).map((o) => o.x);
-  // The day's band and kind first; then the day's band of other kinds; then anything fresh.
-  const picks = [
-    ...shuffled(fresh.filter((p) => inBand(p) && p.need === need)),
-    ...shuffled(fresh.filter((p) => inBand(p) && p.need !== need)),
-    ...shuffled(fresh.filter((p) => !inBand(p))),
-  ].slice(0, CANDIDATES);
+  // From ROUTE_REST_FROM, none sharing a word on its lowest routes with the last week's (5 letters only).
+  const rested = fresh.filter((p) => !routeRepeats(p.onRoute).length);
+  // What's left in the third for a day like this one at all: unused, and keeping the day's lasting
+  // rules. The rests (words for 30 days, lookalikes for 3, route words for 7) only hold puzzles back a
+  // while, so they don't count towards the pool running low.
+  const lasting = unusedInThird(mustDay, parRule, stepRule);
+  // The day's band first; then its need, its way of planning and its moves, in that order; shuffled within.
+  const order = (p: PoolEntry) => [inBand(p) ? 0 : 1, p.need === need ? 0 : 1, !typed || solveOf(p).direction === direction ? 0 : 1, !typed || solveOf(p).texture === texture ? 0 : 1];
+  const picks = rested
+    .map((p) => ({ p, k: [...order(p), random()] }))
+    .sort((a, b) => {
+      const i = a.k.findIndex((x, j) => x !== b.k[j]);
+      return i < 0 ? 0 : a.k[i] - b.k[i];
+    })
+    .map((o) => o.p)
+    .slice(0, CANDIDATES);
 
   const range = ranked.filter((p) => bandOf.get(pairKey(p.puzzle)) === band).map((p) => p.difficulty!.parChance);
   console.log(
-    `Daily #${dayNumber(date)}${LETTERS === 4 ? '' : ` (${LETTERS} letters)`}, ${WEEKDAYS[weekday(date)]} ${date}: a puzzle from the ${THIRD[band]} of the pool, picked at random (made at par ${percent(Math.min(...range))}–${percent(Math.max(...range))} of the time), preferably one that ${NEED_TEXT[need]}.`,
+    `Daily #${dayNumber(date)}${LETTERS === 4 ? '' : ` (${LETTERS} letters)`}, ${WEEKDAYS[weekday(date)]} ${date}: a puzzle from the ${THIRD[band]} of the pool, picked at random (made at par ${percent(Math.min(...range))}–${percent(Math.max(...range))} of the time), preferably one that ${NEED_TEXT[need]}${direction && texture ? `, ${DIRECTION_TEXT[direction]}, with ${TEXTURE_TEXT[texture]}` : ''}.`,
   );
   const left = unused.filter(inBand).length - fresh.filter(inBand).length;
   const byPar = mustDay ? 'without a word a player must find to make Par' : 'with a word a player must find to make Par';
@@ -166,18 +231,26 @@ if (!start) {
   if (mustDay) console.log(`A day for a word a player must find (about ${percent(MUST_FIND_SHARE)} of days, mustFindDay): every candidate has one.`);
   if (recent.length)
     console.log(`No start or goal like the last ${SIMILAR_DAYS} days' (${recent.flatMap((d) => [d.puzzle.start, d.puzzle.goal]).join(', ')}): one letter apart, or the same last three letters.`);
-  console.log(`${fresh.filter(inBand).length} unused puzzles in the pool in that third${parRule ? ` (leaving out ${left} ${leftOut})` : ''}.\n`);
+  if (restingRoutes.length)
+    console.log(`No puzzle whose lowest routes share a word with the last ${ROUTE_REST_DAYS} days' (${new Set(restingRoutes.flatMap((d) => Object.keys(d.onRoute))).size} words, starts and goals too).`);
+  const repeating = fresh.filter(inBand).length - rested.filter(inBand).length;
+  console.log(
+    `${fresh.filter(inBand).length} unused puzzles in the pool in that third${parRule ? ` (leaving out ${left} ${leftOut})` : ''}${repeating ? `; ${repeating} of them share a route word with the last ${ROUTE_REST_DAYS} days, and wait` : ''}.\n`,
+  );
   picks.forEach((p, i) => {
     const { start: s, goal: g, best: b, path } = p.puzzle;
     console.log(`${String(i + 1).padStart(2)}. ${s} → ${g}   lowest strokes ${b} in ${path.length - 1} steps, ${NEED_TEXT[p.need]}${inBand(p) ? '' : ` (from the ${THIRD[bandOf.get(pairKey(p.puzzle)) ?? 'middle']})`}`);
     console.log(`    route: ${path.join(' → ')}`);
+    if (typed) console.log(`    ${DIRECTION_TEXT[solveOf(p).direction]}; ${TEXTURE_TEXT[solveOf(p).texture]}`);
     if (mustDay) console.log(`    must find to make Par: ${mustFind(data.words, adj, p.puzzle).join(', ')}`);
     console.log(`    ${describe(p)}`);
     console.log(`    ${s}: ${define(s)}`);
     console.log(`    ${g}: ${define(g)}\n`);
   });
-  if (fresh.filter(inBand).length < 30)
-    console.log(`The pool is running low: regenerate it with a new seed (scripts/mazes.ts${LETTERS === 4 ? '' : ` --letters ${LETTERS}`} --seed ${seed + 1}), then rerun this.\n`);
+  if (lasting < 30)
+    console.log(
+      `The pool is running low: ${lasting} unused puzzles in that third for a day like this. Say so to the owner, who rebuilds it by hand (scripts/mazes.ts${LETTERS === 4 ? '' : ` --letters ${LETTERS}`} --seed ${seed + 1}); don't rebuild it here.\n`,
+    );
   console.log(`Check one in with: npm run daily -- ${LETTERS === 4 ? '' : `--letters ${LETTERS} `}${date} START GOAL`);
 } else {
   // ---------- Check in ----------
@@ -227,7 +300,14 @@ if (!start) {
       );
   }
 
-  const day: DailyPuzzle = { date, ...entry };
+  const repeats = routeRepeats(entry.onRoute);
+  if (repeats.length)
+    throw new Error(
+      `${S} → ${G} shares ${repeats.join(', ')} on its lowest routes: from ${ROUTE_REST_FROM} no daily's lowest routes share a word with the last ${ROUTE_REST_DAYS} days' (see ROUTE_REST_FROM in src/daily/daily.ts): choose another from the list`,
+    );
+
+  // How it's solved goes in the day file too, for the picker's later days (5 letters).
+  const day: DailyPuzzle = { date, ...entry, ...(LETTERS === 5 && { solve: solveOf(entry) }) };
   if (!existsSync(DAYS)) mkdirSync(DAYS, { recursive: true });
   writeFileSync(file, `${JSON.stringify(day, null, 2)}\n`);
   const { puzzle } = day;

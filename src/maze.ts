@@ -186,6 +186,16 @@ export const POOL_MIX: { need: Record<Need, number> } = { need: { none: 0.3, let
  */
 export const POOL_MIXES: Record<number, { need: Record<Need, number> } | null> = { 4: POOL_MIX, 5: null };
 
+/**
+ * Caps that keep a pool from crowding one corner of the maze (5 letters, from the pool built
+ * 2026-11-03). The S- words are a dense corner: the words a puzzle can start on there have many doors,
+ * so a pool drawn freely had 36% of its starts and goals on S- words (16% of the words they can be),
+ * and STALL on the lowest routes of 9.5% of its puzzles, STALK on 8.6%, so the middle of a route came
+ * back day after day. No first letter may begin more than `firstLetter` of the pool's starts and goals,
+ * and no word between start and goal may be on the lowest routes of more than `routeWord` of its puzzles.
+ */
+export const POOL_CAPS: Record<number, { firstLetter: number; routeWord: number } | null> = { 4: null, 5: { firstLetter: 0.25, routeWord: 0.03 } };
+
 /** The puzzle's need, with a shortest route that shows it (one that avoids the hubs where it can). */
 export function classifyNeed(words: string[], adj: Graph, start: string, goal: string, best: number): { need: Need; path: string[] } {
   const s = words.indexOf(start);

@@ -620,6 +620,51 @@ export function firstSteps(words: string[], adj: Graph, puzzle: Puzzle, most = 2
   return adj[words.indexOf(puzzle.start)].filter(({ cost }) => cost <= most).map(({ to }) => words[to]);
 }
 
+/**
+ * Which way of planning makes Par half the time or more (planChance, with its usual budget of 20
+ * words): from either end, from the start only, from the goal only, or neither (meeting in the
+ * middle, or deeper still). The daily picker varies it from day to day (scripts/daily.ts).
+ */
+export type Direction = 'either' | 'start' | 'goal' | 'middle';
+/**
+ * What a puzzle's lowest routes ask of the hand: a ladder can be done in one-letter swaps all the
+ * way; a leap needs one step that changes two or three letters at once (a stroke carried between
+ * letters, say); a shuffle needs two or more such steps, on every lowest route.
+ */
+export type Texture = 'ladder' | 'leap' | 'shuffle';
+export interface SolveType {
+  direction: Direction;
+  texture: Texture;
+}
+
+export function solveDirection(words: string[], adj: Graph, puzzle: Puzzle): Direction {
+  const forward = planChance(words, adj, puzzle, 'forward').par >= 0.5;
+  const backward = planChance(words, adj, puzzle, 'backward').par >= 0.5;
+  return forward && backward ? 'either' : forward ? 'start' : backward ? 'goal' : 'middle';
+}
+
+export function solveTexture(words: string[], adj: Graph, puzzle: Puzzle): Texture {
+  const s = words.indexOf(puzzle.start);
+  const g = words.indexOf(puzzle.goal);
+  const fromStart = distancesFrom(adj, s);
+  const toGoal = distancesFrom(adj, g);
+  const on = (v: number) => fromStart[v] + toGoal[v] === puzzle.best;
+  // The fewest steps changing two letters or more on any lowest route, from each word on one to the goal.
+  const order = words.map((_, v) => v).filter(on).sort((a, b) => fromStart[b] - fromStart[a]);
+  const fewest = new Map<number, number>([[g, 0]]);
+  for (const u of order) {
+    if (u === g) continue;
+    let least = Infinity;
+    for (const { to, cost } of adj[u])
+      if (on(to) && fromStart[to] === fromStart[u] + cost) least = Math.min(least, fewest.get(to)! + (lettersApart(words[u], words[to]) > 1 ? 1 : 0));
+    fewest.set(u, least);
+  }
+  const leaps = fewest.get(s)!;
+  return leaps === 0 ? 'ladder' : leaps === 1 ? 'leap' : 'shuffle';
+}
+
+export const solveType = (words: string[], adj: Graph, puzzle: Puzzle): SolveType => ({ direction: solveDirection(words, adj, puzzle), texture: solveTexture(words, adj, puzzle) });
+
 /** What the pool and the day files keep of a puzzle's difficulty: the worst few traps describe it. */
 export interface KeptDifficulty {
   depth: number;
