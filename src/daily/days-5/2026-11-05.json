@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-05",
+  "puzzle": {
+    "start": "STOOP",
+    "goal": "STONE",
+    "best": 14,
+    "path": [
+      "STOOP",
+      "SPOOL",
+      "SPOIL",
+      "SPOKE",
+      "STOKE",
+      "STONE"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "STOOP",
+        "door": "STOCK",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "SPOOL",
+        "door": "STOOL",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "STOOP",
+        "door": "STOOD",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "STOOL",
+      "SPOOK"
+    ],
+    "best": 14,
+    "walk": [
+      "STOOP",
+      "SPOOL",
+      "SPOIL",
+      "SPOKE",
+      "STOKE",
+      "STONE"
+    ]
+  },
+  "onRoute": {
+    "SPOIL": 6,
+    "SPOKE": 9,
+    "SPOOL": 3,
+    "STOKE": 11,
+    "STONE": 14,
+    "STOOP": 0
+  }
+}
