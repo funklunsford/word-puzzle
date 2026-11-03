@@ -1,6 +1,6 @@
-// Feature flags for modifiers being playtested. Each has a default here; the Dev section of the
-// side card toggles them (remembered in this browser), and a link can set them with
-// ?flags=inkPots (on) or ?flags=-inkPots (off).
+// Feature flags for modifiers being playtested. Each has a default here, and the live site always
+// plays the defaults. In development (npm run dev) the Dev section of the side card toggles them
+// (remembered in this browser), and a link can set them with ?flags=inkPots (on) or ?flags=-inkPots (off).
 
 export const FLAGS = {
   inkPots: { label: 'Ink pots', on: false },
@@ -9,7 +9,7 @@ export const FLAGS = {
   freshPuzzle: { label: 'New puzzle each load', on: false },
   // Off: only a desktop gets the 5-letter game (see src/letters.ts). On (for everyone since
   // 2026-10-08): phones and tablets do too, with the word given more of a phone's width. Takes
-  // effect on the next load; ?flags=-fiveLetters or ?letters=4 plays the 4-letter game.
+  // effect on the next load. In development, ?letters=4 or ?flags=-fiveLetters plays the 4-letter game.
   fiveLetters: { label: '5 letters on phones and tablets', on: true },
   // Off (until AdSense is set up): no ads, and the page exactly as without them. On: space for
   // ads, a banner over the header on phones and a rail either side of the game on wide desktops
@@ -26,8 +26,10 @@ export type Flags = Record<Flag, boolean>;
 
 const KEY = 'strokes:flags';
 
-export function loadFlags(): Flags {
+/** The flags in play: their defaults on the live site; in development, as Dev or a ?flags= link sets them. */
+export function loadFlags(dev: boolean = import.meta.env.DEV): Flags {
   const flags = Object.fromEntries(Object.entries(FLAGS).map(([k, v]) => [k, v.on])) as Flags;
+  if (!dev) return flags;
   try {
     Object.assign(flags, JSON.parse(localStorage.getItem(KEY) ?? '{}'));
   } catch {

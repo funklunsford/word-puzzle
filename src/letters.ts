@@ -1,8 +1,9 @@
 // Which game a visit plays. By the device: 5-letter words on a desktop or laptop (a wide window
 // with a mouse or trackpad), 4-letter words on phones and tablets. The fiveLetters flag
 // (src/flags.ts, on for everyone since 2026-10-08) gives phones and tablets the 5-letter game too.
-// Decided once per load, so resizing a window never swaps games mid-play. `?letters=4` or
-// `?letters=5` overrides both, for testing.
+// Decided once per load, so resizing a window never swaps games mid-play. In development
+// (npm run dev) `?letters=4` or `?letters=5` overrides both, for testing; the live site ignores it,
+// so with the flag on there every visit plays the 5-letter game.
 
 export type WordLength = 4 | 5;
 
@@ -15,11 +16,11 @@ export function chooseLetters({ fine, width, asked, everywhere = false }: { fine
   return fine && width >= DESKTOP_MIN ? 5 : 4;
 }
 
-/** This visit's game, from the device and the address (`everywhere`: the fiveLetters flag). */
-export const loadLetters = (everywhere = false): WordLength =>
+/** This visit's game, from the device and, in development, the address (`everywhere`: the fiveLetters flag). */
+export const loadLetters = (everywhere = false, dev: boolean = import.meta.env.DEV): WordLength =>
   chooseLetters({
     fine: !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches,
     width: window.innerWidth,
-    asked: new URLSearchParams(location.search).get('letters'),
+    asked: dev ? new URLSearchParams(location.search).get('letters') : null,
     everywhere,
   });
