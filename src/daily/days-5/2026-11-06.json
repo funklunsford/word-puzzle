@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-06",
+  "puzzle": {
+    "start": "SHARP",
+    "goal": "SHORE",
+    "best": 13,
+    "path": [
+      "SHARP",
+      "SHARK",
+      "SHIRK",
+      "SHIRT",
+      "SHIRE",
+      "SHORE"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 3,
+    "traps": [
+      {
+        "at": "SHARK",
+        "door": "SHARD",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "SHARE",
+        "door": "SHAPE",
+        "loses": 2,
+        "pocket": false
+      },
+      {
+        "at": "SHARP",
+        "door": "SHARD",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.04
+  },
+  "inkPots": {
+    "pots": [
+      "SNARE",
+      "SMIRK"
+    ],
+    "best": 12,
+    "walk": [
+      "SHARP",
+      "SNARL",
+      "SNARE",
+      "SHARE",
+      "SHIRE",
+      "SHORE"
+    ]
+  },
+  "onRoute": {
+    "SHARE": 7,
+    "SHARK": 2,
+    "SHARP": 0,
+    "SHIRE": 10,
+    "SHIRK": 5,
+    "SHIRT": 7,
+    "SHORE": 13,
+    "SHORT": 10,
+    "SNARE": 5,
+    "SNARL": 3
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "ladder"
+  }
+}
