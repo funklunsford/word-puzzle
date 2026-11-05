@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-07",
+  "puzzle": {
+    "start": "SHAKE",
+    "goal": "SHINE",
+    "best": 14,
+    "path": [
+      "SHAKE",
+      "SLAKE",
+      "SPATE",
+      "SPITE",
+      "SPINE",
+      "SHINE"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "SLAKE",
+        "door": "SNAKE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "STAKE",
+        "door": "SNAKE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SHAKE",
+        "door": "SHAVE",
+        "loses": 5,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "STAKE",
+      "SHAPE"
+    ],
+    "best": 13,
+    "walk": [
+      "SHAKE",
+      "STAKE",
+      "SPATE",
+      "SPITE",
+      "SPINE",
+      "SHINE"
+    ]
+  },
+  "onRoute": {
+    "SHAKE": 0,
+    "SHINE": 14,
+    "SLAKE": 2,
+    "SPATE": 5,
+    "SPINE": 11,
+    "SPITE": 8,
+    "STAKE": 2
+  },
+  "solve": {
+    "direction": "goal",
+    "texture": "leap"
+  }
+}
