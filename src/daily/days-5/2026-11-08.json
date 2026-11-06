@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-08",
+  "puzzle": {
+    "start": "PLANT",
+    "goal": "PRAWN",
+    "best": 13,
+    "path": [
+      "PLANT",
+      "BLAND",
+      "BRAND",
+      "BRAIN",
+      "BRAWN",
+      "PRAWN"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "PLANT",
+        "door": "PLAIN",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "PLANT",
+        "door": "PLAIT",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "PLANT",
+        "door": "BLANK",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.02
+  },
+  "inkPots": {
+    "pots": [
+      "PLANK"
+    ],
+    "best": 13,
+    "walk": [
+      "PLANT",
+      "BLAND",
+      "BRAND",
+      "BRAIN",
+      "BRAWN",
+      "PRAWN"
+    ]
+  },
+  "onRoute": {
+    "BLAND": 3,
+    "BRAIN": 9,
+    "BRAND": 6,
+    "BRAWN": 12,
+    "PLANT": 0,
+    "PRAWN": 13
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "shuffle"
+  }
+}
