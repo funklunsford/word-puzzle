@@ -1,0 +1,76 @@
+{
+  "date": "2026-11-09",
+  "puzzle": {
+    "start": "STAVE",
+    "goal": "BEACH",
+    "best": 14,
+    "path": [
+      "STAVE",
+      "SLAVE",
+      "SLATE",
+      "PLATE",
+      "PLACE",
+      "PEACH",
+      "BEACH"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "SLATE",
+        "door": "SLAKE",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "PLATE",
+        "door": "BLADE",
+        "loses": 3,
+        "pocket": false
+      },
+      {
+        "at": "SLAVE",
+        "door": "SHAVE",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.02
+  },
+  "inkPots": {
+    "pots": [
+      "STATE",
+      "BLADE",
+      "PEACE"
+    ],
+    "best": 13,
+    "walk": [
+      "STAVE",
+      "STATE",
+      "SLATE",
+      "PLATE",
+      "PLACE",
+      "PEACH",
+      "BEACH"
+    ]
+  },
+  "onRoute": {
+    "BEACH": 14,
+    "PEACH": 13,
+    "PLACE": 10,
+    "PLATE": 7,
+    "SLATE": 4,
+    "SLAVE": 1,
+    "STATE": 3,
+    "STAVE": 0
+  },
+  "solve": {
+    "direction": "goal",
+    "texture": "leap"
+  }
+}
