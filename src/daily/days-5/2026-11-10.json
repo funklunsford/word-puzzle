@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-10",
+  "puzzle": {
+    "start": "DOUGH",
+    "goal": "FINCH",
+    "best": 14,
+    "path": [
+      "DOUGH",
+      "COUGH",
+      "CONCH",
+      "CINCH",
+      "PINCH",
+      "FINCH"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "COUGH",
+        "door": "TOUGH",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "COUGH",
+        "door": "TOUCH",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "DOUGH",
+        "door": "POUCH",
+        "loses": 3,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.04
+  },
+  "inkPots": {
+    "pots": [
+      "COUCH",
+      "TOUGH"
+    ],
+    "best": 13,
+    "walk": [
+      "DOUGH",
+      "COUCH",
+      "CONCH",
+      "CINCH",
+      "PINCH",
+      "FINCH"
+    ]
+  },
+  "onRoute": {
+    "CINCH": 8,
+    "CONCH": 5,
+    "COUCH": 3,
+    "COUGH": 2,
+    "DOUGH": 0,
+    "FINCH": 14,
+    "PINCH": 11
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "ladder"
+  }
+}
