@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-11",
+  "puzzle": {
+    "start": "FILLY",
+    "goal": "DAIRY",
+    "best": 15,
+    "path": [
+      "FILLY",
+      "FOLLY",
+      "DOLLY",
+      "ICILY",
+      "DAILY",
+      "DAIRY"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "FILLY",
+        "door": "FULLY",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "FILLY",
+        "door": "HILLY",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.07
+  },
+  "inkPots": {
+    "pots": [
+      "JOLLY",
+      "DALLY",
+      "HILLY"
+    ],
+    "best": 14,
+    "walk": [
+      "FILLY",
+      "FOLLY",
+      "JOLLY",
+      "ICILY",
+      "DAILY",
+      "DAIRY"
+    ]
+  },
+  "onRoute": {
+    "DAILY": 12,
+    "DAIRY": 15,
+    "DOILY": 7,
+    "DOLLY": 6,
+    "FILLY": 0,
+    "FOLLY": 3,
+    "ICILY": 9,
+    "JOLLY": 6
+  },
+  "solve": {
+    "direction": "start",
+    "texture": "shuffle"
+  }
+}
