@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-12",
+  "puzzle": {
+    "start": "LINER",
+    "goal": "DRIFT",
+    "best": 13,
+    "path": [
+      "LINER",
+      "LINED",
+      "PINED",
+      "PIPED",
+      "PRIED",
+      "DRIFT"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "LINER",
+        "door": "INTER",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "PINED",
+        "door": "DINED",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "LINER",
+        "door": "FINER",
+        "loses": 3,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "DRIED",
+      "PILED",
+      "TIMED"
+    ],
+    "best": 12,
+    "walk": [
+      "LINER",
+      "LINED",
+      "LIKED",
+      "IRKED",
+      "DRIED",
+      "DRIFT"
+    ]
+  },
+  "onRoute": {
+    "DRIED": 11,
+    "DRIFT": 13,
+    "IRKED": 9,
+    "LIKED": 6,
+    "LINED": 3,
+    "LINER": 0,
+    "PINED": 5,
+    "PIPED": 8,
+    "PRIED": 10
+  },
+  "solve": {
+    "direction": "middle",
+    "texture": "shuffle"
+  }
+}
