@@ -6,7 +6,7 @@ import pool5Text from '../public/pool-5.json?raw';
 import defs4 from '../public/definitions.json';
 import defs5 from '../public/definitions-5.json';
 import type { Def } from './components/maze/Definition';
-import { START_HINT, afterAsk, clue, earnHint, hintAlong, hintGate, hintSays, hintStep, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
+import { START_HINT, afterAsk, clue, earnHint, earnOutOfStrokes, hintAlong, hintGate, hintSays, hintStep, nextHintLevel, nextStep, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
 import { seededRandom } from './maze';
 import { buildGraph, solve } from './maze';
 import { wordDistance } from './strokes';
@@ -214,6 +214,11 @@ describe('earning hints', () => {
         shown = null;
         return game;
       },
+      /** All of a step's strokes used in the word the player is in, without landing on a word. */
+      outOfStrokes() {
+        if (earnOutOfStrokes(game.gate())) earned = true;
+        return game;
+      },
       /** Asking, with a meaning to give: the level it shows, or null for none. */
       ask(): HintLevel | null {
         const after = afterAsk(game.gate(), earned);
@@ -271,6 +276,28 @@ describe('earning hints', () => {
     expect(game.ask()).toBeNull();
     game.reach(true);
     expect(game.gate()).toBe('ready');
+  });
+
+  it('earns one by running out of strokes when locked, so a word made only to earn one is never needed', () => {
+    // The start's hint used, a new word's used too, then back to the start: locked.
+    const game = play();
+    game.ask();
+    game.reach(true).ask();
+    game.reach(false);
+    expect(game.gate()).toBe('locked');
+    expect(game.outOfStrokes().gate()).toBe('ready');
+    expect([game.ask(), game.ask(), game.ask(), game.gate()]).toEqual([1, 2, 3, 'shown']);
+  });
+
+  it("doesn't earn one by running out of strokes with one waiting or this step's open, nor in hardcore", () => {
+    // One waiting: still the one, and once it's used, the step's open, so nothing more is banked.
+    const game = play();
+    expect(game.outOfStrokes().ask()).toBe(1);
+    game.outOfStrokes();
+    game.reach(false);
+    expect(game.gate()).toBe('locked');
+    expect(earnOutOfStrokes('shown')).toBe(false);
+    expect(play(true).outOfStrokes().gate()).toBe('none');
   });
 
   it('keeps an unused earned hint through free returns, until it is used', () => {

@@ -1457,6 +1457,32 @@ No horizontal scroll at 360–430 px. Not yet tried on a real phone.
 - **Measured:** on the same wanderers, hints back to a word already made fall from 64% to none.
 - **Tests** (`src/hints.test.ts`): a small maze with a dead end and a longer way off: the new word and the way back, through two words, and the plain step with none; the wording; going along (to the next word back, straight to the end, and ending otherwise); and on 5-letter pool puzzles, after 1–3 random words, a hint never names a word made, its way back is door by door through words made, and from its word the goal is the rest of the best away.
 
+## Out of strokes earns a hint (2026-11-09, branch `hint-out-of-strokes`)
+- **The owner's call:** a player who's sure of the word they're in shouldn't have to make a word they don't want, just to earn a hint.
+- **When it happens:** the Hint button only ever locks after a free return, once a hint has been used elsewhere. Going forward, every new word earns one, so a player could ask on every word of the lowest route.
+- **What it cost before:** the way out was a side word, 1–3 strokes (2.2 on average over the 30 dailies to Nov 5: 1 stroke 13% of the time, 2 54%, 3 33%). That's about half the gap between Ace and Par, then back free.
+- **The rule** (`earnOutOfStrokes` in `src/hints.ts`): using all of a step's strokes (`STEP_LIMIT`, 3) without landing on a word earns a hint when the button is locked.
+  - Strokes only count on landing on a word, so it costs nothing, and Undo takes the strokes back.
+  - It doesn't earn one with a hint already waiting or this step's open, so scribbling can't bank one for later.
+  - Hardcore has no hints, as before. Only one waits, as before.
+- **What the player sees:**
+  - Locked, tapping Hint or hovering it says "Use all 3 strokes, or make a new word, to earn a hint."
+  - On the third stroke the bulb lights, and the step line says "Out of strokes for this step: you earned a hint. Undo to try another way."
+  - A hint asked for while out of strokes shows in the step line instead of the out-of-strokes note, and stays after Undo.
+  - How to play: "You get a Hint at the start. Each new word earns one, and so does using all of a step's strokes without finding a word."
+- **Options weighed:**
+  - Waiting on a word (about 45 seconds) isn't much of an achievement.
+  - Saving hints up doesn't help a player who's spent them all, the one most likely stuck.
+  - One per word, including going back, never locks, so nothing is earned.
+  - Buying one for a stroke changes the score and the route's sums.
+  - Carrying hints over from past days gives new players none.
+  - The game can't tell whether a player knows they're on the right word, and lighting the bulb only there would give the route away.
+- **Checked** on the dev server, on Nov 9's STAVE → BEACH: back in STAVE after SLAVE, with the start's hint used and none waiting.
+  - The button was locked.
+  - Two strokes taken off S and T didn't earn one; the third did, and the bulb lit gold.
+  - Asked, the hint read "go back to SLAVE (free), then make a word meaning …", and it stayed after Undo.
+- **Tests** (`src/hints.test.ts`): locked after a free return, out of strokes earns one, and its three levels follow; with one waiting or the step open it earns nothing, so nothing is banked; none in hardcore.
+
 ## Days that don't repeat their middles, and vary how they're solved (2026-11-03, branch `solve-variety`)
 - **The owner's call**, after a study of how the puzzles get solved (the 1,200 pool puzzles and the first 30 dailies, with the game's simulated players): the three changes below.
 - **What the study found:**

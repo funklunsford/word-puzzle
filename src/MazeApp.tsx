@@ -7,7 +7,7 @@ import { dataUrl } from './data';
 import type { Need, Puzzle } from './maze';
 import { payStep, walkSteps, type InkPots } from './inkpots';
 import { movesOf } from './moves';
-import { START_HINT, afterAsk, clue, doorsFrom, earnHint, hintAlong, hintGate, hintSays, hintStep, nextHintLevel, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
+import { START_HINT, afterAsk, clue, doorsFrom, earnHint, earnOutOfStrokes, hintAlong, hintGate, hintSays, hintStep, nextHintLevel, type Doors, type HintGate, type HintLevel, type NextStep } from './hints';
 import { FLAGS, loadFlags, saveFlags, type Flag } from './flags';
 import { hasStarted } from './hardcore';
 import { easyDayFor, easyDays, easyIndex, isEasyDay, loadDifficulty, saveDifficulty, type Difficulty } from './easycore';
@@ -124,10 +124,10 @@ const COMPACT_MAX = 600;
 const HELP_KEY = 'strokes:seen-help';
 
 /** The step line, when the Hint button is locked and tapped. */
-const EARN_HINT = 'Make a new word to earn a hint.';
+const EARN_HINT = `Use all ${STEP_LIMIT} strokes, or make a new word, to earn a hint.`;
 /** The Hint button's name and tooltip, as it stands (see hintGate); hardcore has a note instead. */
 const HINT_BUTTON: Record<Exclude<HintGate, 'none'>, { label: string; title: string }> = {
-  locked: { label: 'Hint, locked', title: 'Make a new word to earn a hint' },
+  locked: { label: 'Hint, locked', title: `Use all ${STEP_LIMIT} strokes, or make a new word, to earn a hint` },
   ready: { label: 'Hint, ready', title: 'A hint is ready for this step' },
   open: { label: 'Hint', title: "More of this step's hint" },
   shown: { label: 'Hint', title: "This step's hint is all shown" },
@@ -208,9 +208,14 @@ export function MazeApp() {
   const [hintsUsed, setHintsUsed] = useState(0);
   // A hint is earned: the start word comes with one, each new word made earns one (only one waits),
   // and a step's first ask uses it (see hintGate). So does a restart or a new puzzle (startOf).
+  // Running out of strokes earns one too, with none to ask for (earnOutOfStrokes).
   const [hintEarned, setHintEarned] = useState(START_HINT);
   const earnedRef = useRef(hintEarned);
   earnedRef.current = hintEarned;
+  // Out of strokes: whether that earned the hint (the step line says so), and whether a hint was
+  // asked for since, which the step line shows instead.
+  const [outEarned, setOutEarned] = useState(false);
+  const [askedOut, setAskedOut] = useState(false);
   const [defs, setDefs] = useState<Definitions | null>(null);
   /** A word in Your path whose definition is shown under it (tap a word to look it up). */
   const [peek, setPeek] = useState<string | null>(null);
@@ -664,6 +669,17 @@ export function MazeApp() {
       }
       setRefused(null);
       setNotice(null);
+      // The step's last stroke, and no word: that earns a hint when there's none to ask for.
+      if (history.length + 1 >= STEP_LIMIT) {
+        const h = hintRef.current;
+        const earns = earnOutOfStrokes(hintGate(earnedRef.current, h && h.room === room ? h.level : null, hardcore));
+        if (earns) {
+          earnedRef.current = true;
+          setHintEarned(true);
+        }
+        setOutEarned(earns);
+        setAskedOut(false);
+      }
       setHistory((h) => [...h, cells]);
       setCells(next);
       return true;
@@ -795,6 +811,8 @@ export function MazeApp() {
       if (!asked.shows) return;
       earnedRef.current = asked.earned;
       setHintEarned(asked.earned);
+      // Asked out of strokes: the step line shows the hint, not the out-of-strokes note.
+      if (locked) setAskedOut(true);
       const step = shown ? shown.step : hintStep(doorsOf!, room, puzzle.goal, visited);
       // The next word's meaning, as a clue (none when it has no definition, or they didn't load).
       const def = step && defs?.[step.next];
@@ -1259,17 +1277,19 @@ export function MazeApp() {
                 <CoachTip text={coach.text} point={coach.tip === 'dots' ? 'down' : 'up'} arrowX={lineArrow} onClose={coach.close} />
               </div>
             ) : (
-              <p aria-live="polite" className={`step-status${refused ? ' out' : hintText && !locked ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
+              <p aria-live="polite" className={`step-status${refused ? ' out' : hintText && (!locked || askedOut) ? ' hinted' : locked ? ' out' : justOpened ? ' opened' : ''}`}>
                 {refused
                   ? `Hard: ${refused} is off the lowest-stroke route.`
                   : notice
                   ? notice
-                  : hintText && !locked
+                  : hintText && (!locked || askedOut)
                   ? hintText
                   : sample
                   ? null
                   : locked
-                  ? 'Out of strokes for this step. Undo to try another way.'
+                  ? outEarned
+                    ? 'Out of strokes for this step: you earned a hint. Undo to try another way.'
+                    : 'Out of strokes for this step. Undo to try another way.'
                   : stepEdits
                     ? 'Keep going: land on a real word.'
                     : justOpened
