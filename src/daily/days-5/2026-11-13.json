@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-13",
+  "puzzle": {
+    "start": "POWER",
+    "goal": "OTTER",
+    "best": 13,
+    "path": [
+      "POWER",
+      "COWER",
+      "COVER",
+      "CODER",
+      "CIDER",
+      "OTTER"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "POWER",
+        "door": "ROVER",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "POWER",
+        "door": "LOVER",
+        "loses": 2,
+        "pocket": false
+      },
+      {
+        "at": "POWER",
+        "door": "LOWER",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.02
+  },
+  "inkPots": {
+    "pots": [
+      "ODDER",
+      "ROWER",
+      "LOVER"
+    ],
+    "best": 13,
+    "walk": [
+      "POWER",
+      "COWER",
+      "COVER",
+      "CODER",
+      "CIDER",
+      "OTTER"
+    ]
+  },
+  "onRoute": {
+    "CIDER": 10,
+    "CODER": 7,
+    "COVER": 4,
+    "COWER": 3,
+    "OTTER": 13,
+    "POWER": 0
+  },
+  "solve": {
+    "direction": "goal",
+    "texture": "leap"
+  }
+}
