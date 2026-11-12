@@ -1,0 +1,74 @@
+{
+  "date": "2026-11-14",
+  "puzzle": {
+    "start": "SHOCK",
+    "goal": "TRICK",
+    "best": 14,
+    "path": [
+      "SHOCK",
+      "CHOCK",
+      "CLOCK",
+      "CLICK",
+      "CRICK",
+      "TRICK"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 3,
+    "traps": [
+      {
+        "at": "CHICK",
+        "door": "THICK",
+        "loses": 6,
+        "pocket": true
+      },
+      {
+        "at": "SHOCK",
+        "door": "BLOCK",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "SHOCK",
+        "door": "SMOCK",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": true,
+    "parChance": 0.02
+  },
+  "inkPots": {
+    "pots": [
+      "CHICK",
+      "STICK",
+      "SMOCK"
+    ],
+    "best": 13,
+    "walk": [
+      "SHOCK",
+      "CHOCK",
+      "CHICK",
+      "CLICK",
+      "CRICK",
+      "TRICK"
+    ]
+  },
+  "onRoute": {
+    "CHICK": 6,
+    "CHOCK": 3,
+    "CLICK": 8,
+    "CLOCK": 5,
+    "CRICK": 11,
+    "CROCK": 8,
+    "SHOCK": 0,
+    "TRICK": 14
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "ladder"
+  }
+}
