@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-15",
+  "puzzle": {
+    "start": "CHILL",
+    "goal": "CHEER",
+    "best": 13,
+    "path": [
+      "CHILL",
+      "SHILL",
+      "SHELL",
+      "SHEEP",
+      "SHEER",
+      "CHEER"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "CHILL",
+        "door": "CHIDE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "CHILL",
+        "door": "GUILT",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "CHILL",
+        "door": "CHILD",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "CHEEP",
+      "CHILI",
+      "SMELL"
+    ],
+    "best": 12,
+    "walk": [
+      "CHILL",
+      "SHILL",
+      "SHELL",
+      "SHEEP",
+      "CHEEP",
+      "CHEER"
+    ]
+  },
+  "onRoute": {
+    "CHEEP": 12,
+    "CHEER": 13,
+    "CHILL": 0,
+    "SHEEP": 9,
+    "SHEER": 10,
+    "SHELL": 6,
+    "SHILL": 3
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "leap"
+  }
+}
