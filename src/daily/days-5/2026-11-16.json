@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-16",
+  "puzzle": {
+    "start": "PLEAT",
+    "goal": "DREAM",
+    "best": 13,
+    "path": [
+      "PLEAT",
+      "CLEAT",
+      "GREAT",
+      "CREAK",
+      "CREAM",
+      "DREAM"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 4,
+    "traps": [
+      {
+        "at": "CLEAT",
+        "door": "GLEAM",
+        "loses": 6,
+        "pocket": true
+      },
+      {
+        "at": "PLEAT",
+        "door": "PLEAD",
+        "loses": 3,
+        "pocket": false
+      },
+      {
+        "at": "PLEAT",
+        "door": "BLEAK",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": true,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "BLEAK",
+      "BREAD",
+      "CHEAT"
+    ],
+    "best": 12,
+    "walk": [
+      "PLEAT",
+      "BLEAK",
+      "BREAK",
+      "BREAD",
+      "DREAD",
+      "DREAM"
+    ]
+  },
+  "onRoute": {
+    "CLEAT": 3,
+    "CREAK": 9,
+    "CREAM": 11,
+    "DREAM": 13,
+    "GREAT": 6,
+    "PLEAT": 0
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "shuffle"
+  }
+}
