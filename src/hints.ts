@@ -1,8 +1,8 @@
 // Hints: the next new word on a cheapest remaining route to the goal, from the word the player is in
 // (going back to words already made first, if the route does: see hintStep).
 // Asked again in the same word, a hint shows a little more: the next word's meaning, then the
-// letters to change, then the word itself. The start word comes with one, and each new word made
-// earns one (see hintGate).
+// letters to change, then the word itself. The start word comes with one, each new word made earns
+// one, and so does running out of strokes on a step with none to ask for (see hintGate).
 
 import { STEP_LIMIT, wordDistance } from './strokes';
 import type { Def } from './components/maze/Definition';
@@ -226,9 +226,10 @@ export function hintSays(step: NextStep, level: HintLevel, meaning: string | nul
 
 // ---------- Earning a hint ----------
 // Hints are earned (the owner's call): each new word made earns one for the next step. They don't
-// stack, and going back to a word already visited (a free return) earns none. A step's first ask
-// uses it, and its later asks (the letters, then the word) come with it. Moving to another word
-// ends the step's hint. Hardcore has no hints, so nothing to earn.
+// stack, and going back to a word already visited (a free return) earns none. Running out of strokes
+// on a step without landing on a word earns one too, when there's none to ask for (earnOutOfStrokes).
+// A step's first ask uses it, and its later asks (the letters, then the word) come with it. Moving to
+// another word ends the step's hint. Hardcore has no hints, so nothing to earn.
 
 /**
  * The Hint button, in the word the player is in: none in hardcore; locked with nothing earned;
@@ -263,3 +264,13 @@ export function earnHint(earned: boolean, newWord: boolean, hardcore: boolean): 
   if (hardcore) return newWord ? false : earned;
   return earned || newWord;
 }
+
+/**
+ * Whether running out of strokes on a step (all STEP_LIMIT used, no word landed on) earns a hint: it
+ * does when the button is locked, with nothing to ask for (the owner's call). Only a free return
+ * locks it, after a hint was used elsewhere, so a player back in a word they're sure of needn't make
+ * a word they don't want (1–3 strokes) to earn one: trying here is enough. Strokes only count on
+ * landing on a word, so it costs nothing. Not with a hint waiting or this step's open, and never in
+ * hardcore (no button).
+ */
+export const earnOutOfStrokes = (gate: HintGate): boolean => gate === 'locked';

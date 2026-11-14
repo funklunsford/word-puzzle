@@ -115,7 +115,7 @@ export function HowToCard({ compact, firstVisit, canSample, sampled, easycore, d
               Scored like golf: an <strong>Ace</strong> is the fewest strokes possible.
             </li>
             <li>
-              You get a <strong>Hint</strong> at the start, and each new word earns one.
+              You get a <strong>Hint</strong> at the start. Each new word earns one, and so does using all of a step's strokes without finding a word.
             </li>
             {!easycore && (
               <li>
