@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-17",
+  "puzzle": {
+    "start": "SLIDE",
+    "goal": "CREPE",
+    "best": 15,
+    "path": [
+      "SLIDE",
+      "SLIME",
+      "CLIME",
+      "GRIME",
+      "GRIPE",
+      "CREPE"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "SLIDE",
+        "door": "SNIDE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SLIDE",
+        "door": "SPITE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SLIDE",
+        "door": "STILE",
+        "loses": 6,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "CRIME",
+      "SIDLE"
+    ],
+    "best": 15,
+    "walk": [
+      "SLIDE",
+      "SLIME",
+      "CLIME",
+      "GRIME",
+      "GRIPE",
+      "CREPE"
+    ]
+  },
+  "onRoute": {
+    "CLIME": 6,
+    "CREPE": 15,
+    "GRIME": 9,
+    "GRIPE": 12,
+    "SLIDE": 0,
+    "SLIME": 3
+  },
+  "solve": {
+    "direction": "goal",
+    "texture": "shuffle"
+  }
+}
