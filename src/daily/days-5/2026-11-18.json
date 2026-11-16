@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-18",
+  "puzzle": {
+    "start": "HUNCH",
+    "goal": "MARCH",
+    "best": 13,
+    "path": [
+      "HUNCH",
+      "HUTCH",
+      "HITCH",
+      "HATCH",
+      "MATCH",
+      "MARCH"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "HUTCH",
+        "door": "MULCH",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "HUNCH",
+        "door": "LUNCH",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "HUNCH",
+        "door": "MUNCH",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.07
+  },
+  "inkPots": {
+    "pots": [
+      "MUNCH"
+    ],
+    "best": 13,
+    "walk": [
+      "HUNCH",
+      "HUTCH",
+      "HITCH",
+      "HATCH",
+      "MATCH",
+      "MARCH"
+    ]
+  },
+  "onRoute": {
+    "HATCH": 8,
+    "HITCH": 5,
+    "HUNCH": 0,
+    "HUTCH": 3,
+    "MARCH": 13,
+    "MATCH": 10
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "ladder"
+  }
+}
