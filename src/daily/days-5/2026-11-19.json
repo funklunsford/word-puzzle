@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-19",
+  "puzzle": {
+    "start": "SLING",
+    "goal": "GLINT",
+    "best": 13,
+    "path": [
+      "SLING",
+      "STING",
+      "STINT",
+      "SLINK",
+      "CLINK",
+      "GLINT"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "STINT",
+        "door": "STUNT",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "SLING",
+        "door": "CLING",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.1
+  },
+  "inkPots": {
+    "pots": [
+      "STINK",
+      "CLANG",
+      "STUNG"
+    ],
+    "best": 12,
+    "walk": [
+      "SLING",
+      "STING",
+      "STINT",
+      "STINK",
+      "SLINK",
+      "CLINK",
+      "GLINT"
+    ]
+  },
+  "onRoute": {
+    "CLINK": 10,
+    "GLINT": 13,
+    "SLING": 0,
+    "SLINK": 7,
+    "STING": 1,
+    "STINK": 6,
+    "STINT": 4
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "leap"
+  }
+}
