@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-20",
+  "puzzle": {
+    "start": "STICK",
+    "goal": "PRANK",
+    "best": 15,
+    "path": [
+      "STICK",
+      "STACK",
+      "STALK",
+      "STANK",
+      "BLANK",
+      "PRANK"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "STACK",
+        "door": "BLACK",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "STACK",
+        "door": "SNACK",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "STACK",
+        "door": "SHACK",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "PLANK",
+      "SLACK",
+      "BRAND"
+    ],
+    "best": 15,
+    "walk": [
+      "STICK",
+      "STACK",
+      "STALK",
+      "STANK",
+      "BLANK",
+      "PRANK"
+    ]
+  },
+  "onRoute": {
+    "BLANK": 12,
+    "PRANK": 15,
+    "STACK": 3,
+    "STALK": 6,
+    "STANK": 9,
+    "STICK": 0
+  },
+  "solve": {
+    "direction": "start",
+    "texture": "shuffle"
+  }
+}
