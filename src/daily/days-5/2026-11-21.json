@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-21",
+  "puzzle": {
+    "start": "DRILL",
+    "goal": "TAPER",
+    "best": 15,
+    "path": [
+      "DRILL",
+      "DRIED",
+      "PRIED",
+      "PIPED",
+      "PIPER",
+      "PAPER",
+      "TAPER"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "DRILL",
+        "door": "KRILL",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "PRIED",
+        "door": "TRIED",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "DRIED",
+        "door": "DRIER",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "BIPED",
+      "DRIFT",
+      "BAKER"
+    ],
+    "best": 15,
+    "walk": [
+      "DRILL",
+      "DRIED",
+      "PRIED",
+      "PIPED",
+      "PIPER",
+      "PAPER",
+      "TAPER"
+    ]
+  },
+  "onRoute": {
+    "DRIED": 3,
+    "DRILL": 0,
+    "PAPER": 13,
+    "PIPED": 7,
+    "PIPER": 10,
+    "PRIED": 5,
+    "TAPER": 15
+  },
+  "solve": {
+    "direction": "middle",
+    "texture": "shuffle"
+  }
+}
