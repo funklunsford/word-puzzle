@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-22",
+  "puzzle": {
+    "start": "GRANT",
+    "goal": "PLANE",
+    "best": 13,
+    "path": [
+      "GRANT",
+      "GIANT",
+      "CLANK",
+      "PLANK",
+      "PLANT",
+      "PLANE"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "GIANT",
+        "door": "CHANT",
+        "loses": 4,
+        "pocket": true
+      },
+      {
+        "at": "GIANT",
+        "door": "GLAND",
+        "loses": 2,
+        "pocket": false
+      },
+      {
+        "at": "GRANT",
+        "door": "CRANE",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": true,
+    "parChance": 0.02
+  },
+  "inkPots": {
+    "pots": [
+      "IRATE",
+      "CRANE",
+      "GLAND"
+    ],
+    "best": 12,
+    "walk": [
+      "GRANT",
+      "CRANE",
+      "CRATE",
+      "IRATE",
+      "PLATE",
+      "PLANE"
+    ]
+  },
+  "onRoute": {
+    "CLANK": 5,
+    "GIANT": 2,
+    "GRANT": 0,
+    "PLANE": 13,
+    "PLANK": 8,
+    "PLANT": 10
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "leap"
+  }
+}
