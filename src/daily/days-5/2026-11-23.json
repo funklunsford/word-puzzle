@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-23",
+  "puzzle": {
+    "start": "SHAPE",
+    "goal": "STEEL",
+    "best": 15,
+    "path": [
+      "SHAPE",
+      "SHALL",
+      "SHILL",
+      "SHELL",
+      "SHEET",
+      "STEEL"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "SHALL",
+        "door": "SHAFT",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SHALL",
+        "door": "SHALE",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "SHALL",
+        "door": "SMALL",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "SHEEP",
+      "SHALE",
+      "SMELL"
+    ],
+    "best": 15,
+    "walk": [
+      "SHAPE",
+      "SHALL",
+      "SHILL",
+      "SHELL",
+      "SHEET",
+      "STEEL"
+    ]
+  },
+  "onRoute": {
+    "SHALL": 3,
+    "SHAPE": 0,
+    "SHEET": 12,
+    "SHELL": 9,
+    "SHILL": 6,
+    "STEEL": 15
+  },
+  "solve": {
+    "direction": "middle",
+    "texture": "shuffle"
+  }
+}
