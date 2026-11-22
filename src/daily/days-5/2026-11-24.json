@@ -1,0 +1,74 @@
+{
+  "date": "2026-11-24",
+  "puzzle": {
+    "start": "SPITE",
+    "goal": "TRUCE",
+    "best": 15,
+    "path": [
+      "SPITE",
+      "SPINE",
+      "BRINE",
+      "BRIDE",
+      "PRICE",
+      "TRUCE"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "SPITE",
+        "door": "SIDLE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SPITE",
+        "door": "SLIDE",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "SPITE",
+        "door": "SMITE",
+        "loses": 6,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "PRIDE",
+      "TRICE",
+      "SPICE"
+    ],
+    "best": 14,
+    "walk": [
+      "SPITE",
+      "SPINE",
+      "BRINE",
+      "BRIDE",
+      "PRIDE",
+      "PRICE",
+      "TRUCE"
+    ]
+  },
+  "onRoute": {
+    "BRIDE": 9,
+    "BRINE": 6,
+    "PRICE": 12,
+    "PRIDE": 10,
+    "SPINE": 3,
+    "SPITE": 0,
+    "TRUCE": 15
+  },
+  "solve": {
+    "direction": "middle",
+    "texture": "shuffle"
+  }
+}
