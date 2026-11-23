@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-25",
+  "puzzle": {
+    "start": "GRATE",
+    "goal": "CHIME",
+    "best": 13,
+    "path": [
+      "GRATE",
+      "GRAPE",
+      "GRIPE",
+      "GRIME",
+      "CLIME",
+      "CHIME"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "GRATE",
+        "door": "ORATE",
+        "loses": 3,
+        "pocket": false
+      },
+      {
+        "at": "GRATE",
+        "door": "CRATE",
+        "loses": 1,
+        "pocket": false
+      },
+      {
+        "at": "GRATE",
+        "door": "GRADE",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.03
+  },
+  "inkPots": {
+    "pots": [
+      "CRIME",
+      "GRADE"
+    ],
+    "best": 13,
+    "walk": [
+      "GRATE",
+      "GRAPE",
+      "GRIPE",
+      "GRIME",
+      "CLIME",
+      "CHIME"
+    ]
+  },
+  "onRoute": {
+    "CHIME": 13,
+    "CLIME": 11,
+    "GRAPE": 2,
+    "GRATE": 0,
+    "GRIME": 8,
+    "GRIPE": 5
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "leap"
+  }
+}
