@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-26",
+  "puzzle": {
+    "start": "COUCH",
+    "goal": "PATCH",
+    "best": 14,
+    "path": [
+      "COUCH",
+      "CONCH",
+      "CINCH",
+      "PINCH",
+      "PITCH",
+      "PATCH"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "CONCH",
+        "door": "COUGH",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "COUCH",
+        "door": "DOUGH",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "COUCH",
+        "door": "POUCH",
+        "loses": 6,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.04
+  },
+  "inkPots": {
+    "pots": [
+      "COUGH",
+      "PUNCH"
+    ],
+    "best": 14,
+    "walk": [
+      "COUCH",
+      "CONCH",
+      "CINCH",
+      "PINCH",
+      "PITCH",
+      "PATCH"
+    ]
+  },
+  "onRoute": {
+    "CINCH": 5,
+    "CONCH": 2,
+    "COUCH": 0,
+    "PATCH": 14,
+    "PINCH": 8,
+    "PITCH": 11
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "ladder"
+  }
+}
