@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-27",
+  "puzzle": {
+    "start": "CRAFT",
+    "goal": "CLIFF",
+    "best": 15,
+    "path": [
+      "CRAFT",
+      "GRAIL",
+      "GRADE",
+      "GLADE",
+      "GLIDE",
+      "CLIFF"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "GRAIL",
+        "door": "GRAFT",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "GRAIL",
+        "door": "GRILL",
+        "loses": 6,
+        "pocket": false
+      },
+      {
+        "at": "CRAFT",
+        "door": "DRAFT",
+        "loses": 4,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0
+  },
+  "inkPots": {
+    "pots": [
+      "GRAFT",
+      "GRAPE"
+    ],
+    "best": 15,
+    "walk": [
+      "CRAFT",
+      "GRAIL",
+      "GRADE",
+      "GLADE",
+      "GLIDE",
+      "CLIFF"
+    ]
+  },
+  "onRoute": {
+    "CLIFF": 15,
+    "CRAFT": 0,
+    "GLADE": 9,
+    "GLIDE": 12,
+    "GRADE": 6,
+    "GRAIL": 3
+  },
+  "solve": {
+    "direction": "goal",
+    "texture": "shuffle"
+  }
+}
