@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-28",
+  "puzzle": {
+    "start": "PAGER",
+    "goal": "MINER",
+    "best": 14,
+    "path": [
+      "PAGER",
+      "LAGER",
+      "LATER",
+      "LITER",
+      "LINER",
+      "MINER"
+    ]
+  },
+  "need": "letter",
+  "tricky": true,
+  "difficulty": {
+    "depth": 4,
+    "pocketsBeside": 0,
+    "traps": [
+      {
+        "at": "PAGER",
+        "door": "RACER",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "LAGER",
+        "door": "LAYER",
+        "loses": 2,
+        "pocket": false
+      },
+      {
+        "at": "PAGER",
+        "door": "PACER",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.01
+  },
+  "inkPots": {
+    "pots": [
+      "MITER",
+      "PALER",
+      "FINER"
+    ],
+    "best": 13,
+    "walk": [
+      "PAGER",
+      "LAGER",
+      "LATER",
+      "LITER",
+      "MITER",
+      "MINER"
+    ]
+  },
+  "onRoute": {
+    "LAGER": 2,
+    "LATER": 5,
+    "LINER": 11,
+    "LITER": 8,
+    "MINER": 14,
+    "MITER": 11,
+    "PAGER": 0
+  },
+  "solve": {
+    "direction": "goal",
+    "texture": "ladder"
+  }
+}
