@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-29",
+  "puzzle": {
+    "start": "SLEET",
+    "goal": "SHRED",
+    "best": 12,
+    "path": [
+      "SLEET",
+      "SLEEP",
+      "SPEED",
+      "SPIED",
+      "SIRED",
+      "SHRED"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 3,
+    "pocketsBeside": 1,
+    "traps": [
+      {
+        "at": "SLEEP",
+        "door": "SHEER",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "SLEEP",
+        "door": "SHEEP",
+        "loses": 3,
+        "pocket": false
+      },
+      {
+        "at": "SLEEP",
+        "door": "STEEP",
+        "loses": 1,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.07
+  },
+  "inkPots": {
+    "pots": [
+      "STEED",
+      "SHILL",
+      "SHEEP"
+    ],
+    "best": 11,
+    "walk": [
+      "SLEET",
+      "STEED",
+      "SPEED",
+      "SPIED",
+      "SIRED",
+      "SHRED"
+    ]
+  },
+  "onRoute": {
+    "SHRED": 12,
+    "SIRED": 10,
+    "SLEEP": 2,
+    "SLEET": 0,
+    "SPEED": 5,
+    "SPIED": 8,
+    "STEED": 3
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "shuffle"
+  }
+}
