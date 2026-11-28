@@ -1,0 +1,76 @@
+{
+  "date": "2026-11-30",
+  "puzzle": {
+    "start": "GLEAN",
+    "goal": "BREAD",
+    "best": 14,
+    "path": [
+      "GLEAN",
+      "CLEAT",
+      "GREAT",
+      "TREAT",
+      "TREAD",
+      "BREAD"
+    ]
+  },
+  "need": "stone",
+  "tricky": true,
+  "difficulty": {
+    "depth": 2,
+    "pocketsBeside": 3,
+    "traps": [
+      {
+        "at": "GREAT",
+        "door": "CREAK",
+        "loses": 5,
+        "pocket": false
+      },
+      {
+        "at": "BLEAT",
+        "door": "PLEAD",
+        "loses": 4,
+        "pocket": false
+      },
+      {
+        "at": "GLEAN",
+        "door": "GLEAM",
+        "loses": 2,
+        "pocket": false
+      }
+    ],
+    "pocketTrap": false,
+    "parChance": 0.02
+  },
+  "inkPots": {
+    "pots": [
+      "BLEAK",
+      "CLEAN",
+      "CHEAT"
+    ],
+    "best": 13,
+    "walk": [
+      "GLEAN",
+      "CLEAT",
+      "PLEAT",
+      "BLEAK",
+      "BREAK",
+      "BREAD"
+    ]
+  },
+  "onRoute": {
+    "BLEAK": 9,
+    "BLEAT": 7,
+    "BREAD": 14,
+    "BREAK": 12,
+    "CLEAT": 3,
+    "GLEAN": 0,
+    "GREAT": 6,
+    "PLEAT": 6,
+    "TREAD": 11,
+    "TREAT": 9
+  },
+  "solve": {
+    "direction": "either",
+    "texture": "leap"
+  }
+}
